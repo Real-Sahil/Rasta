@@ -236,6 +236,94 @@ function MainApp() {
     };
   }, [isLiveTracking, isNavigatingLive]);
 
+  const [gpsToast, setGpsToast] = useState<string | null>(null);
+  const [osrmRoutes, setOsrmRoutes] = useState<RouteOption[] | null>(null);
+
+  const handleCalibrateGps = () => {
+    if (!('geolocation' in navigator)) {
+      setGpsToast(isRtl ? 'جیو لوکیشن براؤزر میں دستیاب نہیں' : 'Geolocation not supported in browser');
+      setTimeout(() => setGpsToast(null), 3500);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+        setCenter(coords);
+        setZoom(17);
+        setGpsToast(
+          isRtl
+            ? `GPS درستگی بحال: [${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}]`
+            : `GPS High-Accuracy Fixed: [${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}]`
+        );
+        setTimeout(() => setGpsToast(null), 4500);
+      },
+      (err) => {
+        console.warn('GPS calibration error:', err);
+        setGpsToast(isRtl ? 'GPS سگنل نہیں مل سکا - ڈیفالٹ لاہور استعمال ہو رہا ہے' : 'GPS signal weak - using default Lahore center');
+        setTimeout(() => setGpsToast(null), 4500);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  };
+
+  // Fetch real OSRM road routes when online with fallback to high-precision local generator
+  useEffect(() => {
+    if (!destination) {
+      setOsrmRoutes(null);
+      return;
+    }
+    const startLat = origin ? origin.lat : fixedRouteStartLocation.lat;
+    const startLng = origin ? origin.lng : fixedRouteStartLocation.lng;
+
+    let isMounted = true;
+    async function fetchOsrm() {
+      try {
+        const profile = travelMode === 'WALKING' ? 'foot' : travelMode === 'TWO_WHEELER' ? 'bike' : 'driving';
+        const res = await fetch(
+          `https://router.project-osrm.org/route/v1/${profile}/${startLng},${startLat};${destination!.lng},${destination!.lat}?overview=full&geometries=geojson&steps=true`,
+          { signal: AbortSignal.timeout(4000) }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.routes && data.routes.length > 0 && isMounted) {
+            const mapped: RouteOption[] = data.routes.map((r: any, idx: number) => ({
+              id: `osrm_route_${idx}`,
+              title: idx === 0 ? 'Fastest Real-Time Route (OSRM)' : `Alternative Route ${idx + 1}`,
+              titleUrdu: idx === 0 ? 'تیز ترین اصل روٹ (OSRM)' : `متبادل راستہ ${idx + 1}`,
+              via: `Via Optimized Road Corridor (${Math.round(r.distance / 1000)} km)`,
+              viaUrdu: `بہترین روڈ کوریڈور (${Math.round(r.distance / 1000)} کلومیٹر)`,
+              distanceKm: Number((r.distance / 1000).toFixed(1)),
+              durationMinutes: Math.max(2, Math.round(r.duration / 60)),
+              trafficStatus: idx === 0 ? 'normal' : 'moderate',
+              hasTolls: false,
+              isRecommended: idx === 0,
+              steps: r.legs[0].steps.map((s: any) => ({
+                instruction: s.maneuver.instruction || 'Continue on route',
+                instructionUrdu: s.maneuver.instruction || 'راستے پر آگے بڑھیں',
+                distanceMeters: Math.round(s.distance),
+                durationSeconds: Math.round(s.duration),
+                maneuver: s.maneuver.type || 'straight'
+              })),
+              pathCoordinates: r.geometry.coordinates.map((coord: [number, number]) => ({
+                lat: coord[1],
+                lng: coord[0]
+              }))
+            }));
+            setOsrmRoutes(mapped);
+          }
+        }
+      } catch (err) {
+        console.warn('OSRM network fetch notice (using high-precision local fallback):', err);
+        if (isMounted) setOsrmRoutes(null);
+      }
+    }
+
+    fetchOsrm();
+    return () => {
+      isMounted = false;
+    };
+  }, [destination?.id, origin?.id, fixedRouteStartLocation.lat, fixedRouteStartLocation.lng, travelMode]);
 
   // Update center when city is changed
   const handleCityChange = (city: string) => {
@@ -255,7 +343,7 @@ function MainApp() {
   };
 
   // Generate realistic route alternatives between origin/user and destination based on travelMode
-  const generatedRoutes = useMemo((): RouteOption[] => {
+  const localGeneratedRoutes = useMemo((): RouteOption[] => {
     if (!destination) return [];
 
     const startLat = origin ? origin.lat : fixedRouteStartLocation.lat;
@@ -577,6 +665,8 @@ function MainApp() {
     ];
   }, [destination?.id, origin?.id, fixedRouteStartLocation.lat, fixedRouteStartLocation.lng, travelMode]);
 
+  const generatedRoutes = osrmRoutes && osrmRoutes.length > 0 ? osrmRoutes : localGeneratedRoutes;
+
   const [activeRoute, setActiveRoute] = useState<RouteOption | null>(null);
 
   useEffect(() => {
@@ -757,6 +847,14 @@ function MainApp() {
         </div>
       )}
 
+      {/* GPS Calibration Toast Notification */}
+      {gpsToast && (
+        <div className="bg-sky-600 text-white text-xs font-bold px-4 py-2 text-center shadow-md animate-fade-in flex items-center justify-center gap-2 z-40">
+          <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+          <span>{gpsToast}</span>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
         {/* Interactive Map Section */}
@@ -881,6 +979,17 @@ function MainApp() {
               </div>
             </div>
           )}
+
+          {/* Calibrate High-Accuracy GPS Button */}
+          <button
+            type="button"
+            onClick={handleCalibrateGps}
+            className="absolute bottom-4 left-4 z-20 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl shadow-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer"
+            title="Calibrate High-Accuracy GPS Fix"
+          >
+            <Compass className="w-4 h-4" />
+            <span>{isRtl ? 'جی پی ایس درست کریں' : 'Calibrate GPS'}</span>
+          </button>
 
           {/* Floating Live GPS Tracking & Recenter Button */}
           <button
