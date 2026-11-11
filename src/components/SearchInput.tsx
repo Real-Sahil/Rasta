@@ -279,26 +279,42 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       {/* Dropdown Suggestions */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-96 overflow-y-auto z-50">
-          {/* Quick chips when input is empty */}
-          {query.trim() === '' && (
-            <div className="p-3 bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">
-                {isUrdu ? 'لاہور کے اہم چوک اور مقامات' : 'Popular Lahore Hubs'}
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {POPULAR_LOCATIONS.slice(0, 4).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleSelect(item)}
-                    className="px-2.5 py-1 text-xs rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-600 transition-colors"
-                  >
-                    {isUrdu ? item.nameUrdu : item.name}
-                  </button>
-                ))}
+          {/* Time-of-Day Optimized Top Destinations */}
+          {query.trim() === '' && (() => {
+            const hour = new Date().getHours();
+            const timeInfo = hour >= 6 && hour < 12
+              ? { en: '🌅 Morning Commute Hubs', ur: '🌅 صبح کے مصروف ترین راستے', locs: POPULAR_LOCATIONS.slice(0, 4) }
+              : hour >= 12 && hour < 17
+              ? { en: '☀️ Afternoon Commercial Hubs', ur: '☀️ دوپہر کے تجارتی مراکز', locs: [POPULAR_LOCATIONS[1], POPULAR_LOCATIONS[3], POPULAR_LOCATIONS[0]] }
+              : hour >= 17 && hour < 22
+              ? { en: '🌙 Evening Markets & Recreation', ur: '🌙 شام کی خریداری و تفریح', locs: [POPULAR_LOCATIONS[2], POPULAR_LOCATIONS[0], POPULAR_LOCATIONS[4] || POPULAR_LOCATIONS[1]] }
+              : { en: '🌌 Late Night Transit & Airport', ur: '🌌 رات کے ٹرانسپورٹ و ایئرپورٹ', locs: [POPULAR_LOCATIONS[0], POPULAR_LOCATIONS[2], POPULAR_LOCATIONS[1]] };
+
+            return (
+              <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 border-b border-emerald-100 dark:border-emerald-900/50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
+                    {isUrdu ? timeInfo.ur : timeInfo.en}
+                  </span>
+                  <span className="text-[10px] bg-emerald-200/60 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-1.5 py-0.5 rounded font-semibold">
+                    {isUrdu ? 'وقت کے لحاظ سے' : 'Time-Optimized'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {timeInfo.locs.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleSelect(item)}
+                      className="px-2.5 py-1 text-xs rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-emerald-200 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-600 transition-colors shadow-xs"
+                    >
+                      {isUrdu ? item.nameUrdu : item.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Local Matches */}
           {localMatches.length > 0 && (

@@ -102,6 +102,54 @@ const FREE_ARCGIS_SATELLITE_STYLE: maplibregl.StyleSpecification = {
   ]
 };
 
+// High-Contrast Satellite for daytime visibility
+const SATELLITE_HIGH_CONTRAST_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    'satellite-hc': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      ],
+      tileSize: 256,
+      attribution: '© Esri World Imagery (High-Contrast)'
+    }
+  },
+  layers: [
+    {
+      id: 'satellite-hc-layer',
+      type: 'raster',
+      source: 'satellite-hc',
+      minzoom: 0,
+      maxzoom: 19
+    }
+  ]
+};
+
+// Greyscale Minimalist for reduced eye strain during night driving
+const GREYSCALE_MINIMALIST_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    'greyscale-osm': {
+      type: 'raster',
+      tiles: [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+      ],
+      tileSize: 256,
+      attribution: '© Esri Greyscale Minimalist'
+    }
+  },
+  layers: [
+    {
+      id: 'greyscale-layer',
+      type: 'raster',
+      source: 'greyscale-osm',
+      minzoom: 0,
+      maxzoom: 19
+    }
+  ]
+};
+
 // OpenFreeMap Vector Styles (100% Free, Zero Keys, Zero Watermarks)
 const OPENFREEMAP_LIBERTY_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 const OPENFREEMAP_BRIGHT_STYLE = 'https://tiles.openfreemap.org/styles/bright';
@@ -123,11 +171,24 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<{ [key: string]: maplibregl.Marker }>({});
-  const [styleMode, setStyleMode] = useState<'liberty' | 'bright' | 'arcgis' | 'satellite'>('liberty');
+  const [styleMode, setStyleMode] = useState<'liberty' | 'bright' | 'arcgis' | 'satellite' | 'satellite-high-contrast' | 'greyscale-minimalist'>('liberty');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [webGlSupported, setWebGlSupported] = useState(true);
 
-  const getStyleSpec = (mode: 'liberty' | 'bright' | 'arcgis' | 'satellite') => {
+  // Layer Control Toggles
+  const [showIncidentsLayer, setShowIncidentsLayer] = useState(true);
+  const [showTransitLayer, setShowTransitLayer] = useState(true);
+  const [showRouteLayer, setShowRouteLayer] = useState(true);
+  const [showHeatmapLayer, setShowHeatmapLayer] = useState(true);
+  const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
+
+  const filteredMarkers = markers.filter((m) => {
+    if (m.type === 'incident' && !showIncidentsLayer) return false;
+    if (m.type === 'transit_station' && !showTransitLayer) return false;
+    return true;
+  });
+
+  const getStyleSpec = (mode: string) => {
     switch (mode) {
       case 'bright':
         return OPENFREEMAP_BRIGHT_STYLE;
@@ -135,6 +196,10 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         return FREE_ARCGIS_STREETS_STYLE;
       case 'satellite':
         return FREE_ARCGIS_SATELLITE_STYLE;
+      case 'satellite-high-contrast':
+        return SATELLITE_HIGH_CONTRAST_STYLE;
+      case 'greyscale-minimalist':
+        return GREYSCALE_MINIMALIST_STYLE;
       case 'liberty':
       default:
         return OPENFREEMAP_LIBERTY_STYLE;
@@ -255,7 +320,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
     if (!map) return;
 
     // Clear obsolete markers
-    const currentMarkerIds = new Set(markers.map((m) => m.id));
+    const currentMarkerIds = new Set(filteredMarkers.map((m) => m.id));
     Object.keys(markersRef.current).forEach((id) => {
       if (!currentMarkerIds.has(id)) {
         markersRef.current[id].remove();
@@ -264,7 +329,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
     });
 
     // Render / update markers
-    markers.forEach((markerData) => {
+    filteredMarkers.forEach((markerData) => {
       let existingMarker = markersRef.current[markerData.id];
 
       if (!existingMarker) {
@@ -275,8 +340,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
           // Dynamic GPS Vehicle / User Icon with heading orientation
           el.innerHTML = `
             <div class="relative flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2">
-              <span class="animate-radar-glow absolute inline-flex h-16 w-16 rounded-full bg-emerald-400 opacity-60"></span>
-              <span class="animate-ping absolute inline-flex h-10 w-10 rounded-full bg-emerald-500 opacity-75"></span>
+              ${showHeatmapLayer ? '<span class="animate-radar-glow absolute inline-flex h-16 w-16 rounded-full bg-emerald-400 opacity-60"></span><span class="animate-ping absolute inline-flex h-10 w-10 rounded-full bg-emerald-500 opacity-75"></span>' : ''}
               <div class="relative z-10 w-7 h-7 rounded-full bg-emerald-600 border-2 border-white shadow-xl flex items-center justify-center text-white ring-2 ring-emerald-300">
                 <svg class="w-4 h-4 fill-current transform rotate-45" viewBox="0 0 24 24">
                   <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
@@ -334,7 +398,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         existingMarker.setLngLat([markerData.lng, markerData.lat]);
       }
     });
-  }, [markers, isRtl, onMarkerClick]);
+  }, [filteredMarkers, isRtl, onMarkerClick, showHeatmapLayer]);
 
   // Update Route Polyline Layer
   useEffect(() => {
@@ -345,7 +409,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
     const casingLayerId = 'rasta-route-casing';
     const lineLayerId = 'rasta-route-line';
 
-    if (route && route.coordinates && route.coordinates.length > 1) {
+    if (route && route.coordinates && route.coordinates.length > 1 && showRouteLayer) {
       const geojson = {
         type: 'Feature' as const,
         properties: {},
@@ -411,13 +475,20 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
       if (map.getLayer(casingLayerId)) map.removeLayer(casingLayerId);
       if (map.getSource(sourceId)) map.removeSource(sourceId);
     }
-  }, [route, mapLoaded, isNavigatingLive]);
+  }, [route, mapLoaded, isNavigatingLive, showRouteLayer]);
 
   // Style switcher
   const toggleStyle = () => {
     const map = mapRef.current;
     if (!map) return;
-    const modes: ('liberty' | 'bright' | 'arcgis' | 'satellite')[] = ['liberty', 'bright', 'arcgis', 'satellite'];
+    const modes: ('liberty' | 'bright' | 'arcgis' | 'satellite' | 'satellite-high-contrast' | 'greyscale-minimalist')[] = [
+      'liberty',
+      'bright',
+      'arcgis',
+      'satellite',
+      'satellite-high-contrast',
+      'greyscale-minimalist'
+    ];
     const nextIdx = (modes.indexOf(styleMode) + 1) % modes.length;
     const nextMode = modes[nextIdx];
     setStyleMode(nextMode);
@@ -475,11 +546,72 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
           isRtl ? 'left-4' : 'right-4'
         } z-10 flex flex-col gap-2 items-center`}
       >
+        {/* Layer Control Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
+            className="bg-white/95 dark:bg-slate-900/95 backdrop-blur text-slate-800 dark:text-slate-100 p-2.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Toggle Map Data Layers"
+          >
+            <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="hidden sm:inline">Layers</span>
+          </button>
+
+          {isLayerMenuOpen && (
+            <div className={`absolute ${isRtl ? 'left-full ml-2' : 'right-full mr-2'} top-0 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3 z-50 space-y-2.5`}>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Map Data Layers</span>
+                <button onClick={() => setIsLayerMenuOpen(false)} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>
+              </div>
+
+              <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg">
+                <span className="flex items-center gap-2">⚠️ Incident Pins</span>
+                <input
+                  type="checkbox"
+                  checked={showIncidentsLayer}
+                  onChange={(e) => setShowIncidentsLayer(e.target.checked)}
+                  className="rounded accent-emerald-600 w-4 h-4"
+                />
+              </label>
+
+              <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg">
+                <span className="flex items-center gap-2">🚇 Transit Stations</span>
+                <input
+                  type="checkbox"
+                  checked={showTransitLayer}
+                  onChange={(e) => setShowTransitLayer(e.target.checked)}
+                  className="rounded accent-emerald-600 w-4 h-4"
+                />
+              </label>
+
+              <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg">
+                <span className="flex items-center gap-2">📍 Route Polyline</span>
+                <input
+                  type="checkbox"
+                  checked={showRouteLayer}
+                  onChange={(e) => setShowRouteLayer(e.target.checked)}
+                  className="rounded accent-emerald-600 w-4 h-4"
+                />
+              </label>
+
+              <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg">
+                <span className="flex items-center gap-2">🔥 Heatmap / Radiance</span>
+                <input
+                  type="checkbox"
+                  checked={showHeatmapLayer}
+                  onChange={(e) => setShowHeatmapLayer(e.target.checked)}
+                  className="rounded accent-emerald-600 w-4 h-4"
+                />
+              </label>
+            </div>
+          )}
+        </div>
+
         {/* Style Switcher */}
         <button
           onClick={toggleStyle}
           className="bg-white/95 dark:bg-slate-900/95 backdrop-blur text-slate-800 dark:text-slate-100 p-2.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-          title="Cycle Map Styles (OpenFreeMap Liberty / Bright / ArcGIS Streets / Satellite)"
+          title="Cycle Map Styles (Liberty / Bright / ArcGIS / Satellite HC / Greyscale Minimalist)"
         >
           <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span className="hidden sm:inline">
@@ -489,7 +621,11 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
               ? 'Bright Vector'
               : styleMode === 'arcgis'
               ? 'ArcGIS Streets'
-              : 'Satellite'}
+              : styleMode === 'satellite'
+              ? 'Satellite'
+              : styleMode === 'satellite-high-contrast'
+              ? 'Satellite High-Contrast'
+              : 'Greyscale Minimalist'}
           </span>
         </button>
 

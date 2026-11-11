@@ -34,6 +34,10 @@ import { TrafficIncidents } from './components/TrafficIncidents';
 import { EmergencyServices } from './components/EmergencyServices';
 import { OfflineManager } from './components/OfflineManager';
 import { QuotaWarningBanner } from './components/QuotaWarningBanner';
+import { LandingGatekeeper } from './components/LandingGatekeeper';
+import { MobilityAlertsHub } from './components/MobilityAlertsHub';
+import { fetchCityAqi, CityAqiData } from './services/aqiService';
+import { fetchCityWeather, WeatherData } from './services/weatherService';
 import { incidentSyncService, SyncStatusInfo } from './services/incidentSyncService';
 
 import {
@@ -101,6 +105,15 @@ function MainApp() {
   const hasGoogleKey = Boolean(apiKey && apiKey.trim() !== '' && !apiKey.includes('MY_'));
 
   const [currentCity, setCurrentCity] = useState('lahore');
+  const [aqiData, setAqiData] = useState<CityAqiData | null>(null);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+
+  useEffect(() => {
+    fetchCityAqi(currentCity).then(res => setAqiData(res));
+    fetchCityWeather(currentCity).then(res => setWeatherData(res));
+  }, [currentCity]);
+
+
 
   // Navigation Panel Tab Selection
   const [activeTab, setActiveTab] = useState<'navigate' | 'multimodal' | 'transit' | 'incidents' | 'emergency' | 'offline'>('navigate');
@@ -146,6 +159,21 @@ function MainApp() {
     pendingSyncCount: 0
   });
   const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
+
+  const nearbyHotspot = useMemo(() => {
+    const refLoc = isNavigatingLive && vehicleLocation ? vehicleLocation : userLocation;
+    if (!refLoc || incidents.length === 0) return null;
+
+    for (const inc of incidents) {
+      if (inc.category === 'roadblock' || inc.category === 'accident' || inc.category === 'flooding') {
+        const distKm = Math.sqrt(Math.pow(inc.lat - refLoc.lat, 2) + Math.pow(inc.lng - refLoc.lng, 2)) * 111;
+        if (distKm <= 2.0) {
+          return { incident: inc, distanceKm: distKm };
+        }
+      }
+    }
+    return null;
+  }, [userLocation, vehicleLocation, isNavigatingLive, incidents]);
 
   // Initialize IndexedDB cache and background sync listener
   useEffect(() => {
@@ -706,6 +734,9 @@ function MainApp() {
       {/* Tier 2 Demo Key Quota Warning Banner (Skill Requirement) */}
       <QuotaWarningBanner />
 
+      {/* First-Visit Gatekeeper Landing Page */}
+      <LandingGatekeeper onLaunchMap={() => {}} />
+
       {/* Primary Header */}
       <Header
         currentCity={currentCity}
@@ -750,49 +781,18 @@ function MainApp() {
             />
           </div>
 
-          {/* Engine Indicator Floating HUD */}
-          <div className="absolute bottom-4 left-4 z-20 flex flex-col gap-1.5 pointer-events-auto">
-            <div className="bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-lg border border-slate-700/80 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>{isRtl ? 'راستہ ایچ ڈی میپ انجن • ۱۰۰٪ مفت' : 'Rasta HD Map Engine • 100% Free'}</span>
-            </div>
-          </div>
 
-          {/* Active Speed Camera / Police Naka Radar Warning Banner */}
-          {isNavigatingLive && activeCameraRadar && (
-            <div className="absolute top-20 left-3 right-3 lg:left-4 lg:w-[440px] z-30 animate-bounce pointer-events-none">
-              <div className="bg-amber-600/95 backdrop-blur-md text-white rounded-2xl p-3 shadow-2xl border-2 border-amber-300 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-white text-amber-800 flex items-center justify-center font-black shrink-0 shadow">
-                    ⚡
-                  </div>
-                  <div>
-                    <h5 className="font-black text-xs sm:text-sm">
-                      {isRtl ? activeCameraRadar.nameUrdu : activeCameraRadar.name}
-                    </h5>
-                    <p className="text-[10px] text-amber-100 font-bold">
-                      {isRtl ? `اسپیڈ لمیٹ: ${activeCameraRadar.limit} کلومیٹر/گھنٹہ` : `Speed Limit: ${activeCameraRadar.limit} km/h • Automated Radar Active`}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* Monsoon Flood Bypasses Warning Banner */}
-          {isMonsoonMode && (
-            <div className="absolute bottom-16 left-4 right-4 lg:left-auto lg:right-4 lg:w-[380px] z-20 bg-cyan-950/95 backdrop-blur-md text-cyan-200 border border-cyan-500/60 p-3 rounded-xl shadow-2xl text-xs space-y-1 pointer-events-auto">
-              <div className="flex items-center gap-2 font-black text-cyan-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-                <span>{isRtl ? 'مون سون فلڈ بائی پاس فعال' : 'Monsoon Flood Bypasses Active'}</span>
-              </div>
-              <p className="text-[11px] text-cyan-100">
-                {isRtl
-                  ? 'نشیبی انڈرپاسز (کلمہ چوک، فردوس مارکیٹ) میں پانی کے جمع ہونے سے بچنے کے لیے خودکار طور پر اوپری سروس روڈ کا انتخاب کیا گیا ہے۔'
-                  : 'Low-lying underpasses (Kalma Chowk, Firdous Market) waterlogging risk. Automatically routing via surface slip roads.'}
-              </p>
-            </div>
-          )}
+          {/* Consolidated Mobility Alerts Hub (Weather, AQI, Radars, Hotspots) */}
+          <MobilityAlertsHub
+            aqiData={aqiData}
+            weatherData={weatherData}
+            isMonsoonMode={isMonsoonMode}
+            activeCameraRadar={activeCameraRadar}
+            nearbyHotspot={nearbyHotspot}
+            isRtl={isRtl}
+            onFocusIncident={handleFocusIncident}
+          />
 
           {/* Real-Time Driving Navigation HUD Floating Over Map */}
           {isNavigatingLive && activeRoute && activeRoute.steps[currentStepIndex] && (
@@ -904,56 +904,60 @@ function MainApp() {
           </button>
 
           {/* Map Rendering Container */}
-          <MapLibreProviderAdapter
-              center={center}
-              zoom={zoom}
-              isRtl={isRtl}
-              travelMode={travelMode}
-              heading={vehicleHeading}
-              isNavigatingLive={isNavigatingLive}
-              markers={[
-                ...(isNavigatingLive && vehicleLocation
-                  ? [{
-                      id: 'user_loc',
-                      lat: vehicleLocation.lat,
-                      lng: vehicleLocation.lng,
-                      title: 'Vehicle',
-                      titleUrdu: 'گاڑی',
-                      heading: vehicleHeading,
-                      type: 'user' as const
-                    }]
-                  : userLocation
-                  ? [{
-                      id: 'user_loc',
-                      lat: userLocation.lat,
-                      lng: userLocation.lng,
-                      title: 'My Position',
-                      titleUrdu: 'میرا مقام',
-                      heading: vehicleHeading,
-                      type: 'user' as const
-                    }]
-                  : []),
-                ...(destination
-                  ? [{
-                      id: 'dest_loc',
-                      lat: destination.lat,
-                      lng: destination.lng,
-                      title: destination.name,
-                      titleUrdu: destination.nameUrdu,
-                      type: 'destination' as const
-                    }]
-                  : []),
-                ...incidents.map((inc) => ({
-                  id: inc.id,
-                  lat: inc.lat,
-                  lng: inc.lng,
-                  title: inc.title,
-                  titleUrdu: inc.titleUrdu,
-                  type: 'incident' as const,
-                  category: inc.category,
-                  incidentData: inc
-                }))
-              ]}
+          {(() => {
+            const memoizedMarkers = useMemo(() => [
+              ...(isNavigatingLive && vehicleLocation
+                ? [{
+                    id: 'user_loc',
+                    lat: vehicleLocation.lat,
+                    lng: vehicleLocation.lng,
+                    title: 'Vehicle',
+                    titleUrdu: 'گاڑی',
+                    heading: vehicleHeading,
+                    type: 'user' as const
+                  }]
+                : userLocation
+                ? [{
+                    id: 'user_loc',
+                    lat: userLocation.lat,
+                    lng: userLocation.lng,
+                    title: 'My Position',
+                    titleUrdu: 'میرا مقام',
+                    heading: vehicleHeading,
+                    type: 'user' as const
+                  }]
+                : []),
+              ...(destination
+                ? [{
+                    id: 'dest_loc',
+                    lat: destination.lat,
+                    lng: destination.lng,
+                    title: destination.name,
+                    titleUrdu: destination.nameUrdu,
+                    type: 'destination' as const
+                  }]
+                : []),
+              ...incidents.map((inc) => ({
+                id: inc.id,
+                lat: inc.lat,
+                lng: inc.lng,
+                title: inc.title,
+                titleUrdu: inc.titleUrdu,
+                type: 'incident' as const,
+                category: inc.category,
+                incidentData: inc
+              }))
+            ], [isNavigatingLive, vehicleLocation, userLocation, vehicleHeading, destination, incidents]);
+
+            return (
+              <MapLibreProviderAdapter
+                center={center}
+                zoom={zoom}
+                isRtl={isRtl}
+                travelMode={travelMode}
+                heading={vehicleHeading}
+                isNavigatingLive={isNavigatingLive}
+                markers={memoizedMarkers}
               route={
                 activeRoute
                   ? {
@@ -980,6 +984,8 @@ function MainApp() {
                 }
               }}
             />
+          );
+        })()}
           </div>
 
         {/* Mobility Intelligence Dashboard / Right Drawer */}
