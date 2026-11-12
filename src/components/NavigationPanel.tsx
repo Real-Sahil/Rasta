@@ -74,6 +74,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
   const simulatedSpeed = controlledSpeed !== undefined ? controlledSpeed : internalSpeed;
 
   const [isAdaptiveRoutingActive, setIsAdaptiveRoutingActive] = useState(true);
+  const [isHudMode, setIsHudMode] = useState(false);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
 
   useEffect(() => {
@@ -327,7 +328,16 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
               <span>{simulatedSpeed} {t.kmh}</span>
             </div>
 
-            <div className="flex items-center gap-2">
+             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsHudMode(true)}
+                className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer"
+                title="Heads-Up Windshield Reflection Mode"
+              >
+                HUD Mode
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsVoiceMuted(!isVoiceMuted)}
@@ -346,6 +356,39 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
               </button>
             </div>
           </div>
+
+          {/* HUD Windshield Reflection Mode Overlay */}
+          {isHudMode && (
+            <div className="fixed inset-0 z-50 bg-black text-emerald-400 font-mono p-6 flex flex-col justify-between select-none transform scale-y-[-1] scale-x-[-1]">
+              <div className="flex items-center justify-between border-b border-emerald-500/30 pb-4">
+                <div className="text-xl font-black tracking-widest">RASTA HUD NIGHT</div>
+                <button
+                  onClick={() => setIsHudMode(false)}
+                  className="px-3 py-1 bg-emerald-600 text-black font-bold rounded-lg text-xs cursor-pointer"
+                >
+                  EXIT HUD
+                </button>
+              </div>
+
+              <div className="text-center space-y-4 my-auto">
+                <div className="text-5xl sm:text-7xl font-black text-white">
+                  {simulatedSpeed} <span className="text-xl">KM/H</span>
+                </div>
+                {activeRoute && activeRoute.steps[currentStepIndex] && (
+                  <div className="text-2xl sm:text-4xl font-bold text-emerald-300">
+                    {isRtl ? activeRoute.steps[currentStepIndex].instructionUrdu : activeRoute.steps[currentStepIndex].instruction}
+                  </div>
+                )}
+                <div className="text-sm text-emerald-500">
+                  Distance to Maneuver: {activeRoute?.steps[currentStepIndex]?.distanceMeters || 300}m
+                </div>
+              </div>
+
+              <div className="text-center text-xs text-emerald-600">
+                Reflecting safely on windshield • Rasta Pakistan ADAS
+              </div>
+            </div>
+          )}
 
           {/* Current Step Instruction */}
           {activeRoute && activeRoute.steps[currentStepIndex] && (

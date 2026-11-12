@@ -39,6 +39,7 @@ import { MobilityAlertsHub } from './components/MobilityAlertsHub';
 import { fetchCityAqi, CityAqiData } from './services/aqiService';
 import { fetchCityWeather, WeatherData } from './services/weatherService';
 import { incidentSyncService, SyncStatusInfo } from './services/incidentSyncService';
+import { WazeMobileSimulator } from './components/WazeMobileSimulator';
 
 import {
   Navigation,
@@ -150,6 +151,7 @@ function MainApp() {
     }
   }, [destination?.id, origin?.id, currentCity, isNavigatingLive]);
   const [selectedMultimodalMode, setSelectedMultimodalMode] = useState('metrobus');
+  const [showWazeSimulator, setShowWazeSimulator] = useState(false);
 
   // Community Incidents State & IndexedDB Background Sync
   const [incidents, setIncidents] = useState<CommunityIncident[]>(getStoredIncidents());
@@ -980,6 +982,17 @@ function MainApp() {
             </div>
           )}
 
+          {/* Launch Waze Mobile Simulator Button */}
+          <button
+            type="button"
+            onClick={() => setShowWazeSimulator(true)}
+            className="absolute bottom-16 left-4 z-20 bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-xl shadow-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer"
+            title="Open Waze Mobile App Simulator"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>{isRtl ? 'وویز موبائل ایپ' : '📱 Waze Mobile App'}</span>
+          </button>
+
           {/* Calibrate High-Accuracy GPS Button */}
           <button
             type="button"
@@ -1245,6 +1258,20 @@ function MainApp() {
           </div>
         </div>
       </main>
+
+      {/* Waze Mobile App Simulator Modal */}
+      {showWazeSimulator && (
+        <WazeMobileSimulator
+          onClose={() => setShowWazeSimulator(false)}
+          onReportIncident={handleAddIncident}
+          onSelectDestination={(loc) => {
+            setDestination(loc);
+            setCenter({ lat: loc.lat, lng: loc.lng });
+            setZoom(15);
+            setShowWazeSimulator(false);
+          }}
+        />
+      )}
     </div>
   );
 }
