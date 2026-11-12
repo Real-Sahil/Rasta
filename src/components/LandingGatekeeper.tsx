@@ -28,27 +28,28 @@ import {
 import { useMobilityTheme } from './ThemeLayoutWrapper';
 
 interface LandingGatekeeperProps {
-  onLaunchMap: () => void;
+  onLaunchMap?: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const LandingGatekeeper: React.FC<LandingGatekeeperProps> = ({ onLaunchMap }) => {
+export const LandingGatekeeper: React.FC<LandingGatekeeperProps> = ({ onLaunchMap, isOpen = false, onClose }) => {
   const { isRtl, language, setLanguage } = useMobilityTheme();
-  const [hasVisited, setHasVisited] = useState(false);
+  const [hasVisited, setHasVisited] = useState(!isOpen);
 
   useEffect(() => {
-    const visited = localStorage.getItem('rasta_visited_v1');
-    if (visited === 'true') {
-      setHasVisited(true);
+    if (isOpen) {
+      setHasVisited(false);
     }
-  }, []);
+  }, [isOpen]);
 
   const handleLaunch = () => {
-    localStorage.setItem('rasta_visited_v1', 'true');
     setHasVisited(true);
-    onLaunchMap();
+    if (onClose) onClose();
+    if (onLaunchMap) onLaunchMap();
   };
 
-  if (hasVisited) return null;
+  if (hasVisited && !isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-[#F5F7F4] text-[#143C35] flex flex-col overflow-y-auto font-sans selection:bg-[#20A477] selection:text-white">

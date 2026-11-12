@@ -836,8 +836,8 @@ function MainApp() {
       {/* Tier 2 Demo Key Quota Warning Banner (Skill Requirement) */}
       <QuotaWarningBanner />
 
-      {/* First-Visit Gatekeeper Landing Page */}
-      <LandingGatekeeper onLaunchMap={() => {}} />
+      {/* First-Visit Gatekeeper Landing Page (optional overview) */}
+      <LandingGatekeeper isOpen={false} onLaunchMap={() => {}} />
 
       {/* Primary Header */}
       <Header

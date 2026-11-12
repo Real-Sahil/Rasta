@@ -14,9 +14,9 @@ export default defineConfig(() => {
         includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
         manifest: {
           id: '/',
-          name: 'Rasta Pakistan - Mobility Intelligence',
-          short_name: 'RastaPK',
-          description: 'Pakistan-first mobility intelligence platform combining live traffic alerts, multimodal transit planning, and Urdu navigation.',
+          name: 'Buraq Pakistan - Mobility Intelligence',
+          short_name: 'BuraqPK',
+          description: 'Pakistan-first mobility intelligence platform combining live traffic alerts, multimodal transit planning, and multilingual navigation.',
           theme_color: '#059669',
           background_color: '#0f172a',
           display: 'standalone',
@@ -24,13 +24,13 @@ export default defineConfig(() => {
           scope: '/',
           icons: [
             {
-              src: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=192&h=192&fit=crop',
+              src: '/buraq-icon.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=512&h=512&fit=crop',
+              src: '/buraq-icon.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any'

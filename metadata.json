@@ -1,6 +1,6 @@
 {
-  "name": "Rasta Pakistan - Mobility Intelligence",
-  "description": "Pakistan-first mobility intelligence platform combining live traffic alerts, multimodal transit planning (Metrobus & Orange Line), community incident reporting, and Urdu navigation.",
+  "name": "Buraq Pakistan - Mobility Intelligence",
+  "description": "Pakistan-first mobility intelligence platform combining live traffic alerts, multimodal transit planning (Metrobus & Orange Line), community incident reporting, and multilingual navigation.",
   "requestFramePermissions": [
     "geolocation"
   ],
