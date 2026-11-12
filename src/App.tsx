@@ -21,6 +21,7 @@ import {
   POPULAR_LOCATIONS
 } from './data/pakistanLocations';
 import { getStoredIncidents, saveIncidents } from './services/storage';
+import { RobustGpsManager } from './services/gpsService';
 
 import { Header } from './components/Header';
 import { GoogleMapView } from './components/GoogleMapView';
@@ -38,6 +39,7 @@ import { LandingGatekeeper } from './components/LandingGatekeeper';
 import { MobilityAlertsHub } from './components/MobilityAlertsHub';
 import { BottomSheet } from './components/BottomSheet';
 import { FloatingControls } from './components/FloatingControls';
+import { BottomNav, NavDestination } from './components/BottomNav';
 import { fetchCityAqi, CityAqiData } from './services/aqiService';
 import { fetchCityWeather, WeatherData } from './services/weatherService';
 import { incidentSyncService, SyncStatusInfo } from './services/incidentSyncService';
@@ -119,6 +121,7 @@ function MainApp() {
 
   // Navigation Panel Tab Selection
   const [activeTab, setActiveTab] = useState<'navigate' | 'multimodal' | 'transit' | 'incidents' | 'emergency' | 'offline'>('navigate');
+  const [currentDestination, setCurrentDestination] = useState<NavDestination>('explore');
 
   // Map Camera State
   const [center, setCenter] = useState<{ lat: number; lng: number }>(LAHORE_DEFAULT_CENTER);
@@ -144,6 +147,7 @@ function MainApp() {
   const [isMonsoonMode, setIsMonsoonMode] = useState(false);
   const [isOledNightMode, setIsOledNightMode] = useState(false);
   const [activeCameraRadar, setActiveCameraRadar] = useState<{ name: string; nameUrdu: string; limit: number } | null>(null);
+  const [activeRoute, setActiveRoute] = useState<RouteOption | null>(null);
 
   // Sync fixed route start location when not driving
   useEffect(() => {
@@ -213,61 +217,68 @@ function MainApp() {
     return () => unregister();
   }, [isRtl]);
 
-  // Continuous GPS Live Tracking with auto-center
-  useEffect(() => {
-    if (!('geolocation' in navigator) || !isLiveTracking) return;
+  const [gpsSignalLost, setGpsSignalLost] = useState(false);
+  const [gpsAccuracyWarning, setGpsAccuracyWarning] = useState(false);
 
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        if (!isNavigatingLive) {
-          setUserLocation(coords);
-          // Auto-recenter if within Pakistan bounds
-          if (coords.lat >= 23 && coords.lat <= 37 && coords.lng >= 60 && coords.lng <= 78) {
-            setCenter(coords);
-          }
+  // Continuous Robust GPS Live Tracking with smoothing, road snapping, jump rejection & signal loss handling
+  useEffect(() => {
+    if (!isLiveTracking) return;
+
+    const gpsManager = new RobustGpsManager((state) => {
+      setGpsSignalLost(state.isSignalLost);
+      setGpsAccuracyWarning(state.accuracyWarning);
+
+      if (state.error) {
+        setGpsToast(state.errorMessage);
+        setTimeout(() => setGpsToast(null), 4500);
+      }
+
+      const loc = state.smoothedLocation || state.location;
+      if (loc && !isNavigatingLive) {
+        setUserLocation({ lat: loc.lat, lng: loc.lng });
+        // Auto-recenter if within Pakistan bounds
+        if (loc.lat >= 23 && loc.lat <= 37 && loc.lng >= 60 && loc.lng <= 78) {
+          setCenter({ lat: loc.lat, lng: loc.lng });
         }
-      },
-      (err) => {
-        console.warn('Geolocation live watch notice (fallback active):', err);
-      },
-      { enableHighAccuracy: true, maximumAge: 6000, timeout: 8000 }
-    );
+      }
+    });
+
+    if (activeRoute?.pathCoordinates) {
+      gpsManager.setRoutePolyline(activeRoute.pathCoordinates);
+    }
+
+    gpsManager.startWatching();
 
     return () => {
-      navigator.geolocation.clearWatch(watchId);
+      gpsManager.stopWatching();
     };
-  }, [isLiveTracking, isNavigatingLive]);
+  }, [isLiveTracking, isNavigatingLive, activeRoute?.pathCoordinates]);
 
   const [gpsToast, setGpsToast] = useState<string | null>(null);
   const [osrmRoutes, setOsrmRoutes] = useState<RouteOption[] | null>(null);
 
-  const handleCalibrateGps = () => {
-    if (!('geolocation' in navigator)) {
-      setGpsToast(isRtl ? 'جیو لوکیشن براؤزر میں دستیاب نہیں' : 'Geolocation not supported in browser');
-      setTimeout(() => setGpsToast(null), 3500);
-      return;
+  const handleCalibrateGps = async () => {
+    const gpsManager = new RobustGpsManager(() => {});
+    try {
+      const coords = await gpsManager.getCurrentPositionOnce();
+      setUserLocation(coords);
+      setCenter(coords);
+      setZoom(17);
+      setGpsToast(
+        isRtl
+          ? `GPS درستگی بحال: [${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}]`
+          : `GPS High-Accuracy Fixed: [${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}]`
+      );
+      setTimeout(() => setGpsToast(null), 4500);
+    } catch (err: any) {
+      console.warn('GPS calibration error:', err);
+      setGpsToast(
+        isRtl
+          ? 'GPS سگنل کمزور یا اجازت درکار ہے - ڈیفالٹ لاہور استعمال ہو رہا ہے'
+          : 'GPS signal weak or permission required - using fallback location'
+      );
+      setTimeout(() => setGpsToast(null), 4500);
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserLocation(coords);
-        setCenter(coords);
-        setZoom(17);
-        setGpsToast(
-          isRtl
-            ? `GPS درستگی بحال: [${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}]`
-            : `GPS High-Accuracy Fixed: [${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}]`
-        );
-        setTimeout(() => setGpsToast(null), 4500);
-      },
-      (err) => {
-        console.warn('GPS calibration error:', err);
-        setGpsToast(isRtl ? 'GPS سگنل نہیں مل سکا - ڈیفالٹ لاہور استعمال ہو رہا ہے' : 'GPS signal weak - using default Lahore center');
-        setTimeout(() => setGpsToast(null), 4500);
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-    );
   };
 
   // Fetch real OSRM road routes when online with fallback to high-precision local generator
@@ -669,8 +680,6 @@ function MainApp() {
   }, [destination?.id, origin?.id, fixedRouteStartLocation.lat, fixedRouteStartLocation.lng, travelMode]);
 
   const generatedRoutes = osrmRoutes && osrmRoutes.length > 0 ? osrmRoutes : localGeneratedRoutes;
-
-  const [activeRoute, setActiveRoute] = useState<RouteOption | null>(null);
 
   useEffect(() => {
     if (generatedRoutes.length > 0) {
@@ -1222,6 +1231,21 @@ function MainApp() {
             <OfflineManager language={language} />
           )}
         </BottomSheet>
+
+        {/* Restrained 5-Destination Bottom Navigation Bar */}
+        <BottomNav
+          currentDestination={currentDestination}
+          onNavigate={(dest) => {
+            setCurrentDestination(dest);
+            if (dest === 'explore') setActiveTab('navigate');
+            if (dest === 'routes') setActiveTab('navigate');
+            if (dest === 'report') setActiveTab('incidents');
+            if (dest === 'saved') setActiveTab('offline');
+            if (dest === 'profile') setActiveTab('emergency');
+          }}
+          isNavigatingLive={isNavigatingLive}
+          isRtl={isRtl}
+        />
       </main>
     </div>
   );

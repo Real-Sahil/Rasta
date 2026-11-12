@@ -23,7 +23,10 @@ import {
   Clock,
   Sparkles,
   Mountain,
-  CloudRain
+  CloudRain,
+  ShieldAlert,
+  AlertTriangle,
+  RotateCcw
 } from 'lucide-react';
 import { RouteElevationVisualizer } from './RouteElevationVisualizer';
 import { RouteTimeCostChart } from './RouteTimeCostChart';
@@ -45,6 +48,7 @@ interface NavigationPanelProps {
   currentStepIndex?: number;
   onStepChange?: (index: number) => void;
   simulatedSpeed?: number;
+  onReportIncident?: () => void;
 }
 
 export const NavigationPanel: React.FC<NavigationPanelProps> = ({
@@ -61,13 +65,15 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
   onStopNavigation,
   currentStepIndex: controlledStepIndex,
   onStepChange,
-  simulatedSpeed: controlledSpeed
+  simulatedSpeed: controlledSpeed,
+  onReportIncident
 }) => {
   const { language, isRtl, t } = useMobilityTheme();
   const [internalNavigating, setInternalNavigating] = useState(false);
   const [internalStepIndex, setInternalStepIndex] = useState(0);
   const [internalSpeed, setInternalSpeed] = useState(42);
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
+  const [avoidTolls, setAvoidTolls] = useState(false);
 
   const isNavigatingLive = controlledNavigating !== undefined ? controlledNavigating : internalNavigating;
   const currentStepIndex = controlledStepIndex !== undefined ? controlledStepIndex : internalStepIndex;
@@ -108,14 +114,12 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
     else setInternalStepIndex(idx);
   };
 
-  // Synchronize speech preferences with current selected language (en, ur, pa, ar)
   useEffect(() => {
     speechNavigator.setPreferences(language, isVoiceMuted);
   }, [language, isVoiceMuted]);
 
   const lastSpokenKeyRef = React.useRef<string | null>(null);
 
-  // Voice guidance trigger: Strictly speak once when currentStepIndex actually changes
   useEffect(() => {
     if (!isNavigatingLive || isVoiceMuted) {
       lastSpokenKeyRef.current = null;
@@ -133,7 +137,6 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
     }
   }, [isNavigatingLive, currentStepIndex, activeRoute?.id, isVoiceMuted, language]);
 
-  // Simulated GPS speedometer during active navigation if not controlled
   useEffect(() => {
     if (!isNavigatingLive || controlledSpeed !== undefined) return;
     const interval = setInterval(() => {
@@ -147,21 +150,98 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
 
   if (!destination) return null;
 
+  // Active Navigation Screen (Driving HUD mode)
+  if (isNavigatingLive) {
+    const currentStep = activeRoute && activeRoute.steps[currentStepIndex];
+    return (
+      <div className="bg-[#143C35] text-white rounded-3xl shadow-2xl border border-emerald-500/40 p-4 sm:p-5 space-y-4">
+        {/* Top Header Status: Speed & Voice Mute */}
+        <div className="flex items-center justify-between border-b border-emerald-900/50 pb-3">
+          <div className="flex items-center gap-2 font-black text-emerald-300 text-sm">
+            <Gauge className="w-5 h-5 animate-pulse" />
+            <span>{simulatedSpeed} {t.kmh}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Voice Mute Control */}
+            <button
+              type="button"
+              onClick={() => setIsVoiceMuted(!isVoiceMuted)}
+              className={`p-2 rounded-xl transition-all cursor-pointer ${
+                isVoiceMuted ? 'bg-amber-600 text-white' : 'bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200'
+              }`}
+              title={isVoiceMuted ? 'Unmute voice' : 'Mute voice'}
+            >
+              {isVoiceMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+
+            {/* Incident Report Action */}
+            {onReportIncident && (
+              <button
+                type="button"
+                onClick={onReportIncident}
+                className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                title="Report Hazard"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                <span>{isRtl ? 'رپورٹ' : 'Report'}</span>
+              </button>
+            )}
+
+            {/* Exit Navigation Control */}
+            <button
+              type="button"
+              onClick={handleStop}
+              className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
+            >
+              {t.stopNavigation}
+            </button>
+          </div>
+        </div>
+
+        {/* Large Next-Turn Instruction & Distance */}
+        {currentStep && (
+          <div className="space-y-2 py-2">
+            <div className="flex items-center gap-2 text-emerald-300 text-xs font-black uppercase tracking-wider">
+              <CornerUpRight className="w-5 h-5 text-amber-400 animate-bounce" />
+              <span>In {currentStep.distanceMeters}m</span>
+            </div>
+            <p className="text-xl sm:text-2xl font-black text-white leading-snug">
+              {isRtl ? currentStep.instructionUrdu : currentStep.instruction}
+            </p>
+          </div>
+        )}
+
+        {/* Remaining Distance & ETA */}
+        <div className="flex items-center justify-between bg-emerald-950/60 p-3 rounded-2xl border border-emerald-500/30 text-xs font-bold text-emerald-200">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-400" />
+            <span>ETA: {activeRoute?.durationMinutes || 15} Mins</span>
+          </div>
+          <div>
+            <span>Remaining: {activeRoute?.distanceKm || 5.0} km</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Route Planning Screen
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 p-3 sm:p-4 space-y-3">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 space-y-4">
       {/* Origin -> Destination Header */}
-      <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
-        <div className="space-y-1">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="font-medium truncate max-w-[200px]">
+      <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
+            <span className="font-semibold truncate max-w-[240px]">
               {origin ? (isRtl ? origin.nameUrdu : origin.name) : t.currentLocation}
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
-            <span className="w-2 h-2 rounded-full bg-rose-500" />
-            <span className="truncate max-w-[240px]">
+          <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm" />
+            <span className="truncate max-w-[260px]">
               {isRtl ? destination.nameUrdu : destination.name}
             </span>
           </div>
@@ -170,7 +250,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
         <button
           type="button"
           onClick={onClearNavigation}
-          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800"
           title={t.clearRoute}
         >
           <X className="w-5 h-5" />
@@ -178,14 +258,14 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
       </div>
 
       {/* Adaptive Routing Weather-Aware Toggle */}
-      <div className="p-2.5 rounded-xl bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2">
-          <CloudRain className="w-4 h-4 text-cyan-600 dark:text-cyan-400 animate-pulse" />
+      <div className="p-3 rounded-2xl bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5">
+          <CloudRain className="w-5 h-5 text-cyan-600 dark:text-cyan-400 animate-pulse" />
           <div>
-            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <span>{isRtl ? 'اڈیپٹیو روٹنگ (بارش سے بچاؤ)' : 'Adaptive Routing (Rain AI)'}</span>
+            <div className="font-extrabold text-slate-900 dark:text-white">
+              {isRtl ? 'اڈیپٹیو روٹنگ (بارش سے بچاؤ)' : 'Adaptive Routing (Rain AI)'}
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {weatherData
                 ? (isRtl ? `موسم: ${weatherData.conditionUrdu} • خطرہ: ${weatherData.waterloggingRiskUrdu}` : `Weather: ${weatherData.condition} • Waterlogging Risk: ${weatherData.waterloggingRisk}`)
                 : 'Prioritizing routes avoiding low-lying waterlogged underpasses'}
@@ -196,9 +276,9 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
         <button
           type="button"
           onClick={() => setIsAdaptiveRoutingActive(!isAdaptiveRoutingActive)}
-          className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+          className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             isAdaptiveRoutingActive
-              ? 'bg-cyan-600 text-white shadow-xs'
+              ? 'bg-cyan-600 text-white shadow-md'
               : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
           }`}
         >
@@ -207,7 +287,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
       </div>
 
       {/* Travel Mode Pills */}
-      <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold">
+      <div className="flex items-center gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl text-xs font-bold">
         {[
           { id: 'DRIVING', label: isRtl ? 'کار' : 'Car', icon: Car },
           { id: 'TWO_WHEELER', label: isRtl ? 'موٹر سائیکل' : 'Bike', icon: Bike },
@@ -222,26 +302,40 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
               key={mode.id}
               type="button"
               onClick={() => onTravelModeChange(mode.id as TravelMode)}
-              className={`flex-1 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              className={`flex-1 py-2 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 isSelected
-                  ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-xs'
+                  ? 'bg-white dark:bg-slate-700 text-[#143C35] dark:text-emerald-300 shadow-sm font-black'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-4 h-4" />
               <span>{mode.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Alternative Route Options */}
-      <div className="space-y-1.5">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+      {/* Route Preferences (Avoid Tolls, etc.) */}
+      <div className="flex items-center justify-between px-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={avoidTolls}
+            onChange={(e) => setAvoidTolls(e.target.checked)}
+            className="rounded accent-[#20A477] w-4 h-4"
+          />
+          <span>{isRtl ? 'ٹول روڈز سے بچیں' : 'Avoid Toll Roads'}</span>
+        </label>
+        <span className="text-[11px] text-emerald-600 font-bold">Optimized for Pakistan</span>
+      </div>
+
+      {/* Available Route Alternatives */}
+      <div className="space-y-2">
+        <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider block">
           {t.alternativeRoutes}
         </span>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="space-y-2">
           {routes.map((route) => {
             const isSelected = activeRoute?.id === route.id;
 
@@ -249,43 +343,41 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
               <div
                 key={route.id}
                 onClick={() => onSelectRoute(route)}
-                className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                   isSelected
-                    ? 'border-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/30 ring-1 ring-emerald-500'
-                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-100'
+                    ? 'border-[#20A477] bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-[#20A477]/30 shadow-md'
+                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/50 hover:bg-slate-100'
                 }`}
               >
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-sm text-slate-900 dark:text-white">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-base text-slate-900 dark:text-white">
                       {route.durationMinutes} {t.mins}
                     </span>
-                    <span className="text-xs text-slate-500 font-medium">
+                    <span className="text-xs text-slate-500 font-semibold">
                       ({route.distanceKm.toFixed(1)} km)
                     </span>
                     {route.isRecommended && (
-                      <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#20A477] text-white">
                         {isRtl ? 'بہترین' : 'Fastest'}
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
                     via {isRtl ? route.viaUrdu : route.via}
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <span
-                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      route.trafficStatus === 'normal'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : route.trafficStatus === 'heavy'
-                        ? 'bg-rose-100 text-rose-800'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}
-                  >
-                    {route.trafficStatus === 'normal' ? t.trafficNormal : t.trafficModerate}
-                  </span>
+                  {route.trafficStatus === 'normal' ? (
+                    <span className="text-[10px] font-bold px-2 py-1 rounded bg-emerald-100 text-emerald-800">
+                      {t.trafficNormal}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold px-2 py-1 rounded bg-amber-100 text-amber-800">
+                      {t.trafficModerate}
+                    </span>
+                  )}
                 </div>
               </div>
             );
@@ -304,140 +396,15 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
         />
       )}
 
-      {/* Real-time Route Altitude & Incline Visualizer */}
-      {activeRoute && (
-        <>
-          <RouteElevationVisualizer
-            route={activeRoute}
-            isRtl={isRtl}
-          />
-          <TrafficCongestionChart
-            route={activeRoute}
-            isRtl={isRtl}
-          />
-        </>
-      )}
-
-      {/* Active Navigation Mode / Turn Guidance */}
-      {isNavigatingLive ? (
-        <div className="p-3 bg-slate-900 text-white rounded-xl shadow-lg space-y-2">
-          {/* Top HUD: Speed & Voice Mute */}
-          <div className="flex items-center justify-between text-xs border-b border-slate-800 pb-2">
-            <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-              <Gauge className="w-4 h-4" />
-              <span>{simulatedSpeed} {t.kmh}</span>
-            </div>
-
-             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsHudMode(true)}
-                className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer"
-                title="Heads-Up Windshield Reflection Mode"
-              >
-                HUD Mode
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsVoiceMuted(!isVoiceMuted)}
-                className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-                title={isVoiceMuted ? 'Unmute Voice' : 'Mute Voice'}
-              >
-                {isVoiceMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleStop}
-                className="px-2 py-0.5 rounded bg-rose-600 text-white text-[11px] font-bold cursor-pointer"
-              >
-                {t.stopNavigation}
-              </button>
-            </div>
-          </div>
-
-          {/* HUD Windshield Reflection Mode Overlay */}
-          {isHudMode && (
-            <div className="fixed inset-0 z-50 bg-black text-emerald-400 font-mono p-6 flex flex-col justify-between select-none transform scale-y-[-1] scale-x-[-1]">
-              <div className="flex items-center justify-between border-b border-emerald-500/30 pb-4">
-                <div className="text-xl font-black tracking-widest">RASTA HUD NIGHT</div>
-                <button
-                  onClick={() => setIsHudMode(false)}
-                  className="px-3 py-1 bg-emerald-600 text-black font-bold rounded-lg text-xs cursor-pointer"
-                >
-                  EXIT HUD
-                </button>
-              </div>
-
-              <div className="text-center space-y-4 my-auto">
-                <div className="text-5xl sm:text-7xl font-black text-white">
-                  {simulatedSpeed} <span className="text-xl">KM/H</span>
-                </div>
-                {activeRoute && activeRoute.steps[currentStepIndex] && (
-                  <div className="text-2xl sm:text-4xl font-bold text-emerald-300">
-                    {isRtl ? activeRoute.steps[currentStepIndex].instructionUrdu : activeRoute.steps[currentStepIndex].instruction}
-                  </div>
-                )}
-                <div className="text-sm text-emerald-500">
-                  Distance to Maneuver: {activeRoute?.steps[currentStepIndex]?.distanceMeters || 300}m
-                </div>
-              </div>
-
-              <div className="text-center text-xs text-emerald-600">
-                Reflecting safely on windshield • Rasta Pakistan ADAS
-              </div>
-            </div>
-          )}
-
-          {/* Current Step Instruction */}
-          {activeRoute && activeRoute.steps[currentStepIndex] && (
-            <div className="py-1">
-              <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-                <CornerUpRight className="w-4 h-4" />
-                <span>Next Maneuver ({activeRoute.steps[currentStepIndex].distanceMeters}m)</span>
-              </div>
-              <p className="text-base sm:text-lg font-bold mt-1">
-                {isRtl
-                  ? activeRoute.steps[currentStepIndex].instructionUrdu
-                  : activeRoute.steps[currentStepIndex].instruction}
-              </p>
-            </div>
-          )}
-
-          {/* Step stepper buttons */}
-          <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
-            <button
-              type="button"
-              disabled={currentStepIndex === 0}
-              onClick={() => handleStep(Math.max(0, currentStepIndex - 1))}
-              className="disabled:opacity-30 hover:text-white cursor-pointer"
-            >
-              Previous Step
-            </button>
-            <span>
-              Step {currentStepIndex + 1} of {activeRoute?.steps.length || 1}
-            </span>
-            <button
-              type="button"
-              disabled={!activeRoute || currentStepIndex >= activeRoute.steps.length - 1}
-              onClick={() => handleStep(currentStepIndex + 1)}
-              className="disabled:opacity-30 hover:text-white cursor-pointer"
-            >
-              Next Step
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={handleStart}
-          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
-        >
-          <Navigation className="w-4 h-4 fill-current" />
-          <span>{t.startNavigation}</span>
-        </button>
-      )}
+      {/* One Prominent Start Navigation Action */}
+      <button
+        type="button"
+        onClick={handleStart}
+        className="w-full py-4 rounded-2xl bg-[#143C35] hover:bg-[#20A477] text-white font-black text-base shadow-xl shadow-[#143C35]/25 flex items-center justify-center gap-2.5 transition-all transform hover:scale-[1.01] cursor-pointer"
+      >
+        <Navigation className="w-5 h-5 text-[#F2B95D] fill-current" />
+        <span>{t.startNavigation}</span>
+      </button>
     </div>
   );
 };

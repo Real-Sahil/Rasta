@@ -2,16 +2,45 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+/* Rasta 2.0 Design Tokens & Brand Colors */
+:root {
+  --rasta-forest: #143C35;
+  --rasta-nav: #20A477;
+  --rasta-amber: #F2B95D;
+  --rasta-offwhite: #F5F7F4;
+  --rasta-surface-light: #FFFFFF;
+  --rasta-surface-dark: #0B1E1B;
+}
+
 @layer base {
   html {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     -webkit-tap-highlight-color: transparent;
+    background-color: var(--rasta-offwhite);
+    color: var(--rasta-forest);
   }
 
   [dir="rtl"] {
     font-family: 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 }
+
+/* Custom Rasta 2.0 Color Classes */
+.bg-rasta-forest { background-color: var(--rasta-forest); }
+.text-rasta-forest { color: var(--rasta-forest); }
+.border-rasta-forest { border-color: var(--rasta-forest); }
+
+.bg-rasta-nav { background-color: var(--rasta-nav); }
+.text-rasta-nav { color: var(--rasta-nav); }
+.border-rasta-nav { border-color: var(--rasta-nav); }
+
+.bg-rasta-amber { background-color: var(--rasta-amber); }
+.text-rasta-amber { color: var(--rasta-amber); }
+.border-rasta-amber { border-color: var(--rasta-amber); }
+
+.bg-rasta-offwhite { background-color: var(--rasta-offwhite); }
+.text-rasta-offwhite { color: var(--rasta-offwhite); }
+.border-rasta-offwhite { border-color: var(--rasta-offwhite); }
 
 /* Hide MapLibre and FreeMap attribution controls completely */
 .maplibregl-ctrl-bottom-right,
@@ -31,12 +60,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.4);
+  background: rgba(20, 60, 53, 0.25);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.7);
+  background: rgba(20, 60, 53, 0.45);
 }
 
 @keyframes smooth-breathe {
@@ -47,7 +76,7 @@
   50% {
     transform: scale(1.06);
     opacity: 1;
-    filter: drop-shadow(0 0 14px rgba(16, 185, 129, 0.65));
+    filter: drop-shadow(0 0 14px rgba(32, 164, 119, 0.65));
   }
 }
 

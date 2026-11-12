@@ -4,9 +4,9 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MapPin, X, Navigation, Train, Bus, AlertCircle, Loader2, Mic, MicOff, Radio } from 'lucide-react';
+import { Search, MapPin, X, Navigation, Train, Bus, AlertCircle, Loader2, Mic, Radio, Home, Briefcase, Clock, Fuel, Hospital } from 'lucide-react';
 import { LocationPoint } from '../types';
-import { POPULAR_LOCATIONS, METROBUS_STATIONS, ORANGELINE_STATIONS } from '../data/pakistanLocations';
+import { POPULAR_LOCATIONS, METROBUS_STATIONS, ORANGELINE_STATIONS, LOCAL_SERVICES } from '../data/pakistanLocations';
 import { translations } from '../data/locales';
 import { useVoiceInput } from '../services/speechRecognition';
 
@@ -37,6 +37,16 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   const t = translations[language];
   const isUrdu = language === 'ur' || language === 'pa';
 
+  // Recent destinations from localStorage
+  const [recentDestinations, setRecentDestinations] = useState<LocationPoint[]>(() => {
+    try {
+      const saved = localStorage.getItem('rasta_recent_destinations_v1');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Voice recognition for hands-free driver search
   const {
     isListening,
@@ -49,20 +59,16 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     setIsOpen(true);
   });
 
-  // Toggle voice recognition
   const handleToggleVoice = () => {
     if (isListening) {
       stopListening();
     } else {
-      // Pass ur-PK if Urdu or Punjabi, otherwise en-US
       startListening(isUrdu ? 'ur-PK' : 'en-US');
     }
   };
 
-  // Detect if user is typing in Urdu/Arabic script
   const isInputUrdu = /[\u0600-\u06FF]/.test(query);
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -73,14 +79,13 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Synchronize initialValue changes
   useEffect(() => {
     if (initialValue) {
       setQuery(initialValue);
     }
   }, [initialValue]);
 
-  // Combined local dataset for instantaneous offline-first lookups in Lahore
+  // Combined dataset with local services & transit
   const localDataset: LocationPoint[] = [
     ...POPULAR_LOCATIONS,
     ...METROBUS_STATIONS.map(s => ({
@@ -102,23 +107,47 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       address: `Orange Line Rapid Transit ${s.code}`,
       addressUrdu: `اورنج لائن میٹرو اسٹیشن ${s.code}`,
       category: 'orangeline' as const
+    })),
+    ...LOCAL_SERVICES.map(svc => ({
+      id: svc.id,
+      name: svc.name,
+      nameUrdu: svc.nameUrdu,
+      lat: svc.lat,
+      lng: svc.lng,
+      address: svc.address,
+      addressUrdu: svc.addressUrdu,
+      category: svc.type === 'petrol' ? ('fuel' as const) : svc.type === 'hospital' ? ('hospital' as const) : ('hub' as const)
     }))
   ];
 
-  // Local filtering based on query
+  // Spelling & transliteration normalization helper
+  const normalizeText = (txt: string) => {
+    return txt
+      .toLowerCase()
+      .trim()
+      .replace(/ee/g, 'i')
+      .replace(/y/g, 'i')
+      .replace(/c/g, 'k')
+      .replace(/ph/g, 'f')
+      .replace(/oo/g, 'u');
+  };
+
+  // Local matching with transliteration support
   const localMatches = query.trim() === ''
     ? localDataset.slice(0, 5)
     : localDataset.filter(loc => {
-        const q = query.toLowerCase().trim();
+        const q = normalizeText(query);
+        const nameEn = normalizeText(loc.name);
+        const nameUr = loc.nameUrdu;
+        const addrEn = normalizeText(loc.address || '');
         return (
-          loc.name.toLowerCase().includes(q) ||
-          loc.nameUrdu.includes(query.trim()) ||
-          (loc.address && loc.address.toLowerCase().includes(q)) ||
-          (loc.addressUrdu && loc.addressUrdu.includes(query.trim()))
+          nameEn.includes(q) ||
+          nameUr.includes(query.trim()) ||
+          addrEn.includes(q)
         );
       }).slice(0, 6);
 
-  // Online Geocoding Lookup via OpenStreetMap Nominatim for Pakistan
+  // Online geocoding lookup
   useEffect(() => {
     if (!query || query.trim().length < 3) {
       setOnlineResults([]);
@@ -129,7 +158,6 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     const timer = setTimeout(async () => {
       try {
         setIsSearchingOnline(true);
-        // Restrict geocoding search to Pakistan (country code: pk)
         const encoded = encodeURIComponent(query.trim());
         const res = await fetch(
           `https://nominatim.openstreetmap.org/search?q=${encoded}&countrycodes=pk&format=json&addressdetails=1&limit=4`,
@@ -156,7 +184,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           }
         }
       } catch (err) {
-        console.warn('Geocoding search failed, using local Pakistan points:', err);
+        console.warn('Geocoding search failed:', err);
       } finally {
         setIsSearchingOnline(false);
       }
@@ -168,6 +196,14 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   const handleSelect = (loc: LocationPoint) => {
     setQuery(isUrdu ? loc.nameUrdu : loc.name);
     setIsOpen(false);
+    
+    // Save to recent destinations
+    const updated = [loc, ...recentDestinations.filter(item => item.id !== loc.id)].slice(0, 4);
+    setRecentDestinations(updated);
+    try {
+      localStorage.setItem('rasta_recent_destinations_v1', JSON.stringify(updated));
+    } catch {}
+
     onSelectLocation(loc);
   };
 
@@ -177,12 +213,16 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     inputRef.current?.focus();
   };
 
+  // Home & Work shortcut presets
+  const homeLocation: LocationPoint = POPULAR_LOCATIONS[1]; // Model Town area
+  const workLocation: LocationPoint = POPULAR_LOCATIONS[9]; // DHA Phase 5
+
   return (
     <div ref={containerRef} className="relative w-full z-40">
-      <div className="relative flex items-center bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200/80 dark:border-slate-800 transition-all focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500">
+      <div className="relative flex items-center bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200/80 dark:border-slate-800 transition-all focus-within:ring-2 focus-within:ring-[#20A477] focus-within:border-[#20A477]">
         <div className="p-3 text-slate-400 dark:text-slate-500 flex items-center justify-center">
           {isSearchingOnline ? (
-            <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+            <Loader2 className="w-5 h-5 animate-spin text-[#20A477]" />
           ) : (
             <Search className="w-5 h-5" />
           )}
@@ -222,9 +262,9 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           className={`p-2 mx-1 rounded-xl transition-all relative ${
             isListening
               ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/30'
-              : 'text-slate-400 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+              : 'text-slate-400 hover:text-[#20A477] hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
-          title={isListening ? 'Stop Listening' : (isUrdu ? 'آواز سے منزل تلاش کریں' : 'Voice Search (Urdu & English)')}
+          title={isListening ? 'Stop Listening' : (isUrdu ? 'آواز سے منزل تلاش کریں' : 'Voice Search')}
         >
           {isListening ? <Radio className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
         </button>
@@ -236,10 +276,10 @@ export const SearchInput: React.FC<SearchInputProps> = ({
               onUseCurrentLocation();
               setIsOpen(false);
             }}
-            className="m-1.5 px-3 py-1.5 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 rounded-xl text-xs font-semibold transition-all border border-emerald-200 dark:border-emerald-800"
+            className="m-1.5 px-3 py-1.5 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-[#143C35] dark:text-emerald-400 hover:bg-emerald-100 rounded-xl text-xs font-semibold transition-all border border-emerald-200 dark:border-emerald-800"
             title={t.currentLocation}
           >
-            <Navigation className="w-3.5 h-3.5 text-emerald-600" />
+            <Navigation className="w-3.5 h-3.5 text-[#20A477]" />
             <span className="hidden sm:inline">{t.currentLocation}</span>
           </button>
         )}
@@ -251,7 +291,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping shrink-0" />
             <span className="font-semibold text-rose-300">
-              {isUrdu ? 'سن رہا ہوں... (مثلاً: لبرٹی چوک یا کلمہ چوک بولیں)' : 'Listening hands-free... (Say Liberty Chowk or Kalma Chowk)'}
+              {isUrdu ? 'سن رہا ہوں...' : 'Listening hands-free...'}
             </span>
           </div>
           {interimTranscript && (
@@ -269,52 +309,84 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         </div>
       )}
 
-      {/* Voice Error Notice */}
-      {voiceError && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 p-2 bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-200 text-xs rounded-xl shadow-md z-50 flex items-center justify-between">
-          <span>{voiceError}</span>
-        </div>
-      )}
-
-      {/* Dropdown Suggestions */}
+      {/* Dropdown Suggestions & Explore Panel */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-96 overflow-y-auto z-50">
-          {/* Time-of-Day Optimized Top Destinations */}
-          {query.trim() === '' && (() => {
-            const hour = new Date().getHours();
-            const timeInfo = hour >= 6 && hour < 12
-              ? { en: '🌅 Morning Commute Hubs', ur: '🌅 صبح کے مصروف ترین راستے', locs: POPULAR_LOCATIONS.slice(0, 4) }
-              : hour >= 12 && hour < 17
-              ? { en: '☀️ Afternoon Commercial Hubs', ur: '☀️ دوپہر کے تجارتی مراکز', locs: [POPULAR_LOCATIONS[1], POPULAR_LOCATIONS[3], POPULAR_LOCATIONS[0]] }
-              : hour >= 17 && hour < 22
-              ? { en: '🌙 Evening Markets & Recreation', ur: '🌙 شام کی خریداری و تفریح', locs: [POPULAR_LOCATIONS[2], POPULAR_LOCATIONS[0], POPULAR_LOCATIONS[4] || POPULAR_LOCATIONS[1]] }
-              : { en: '🌌 Late Night Transit & Airport', ur: '🌌 رات کے ٹرانسپورٹ و ایئرپورٹ', locs: [POPULAR_LOCATIONS[0], POPULAR_LOCATIONS[2], POPULAR_LOCATIONS[1]] };
+          {/* Home and Work Shortcuts */}
+          {query.trim() === '' && (
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleSelect(homeLocation)}
+                className="flex-1 py-2 px-3 bg-white dark:bg-slate-800 hover:bg-emerald-50 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-xs transition-all cursor-pointer"
+              >
+                <Home className="w-4 h-4 text-[#20A477]" />
+                <span>{isUrdu ? 'گھر (ماڈل ٹاؤن)' : 'Home (Model Town)'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelect(workLocation)}
+                className="flex-1 py-2 px-3 bg-white dark:bg-slate-800 hover:bg-emerald-50 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-xs transition-all cursor-pointer"
+              >
+                <Briefcase className="w-4 h-4 text-amber-500" />
+                <span>{isUrdu ? 'دفتر (ڈی ایچ اے)' : 'Work (DHA Phase 5)'}</span>
+              </button>
+            </div>
+          )}
 
-            return (
-              <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/40 border-b border-emerald-100 dark:border-emerald-900/50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
-                    {isUrdu ? timeInfo.ur : timeInfo.en}
-                  </span>
-                  <span className="text-[10px] bg-emerald-200/60 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-1.5 py-0.5 rounded font-semibold">
-                    {isUrdu ? 'وقت کے لحاظ سے' : 'Time-Optimized'}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {timeInfo.locs.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleSelect(item)}
-                      className="px-2.5 py-1 text-xs rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-emerald-200 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-600 transition-colors shadow-xs"
-                    >
-                      {isUrdu ? item.nameUrdu : item.name}
-                    </button>
-                  ))}
-                </div>
+          {/* Recent Destinations */}
+          {query.trim() === '' && recentDestinations.length > 0 && (
+            <div className="p-3 border-b border-slate-100 dark:border-slate-800 space-y-1.5">
+              <div className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider px-1">
+                {isUrdu ? 'حالیہ مقامات' : 'Recent Destinations'}
               </div>
-            );
-          })()}
+              <div className="space-y-1">
+                {recentDestinations.map((loc) => (
+                  <button
+                    key={`recent_${loc.id}`}
+                    type="button"
+                    onClick={() => handleSelect(loc)}
+                    className="w-full p-2 hover:bg-emerald-50 dark:hover:bg-slate-800 rounded-xl flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-200 transition-colors text-left"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="font-semibold truncate">{isUrdu ? loc.nameUrdu : loc.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Nearby Services Category Filter Pills */}
+          {query.trim() === '' && (
+            <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/30 border-b border-emerald-100 dark:border-emerald-900/40">
+              <div className="text-[10px] font-extrabold uppercase text-emerald-800 dark:text-emerald-300 tracking-wider mb-2">
+                {isUrdu ? 'قریبی سہولیات' : 'Explore Nearby Places & Services'}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => setQuery('Fuel')}
+                  className="px-2.5 py-1 text-xs rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-emerald-200 dark:border-slate-700 hover:bg-[#20A477] hover:text-white transition-all shadow-xs flex items-center gap-1"
+                >
+                  <Fuel className="w-3 h-3 text-[#20A477]" />
+                  <span>{isUrdu ? 'پٹرول پمپ' : 'Fuel & PSO'}</span>
+                </button>
+                <button
+                  onClick={() => setQuery('Hospital')}
+                  className="px-2.5 py-1 text-xs rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-emerald-200 dark:border-slate-700 hover:bg-[#20A477] hover:text-white transition-all shadow-xs flex items-center gap-1"
+                >
+                  <Hospital className="w-3 h-3 text-rose-600" />
+                  <span>{isUrdu ? 'ہسپتال (1122)' : 'Hospitals'}</span>
+                </button>
+                <button
+                  onClick={() => setQuery('Metrobus')}
+                  className="px-2.5 py-1 text-xs rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-emerald-200 dark:border-slate-700 hover:bg-[#20A477] hover:text-white transition-all shadow-xs flex items-center gap-1"
+                >
+                  <Bus className="w-3 h-3 text-amber-500" />
+                  <span>{isUrdu ? 'میٹرو بس' : 'Metrobus'}</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Local Matches */}
           {localMatches.length > 0 && (
@@ -334,8 +406,10 @@ export const SearchInput: React.FC<SearchInputProps> = ({
                       <Bus className="w-4 h-4 text-rose-600" />
                     ) : loc.category === 'orangeline' ? (
                       <Train className="w-4 h-4 text-amber-500" />
+                    ) : loc.category === 'fuel' || loc.category === 'hospital' ? (
+                      <Fuel className="w-4 h-4 text-blue-600" />
                     ) : (
-                      <MapPin className="w-4 h-4 text-emerald-600" />
+                      <MapPin className="w-4 h-4 text-[#20A477]" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -351,6 +425,11 @@ export const SearchInput: React.FC<SearchInputProps> = ({
                       {loc.category === 'orangeline' && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
                           Orange Line
+                        </span>
+                      )}
+                      {loc.category === 'fuel' && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                          Fuel Station
                         </span>
                       )}
                     </div>
