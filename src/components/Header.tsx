@@ -9,6 +9,7 @@ import { Language } from '../types';
 import { SyncStatusInfo } from '../services/incidentSyncService';
 import { Compass, Moon, Sun, ShieldAlert, Globe, Layers, Navigation, Wifi, WifiOff, RefreshCw, CloudRain, Zap, Wind } from 'lucide-react';
 import { fetchCityAqi, CityAqiData } from '../services/aqiService';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface HeaderProps {
   currentCity: string;
@@ -110,6 +111,9 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* PWA Install Button (Optional Feature) */}
+          <PWAInstallButton isRtl={isRtl} />
+
           {/* Professional Rasta HD Vector & Satellite Engine Badge */}
           <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold shadow-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

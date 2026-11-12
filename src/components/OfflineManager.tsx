@@ -6,8 +6,9 @@
 import React, { useState, useEffect } from 'react';
 import { Language } from '../types';
 import { translations } from '../data/locales';
-import { OfflineAreaPack, getStoredOfflineAreas, saveStoredOfflineAreas } from '../services/storage';
+import { OfflineAreaPack, getStoredOfflineAreas, saveStoredOfflineAreas, getStoredIncidents } from '../services/storage';
 import { HardDriveDownload, CheckCircle, DownloadCloud, WifiOff, MapPin, Database, AlertTriangle, Wifi, Radio } from 'lucide-react';
+import { BluetoothMeshShare } from './BluetoothMeshShare';
 
 interface OfflineManagerProps {
   language: Language;
@@ -19,6 +20,7 @@ export const OfflineManager: React.FC<OfflineManagerProps> = ({ language }) => {
   const [areas, setAreas] = useState<OfflineAreaPack[]>(getStoredOfflineAreas());
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const incidents = getStoredIncidents();
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -96,24 +98,7 @@ export const OfflineManager: React.FC<OfflineManagerProps> = ({ language }) => {
       )}
 
       {/* Bluetooth P2P Mesh Traffic Sharing Widget */}
-      <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md">
-            <Radio className="w-4 h-4 animate-pulse" />
-          </div>
-          <div>
-            <h4 className="font-bold text-xs text-slate-900 dark:text-white">
-              {isUrdu ? 'بلوٹوتھ P2P میش ٹریفک شیئرنگ' : 'Bluetooth P2P Mesh Traffic Sharing'}
-            </h4>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              {isUrdu ? 'قریبی 4 مسافروں سے آف لائن ٹریفک الرٹس کا تبادلہ جاری ہے' : 'Connected to 4 nearby commuters via BLE mesh (Zero Internet)'}
-            </p>
-          </div>
-        </div>
-        <span className="px-2 py-1 bg-indigo-600 text-white text-[10px] font-bold rounded-lg animate-pulse">
-          Active Mesh
-        </span>
-      </div>
+      <BluetoothMeshShare incidents={incidents} isRtl={isUrdu} />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
         <div>

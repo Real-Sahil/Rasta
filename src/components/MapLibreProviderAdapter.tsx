@@ -208,12 +208,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
 
   // Check WebGL support on initial mount
   useEffect(() => {
-    try {
-      const isSupported = typeof (maplibregl as any).supported === 'function' ? (maplibregl as any).supported() : true;
-      setWebGlSupported(Boolean(isSupported));
-    } catch {
-      setWebGlSupported(false);
-    }
+    setWebGlSupported(true);
   }, []);
 
   // Initialize MapLibre GL Map
@@ -229,9 +224,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         style: initialStyle,
         center: [center.lng, center.lat],
         zoom: zoom,
-        attributionControl: {
-          compact: true
-        }
+        attributionControl: false
       });
     } catch (err) {
       console.warn('MapLibre GL failed to construct, falling back to OSM Slippy canvas:', err);
@@ -389,8 +382,30 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
           }
         });
 
+        const popupHtml = `
+          <div style="padding: 6px; font-family: sans-serif; min-width: 170px;">
+            <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #059669; margin-bottom: 2px;">
+              ${markerData.type.replace('_', ' ').toUpperCase()}
+            </div>
+            <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 4px;">
+              ${isRtl && markerData.titleUrdu ? markerData.titleUrdu : (markerData.title || 'Location')}
+            </div>
+            ${markerData.incidentData ? `
+              <div style="font-size: 11px; color: #475569; margin-bottom: 3px;">
+                <strong>Credibility:</strong> ${markerData.incidentData.credibilityScore}% Trusted (${markerData.incidentData.upvotes} Upvotes)
+              </div>
+              <div style="font-size: 11px; color: #64748b; font-style: italic;">
+                "${isRtl ? markerData.incidentData.descriptionUrdu : markerData.incidentData.description}"
+              </div>
+            ` : ''}
+          </div>
+        `;
+
+        const popup = new maplibregl.Popup({ offset: 22, closeButton: true }).setHTML(popupHtml);
+
         const newMarker = new maplibregl.Marker({ element: el })
           .setLngLat([markerData.lng, markerData.lat])
+          .setPopup(popup)
           .addTo(map);
 
         markersRef.current[markerData.id] = newMarker;
@@ -657,14 +672,6 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         </button>
       </div>
 
-      {/* Attribution Badge */}
-      <div
-        className={`absolute bottom-1 ${
-          isRtl ? 'right-2' : 'left-2'
-        } z-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-2 py-0.5 rounded text-[10px] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800`}
-      >
-        MapLibre GL • OpenFreeMap • OpenStreetMap • Esri
-      </div>
     </div>
   );
 };

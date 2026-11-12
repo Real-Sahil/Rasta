@@ -36,10 +36,11 @@ import { OfflineManager } from './components/OfflineManager';
 import { QuotaWarningBanner } from './components/QuotaWarningBanner';
 import { LandingGatekeeper } from './components/LandingGatekeeper';
 import { MobilityAlertsHub } from './components/MobilityAlertsHub';
+import { BottomSheet } from './components/BottomSheet';
+import { FloatingControls } from './components/FloatingControls';
 import { fetchCityAqi, CityAqiData } from './services/aqiService';
 import { fetchCityWeather, WeatherData } from './services/weatherService';
 import { incidentSyncService, SyncStatusInfo } from './services/incidentSyncService';
-import { WazeMobileSimulator } from './components/WazeMobileSimulator';
 
 import {
   Navigation,
@@ -151,7 +152,7 @@ function MainApp() {
     }
   }, [destination?.id, origin?.id, currentCity, isNavigatingLive]);
   const [selectedMultimodalMode, setSelectedMultimodalMode] = useState('metrobus');
-  const [showWazeSimulator, setShowWazeSimulator] = useState(false);
+  const [selectedMapMarker, setSelectedMapMarker] = useState<MapLibreMarkerData | null>(null);
 
   // Community Incidents State & IndexedDB Background Sync
   const [incidents, setIncidents] = useState<CommunityIncident[]>(getStoredIncidents());
@@ -857,10 +858,10 @@ function MainApp() {
         </div>
       )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
-        {/* Interactive Map Section */}
-        <div className="relative flex-1 w-full h-[50vh] lg:h-[calc(100vh-61px)] bg-slate-200 dark:bg-slate-900">
+      {/* Main Content Area: Map-First Uber/Waze Architecture */}
+      <main className="flex-1 relative overflow-hidden h-[calc(100vh-61px)]">
+        {/* Full-Screen Interactive Map Canvas */}
+        <div className="absolute inset-0 w-full h-full bg-white dark:bg-slate-950">
           {/* Floating Search Bar Over Map */}
           <div className="absolute top-3 left-3 right-3 lg:left-4 lg:right-auto lg:w-96 z-20">
             <SearchInput
@@ -881,9 +882,7 @@ function MainApp() {
             />
           </div>
 
-
-
-          {/* Consolidated Mobility Alerts Hub (Weather, AQI, Radars, Hotspots) */}
+          {/* Consolidated Mobility Alerts Hub */}
           <MobilityAlertsHub
             aqiData={aqiData}
             weatherData={weatherData}
@@ -900,7 +899,6 @@ function MainApp() {
               <div className="bg-slate-900/95 backdrop-blur-md text-white rounded-2xl p-3.5 shadow-2xl border border-emerald-500/50 space-y-2.5">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                   <div className="flex items-center gap-2.5">
-                    {/* Dynamic Directional Maneuver Arrow */}
                     <div className="w-10 h-10 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-lg shadow-emerald-500/20">
                       {activeRoute.steps[currentStepIndex].maneuver === 'turn-left' || activeRoute.steps[currentStepIndex].instruction.toLowerCase().includes('left') ? (
                         <CornerUpLeft className="w-5 h-5 stroke-[2.5]" />
@@ -929,7 +927,6 @@ function MainApp() {
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Repeat Voice Button */}
                     <button
                       type="button"
                       onClick={() => {
@@ -941,8 +938,6 @@ function MainApp() {
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                     </button>
-
-                    {/* Mute / Unmute Button */}
                     <button
                       type="button"
                       onClick={() => setIsVoiceMuted(!isVoiceMuted)}
@@ -953,8 +948,6 @@ function MainApp() {
                     >
                       {isVoiceMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                     </button>
-
-                    {/* Exit Navigation */}
                     <button
                       type="button"
                       onClick={() => setIsNavigatingLive(false)}
@@ -981,49 +974,6 @@ function MainApp() {
               </div>
             </div>
           )}
-
-          {/* Launch Waze Mobile Simulator Button */}
-          <button
-            type="button"
-            onClick={() => setShowWazeSimulator(true)}
-            className="absolute bottom-16 left-4 z-20 bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-xl shadow-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer"
-            title="Open Waze Mobile App Simulator"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>{isRtl ? 'وویز موبائل ایپ' : '📱 Waze Mobile App'}</span>
-          </button>
-
-          {/* Calibrate High-Accuracy GPS Button */}
-          <button
-            type="button"
-            onClick={handleCalibrateGps}
-            className="absolute bottom-4 left-4 z-20 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl shadow-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer"
-            title="Calibrate High-Accuracy GPS Fix"
-          >
-            <Compass className="w-4 h-4" />
-            <span>{isRtl ? 'جی پی ایس درست کریں' : 'Calibrate GPS'}</span>
-          </button>
-
-          {/* Floating Live GPS Tracking & Recenter Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsLiveTracking(true);
-              const target = isNavigatingLive && vehicleLocation ? vehicleLocation : userLocation;
-              if (target) {
-                setCenter(target);
-                setZoom(isNavigatingLive ? 17 : 15);
-              }
-            }}
-            className="absolute bottom-4 right-4 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur text-slate-800 dark:text-slate-100 px-3 py-2 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 flex items-center gap-2 text-xs font-bold hover:bg-slate-50 transition-all cursor-pointer"
-            title="Recenter & Follow Vehicle"
-          >
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <span>{isNavigatingLive ? (isRtl ? 'گاڑی پر فوکس' : 'Follow Vehicle') : (isRtl ? 'لائیو GPS' : 'Live GPS')}</span>
-          </button>
 
           {/* Map Rendering Container */}
           {(() => {
@@ -1080,198 +1030,199 @@ function MainApp() {
                 heading={vehicleHeading}
                 isNavigatingLive={isNavigatingLive}
                 markers={memoizedMarkers}
-              route={
-                activeRoute
-                  ? {
-                      id: activeRoute.id,
-                      coordinates: activeRoute.pathCoordinates,
-                      color: '#10b981',
-                      weight: 6
-                    }
-                  : null
-              }
-              showTrafficOverlay={showTraffic}
-              onMapClick={(coords: { lat: number; lng: number }) => {
-                setDestination({
-                  id: `osm_pin_${Date.now()}`,
-                  name: `Map Pin (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`,
-                  nameUrdu: `منتخب مقام (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`,
-                  lat: coords.lat,
-                  lng: coords.lng
-                });
-              }}
-              onMarkerClick={(m: MapLibreMarkerData) => {
-                if (m.incidentData) {
-                  handleFocusIncident(m.incidentData);
+                route={
+                  activeRoute
+                    ? {
+                        id: activeRoute.id,
+                        coordinates: activeRoute.pathCoordinates,
+                        color: '#10b981',
+                        weight: 6
+                      }
+                    : null
                 }
+                showTrafficOverlay={showTraffic}
+                onMapClick={(coords: { lat: number; lng: number }) => {
+                  setDestination({
+                    id: `osm_pin_${Date.now()}`,
+                    name: `Map Pin (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`,
+                    nameUrdu: `منتخب مقام (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`,
+                    lat: coords.lat,
+                    lng: coords.lng
+                  });
+                }}
+                onMarkerClick={(m: MapLibreMarkerData) => {
+                  setSelectedMapMarker(m);
+                  if (m.incidentData) {
+                    handleFocusIncident(m.incidentData);
+                  }
+                }}
+              />
+            );
+          })()}
+
+          {/* Selected Map Marker Info Modal */}
+          {selectedMapMarker && (
+            <div className="absolute top-20 left-4 right-4 lg:left-auto lg:right-4 lg:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-4 z-40 animate-in fade-in space-y-3">
+              <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0 shadow-md">
+                    {selectedMapMarker.type === 'incident' ? '⚠️' : selectedMapMarker.type === 'transit_station' ? '🚇' : '📍'}
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                      {selectedMapMarker.type.replace('_', ' ').toUpperCase()}
+                    </div>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-0.5">
+                      {isRtl && selectedMapMarker.titleUrdu ? selectedMapMarker.titleUrdu : (selectedMapMarker.title || 'Location Detail')}
+                    </h4>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedMapMarker(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Coordinates:</span>
+                  <span className="font-mono font-semibold">{selectedMapMarker.lat.toFixed(4)}, {selectedMapMarker.lng.toFixed(4)}</span>
+                </div>
+
+                {selectedMapMarker.incidentData && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Credibility Score:</span>
+                      <span className="font-bold text-emerald-600">{selectedMapMarker.incidentData.credibilityScore}% Trusted</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Community Upvotes:</span>
+                      <span className="font-semibold">{selectedMapMarker.incidentData.upvotes} Upvotes</span>
+                    </div>
+                    <p className="text-xs text-slate-500 italic mt-1 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg">
+                      "{isRtl ? selectedMapMarker.incidentData.descriptionUrdu : selectedMapMarker.incidentData.description}"
+                    </p>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDestination({
+                      id: selectedMapMarker.id,
+                      name: selectedMapMarker.title || 'Selected Location',
+                      nameUrdu: selectedMapMarker.titleUrdu || 'منتخب مقام',
+                      lat: selectedMapMarker.lat,
+                      lng: selectedMapMarker.lng
+                    });
+                    setSelectedMapMarker(null);
+                    setActiveTab('navigate');
+                  }}
+                  className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Navigation className="w-3.5 h-3.5" />
+                  <span>{isRtl ? 'یہاں کے لیے راستہ تلاش کریں' : 'Navigate Here'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Waze & Uber Style Floating Controls */}
+          <FloatingControls
+            onReportClick={() => setActiveTab('incidents')}
+            onRecenterClick={() => {
+              setIsLiveTracking(true);
+              const target = isNavigatingLive && vehicleLocation ? vehicleLocation : userLocation;
+              if (target) {
+                setCenter(target);
+                setZoom(isNavigatingLive ? 17 : 15);
+              }
+            }}
+            onZoomIn={() => setZoom((z) => Math.min(19, z + 1))}
+            onZoomOut={() => setZoom((z) => Math.max(6, z - 1))}
+            isRtl={isRtl}
+          />
+        </div>
+
+        {/* Uber/Waze Style Draggable Bottom Sheet */}
+        <BottomSheet
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          incidentCount={incidents.length}
+          isRtl={isRtl}
+        >
+          {activeTab === 'navigate' && (
+            <NavigationPanel
+              origin={origin}
+              destination={destination}
+              activeRoute={activeRoute}
+              routes={generatedRoutes}
+              onSelectRoute={setActiveRoute}
+              travelMode={travelMode}
+              onTravelModeChange={setTravelMode}
+              onClearNavigation={() => {
+                setDestination(null);
+                setActiveRoute(null);
+                setIsNavigatingLive(false);
+              }}
+              isNavigatingLive={isNavigatingLive}
+              onStartNavigation={() => {
+                setIsNavigatingLive(true);
+                setCurrentStepIndex(0);
+              }}
+              onStopNavigation={() => {
+                setIsNavigatingLive(false);
+              }}
+              currentStepIndex={currentStepIndex}
+              onStepChange={setCurrentStepIndex}
+              simulatedSpeed={simulatedSpeed}
+            />
+          )}
+
+          {activeTab === 'multimodal' && (
+            <MultimodalComparison
+              distanceKm={activeRoute?.distanceKm || 8.5}
+              durationMinutes={activeRoute?.durationMinutes || 22}
+              selectedMode={selectedMultimodalMode}
+              onSelectMode={setSelectedMultimodalMode}
+            />
+          )}
+
+          {activeTab === 'transit' && (
+            <TransitPlanner
+              onSelectStation={handleFocusStation}
+            />
+          )}
+
+          {activeTab === 'incidents' && (
+            <TrafficIncidents
+              incidents={incidents}
+              onAddIncident={handleAddIncident}
+              onConfirmIncident={handleConfirmIncident}
+              onFocusIncident={handleFocusIncident}
+              userCoords={userLocation}
+            />
+          )}
+
+          {activeTab === 'emergency' && (
+            <EmergencyServices
+              userCoords={userLocation}
+              onFocusLocation={(coords) => {
+                setCenter(coords);
+                setZoom(16);
               }}
             />
-          );
-        })()}
-          </div>
+          )}
 
-        {/* Mobility Intelligence Dashboard / Right Drawer */}
-        <div className="w-full lg:w-[480px] xl:w-[520px] bg-slate-50 dark:bg-slate-950 border-t lg:border-t-0 lg:border-l dark:border-slate-800 flex flex-col h-[50vh] lg:h-[calc(100vh-61px)] shadow-2xl z-30">
-          {/* Tab Bar Header */}
-          <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-1.5 flex items-center justify-between gap-1 shrink-0 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab('navigate')}
-              className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all ${
-                activeTab === 'navigate'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <Navigation className="w-4 h-4" />
-              <span>{t.turnByTurn.split(' ')[0]}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('multimodal')}
-              className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all ${
-                activeTab === 'multimodal'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>{t.multimodalTitle.split(' ')[0]}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('transit')}
-              className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all ${
-                activeTab === 'transit'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <Train className="w-4 h-4" />
-              <span>Metro Fares</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('incidents')}
-              className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all ${
-                activeTab === 'incidents'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <AlertTriangle className="w-4 h-4" />
-              <span>Alerts ({incidents.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('emergency')}
-              className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all ${
-                activeTab === 'emergency'
-                  ? 'bg-red-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <LifeBuoy className="w-4 h-4" />
-              <span>1122 Help</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('offline')}
-              className={`flex-1 min-w-[70px] py-2 px-1.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition-all ${
-                activeTab === 'offline'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <WifiOff className="w-4 h-4" />
-              <span>Offline</span>
-            </button>
-          </div>
-
-          {/* Tab Content Panels */}
-          <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5">
-            {activeTab === 'navigate' && (
-              <NavigationPanel
-                origin={origin}
-                destination={destination}
-                activeRoute={activeRoute}
-                routes={generatedRoutes}
-                onSelectRoute={setActiveRoute}
-                travelMode={travelMode}
-                onTravelModeChange={setTravelMode}
-                onClearNavigation={() => {
-                  setDestination(null);
-                  setActiveRoute(null);
-                  setIsNavigatingLive(false);
-                }}
-                isNavigatingLive={isNavigatingLive}
-                onStartNavigation={() => {
-                  setIsNavigatingLive(true);
-                  setCurrentStepIndex(0);
-                }}
-                onStopNavigation={() => {
-                  setIsNavigatingLive(false);
-                }}
-                currentStepIndex={currentStepIndex}
-                onStepChange={setCurrentStepIndex}
-                simulatedSpeed={simulatedSpeed}
-              />
-            )}
-
-            {activeTab === 'multimodal' && (
-              <MultimodalComparison
-                distanceKm={activeRoute?.distanceKm || 8.5}
-                durationMinutes={activeRoute?.durationMinutes || 22}
-                selectedMode={selectedMultimodalMode}
-                onSelectMode={setSelectedMultimodalMode}
-              />
-            )}
-
-            {activeTab === 'transit' && (
-              <TransitPlanner
-                onSelectStation={handleFocusStation}
-              />
-            )}
-
-            {activeTab === 'incidents' && (
-              <TrafficIncidents
-                incidents={incidents}
-                onAddIncident={handleAddIncident}
-                onConfirmIncident={handleConfirmIncident}
-                onFocusIncident={handleFocusIncident}
-                userCoords={userLocation}
-              />
-            )}
-
-            {activeTab === 'emergency' && (
-              <EmergencyServices
-                userCoords={userLocation}
-                onFocusLocation={(coords) => {
-                  setCenter(coords);
-                  setZoom(16);
-                }}
-              />
-            )}
-
-            {activeTab === 'offline' && (
-              <OfflineManager language={language} />
-            )}
-          </div>
-        </div>
+          {activeTab === 'offline' && (
+            <OfflineManager language={language} />
+          )}
+        </BottomSheet>
       </main>
-
-      {/* Waze Mobile App Simulator Modal */}
-      {showWazeSimulator && (
-        <WazeMobileSimulator
-          onClose={() => setShowWazeSimulator(false)}
-          onReportIncident={handleAddIncident}
-          onSelectDestination={(loc) => {
-            setDestination(loc);
-            setCenter({ lat: loc.lat, lng: loc.lng });
-            setZoom(15);
-            setShowWazeSimulator(false);
-          }}
-        />
-      )}
     </div>
   );
 }
