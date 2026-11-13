@@ -45,4 +45,4 @@ Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI 
 Incidents are device-local (no backend, so no real community sharing or moderation); transit station list is incomplete and fares are estimates; no transit routing; PWA icons are 1376×768 images declared as 192/512; offline map packs and offline routing don't exist; main JS bundle is a single ~1.5 MB chunk; no Playwright suite in CI yet.
 
 ## Hooks
-`.claude/settings.json` installs deps on remote session start and runs a typecheck after edits to `src/**/*.ts(x)`.
+`.claude/settings.json` installs deps on remote session start (`.claude/hooks/session-start.sh`, skips when package files are unchanged) and runs a typecheck after edits to `src/**/*.ts(x)`.
