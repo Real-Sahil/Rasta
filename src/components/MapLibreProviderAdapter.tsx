@@ -10,6 +10,7 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { CommunityIncident, TravelMode } from '../types';
 import { Layers, Navigation, Plus, Minus, Compass, AlertTriangle, Droplets, Construction, ShieldAlert, Flame } from 'lucide-react';
 import { OsmMapView } from './OsmMapView';
+import { escapeHtml } from '../services/escapeHtml';
 
 // Explicitly register worker URL so MapLibre GL never fails to spawn workers inside iframe sandboxes
 try {
@@ -18,16 +19,6 @@ try {
   }
 } catch (err) {
   console.warn('Unable to set MapLibre workerUrl:', err);
-}
-
-// Escape any untrusted text (user reports, geocoder names) before putting it into HTML strings
-function esc(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 export interface MapLibreMarkerData {
@@ -337,7 +328,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
           el.innerHTML = `
             <div class="flex flex-col items-center transform -translate-x-1/2 -translate-y-full">
               <div class="bg-rose-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white flex items-center gap-1 whitespace-nowrap">
-                <span>📍 ${esc(isRtl && markerData.titleUrdu ? markerData.titleUrdu : (markerData.title || 'Destination'))}</span>
+                <span>📍 ${escapeHtml(isRtl && markerData.titleUrdu ? markerData.titleUrdu : (markerData.title || 'Destination'))}</span>
               </div>
               <div class="w-1.5 h-2.5 bg-rose-600 -mt-0.5"></div>
             </div>
@@ -357,7 +348,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
           }
 
           el.innerHTML = `
-            <div class="w-7 h-7 rounded-full ${badgeColor} text-white border-2 border-white shadow-lg flex items-center justify-center text-xs animate-bounce" title="${esc(markerData.title || 'Traffic Incident')}">
+            <div class="w-7 h-7 rounded-full ${badgeColor} text-white border-2 border-white shadow-lg flex items-center justify-center text-xs animate-bounce" title="${escapeHtml(markerData.title || 'Traffic Incident')}">
               <span>${iconSvg}</span>
             </div>
           `;
@@ -377,17 +368,17 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         const popupHtml = `
           <div style="padding: 6px; font-family: sans-serif; min-width: 170px;">
             <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #059669; margin-bottom: 2px;">
-              ${esc(markerData.type.replace('_', ' ').toUpperCase())}
+              ${escapeHtml(markerData.type.replace('_', ' ').toUpperCase())}
             </div>
             <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 4px;">
-              ${esc(isRtl && markerData.titleUrdu ? markerData.titleUrdu : (markerData.title || 'Location'))}
+              ${escapeHtml(isRtl && markerData.titleUrdu ? markerData.titleUrdu : (markerData.title || 'Location'))}
             </div>
             ${markerData.incidentData ? `
               <div style="font-size: 11px; color: #475569; margin-bottom: 3px;">
-                <strong>Credibility:</strong> ${esc(markerData.incidentData.credibilityScore)}% (${esc(markerData.incidentData.upvotes)} upvotes)
+                <strong>Credibility:</strong> ${escapeHtml(markerData.incidentData.credibilityScore)}% (${escapeHtml(markerData.incidentData.upvotes)} upvotes)
               </div>
               <div style="font-size: 11px; color: #64748b; font-style: italic;">
-                "${esc(isRtl ? markerData.incidentData.descriptionUrdu : markerData.incidentData.description)}"
+                "${escapeHtml(isRtl ? markerData.incidentData.descriptionUrdu : markerData.incidentData.description)}"
               </div>
             ` : ''}
           </div>
