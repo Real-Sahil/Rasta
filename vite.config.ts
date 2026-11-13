@@ -12,7 +12,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+        includeAssets: ['icons/favicon.ico', 'icons/favicon-48.png', 'icons/apple-touch-icon.png'],
         manifest: {
           id: '/',
           name: 'Buraq Pakistan - Mobility Intelligence',
@@ -24,18 +24,9 @@ export default defineConfig(() => {
           start_url: '/',
           scope: '/',
           icons: [
-            {
-              src: '/buraq-icon.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'any'
-            },
-            {
-              src: '/buraq-icon.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any'
-            }
+            { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+            { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
           ]
         },
         workbox: {
@@ -80,7 +71,7 @@ export default defineConfig(() => {
     },
     test: {
       environment: 'node',
-      include: ['src/**/*.test.ts', 'api/**/*.test.ts', 'scripts/**/*.test.ts']
+      include: ['src/**/*.test.ts', 'api/**/*.test.ts', 'db/**/*.test.ts', 'scripts/**/*.test.ts']
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

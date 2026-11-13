@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { createApi, signToken, verifyToken, validateNewIncident } from './index';
 
 const SECRET = 'test-secret';
-const migration = readFileSync(new URL('../db/migrations/001_incidents.sql', import.meta.url), 'utf8');
+const migrationsDir = new URL('../db/migrations/', import.meta.url);
+const migration = readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort().map((f) => readFileSync(new URL(f, migrationsDir), 'utf8')).join('\n');
 let pg: PGlite;
 let api: ReturnType<typeof createApi>;
 let clock = Date.now();

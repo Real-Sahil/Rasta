@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Brand & City */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-700 via-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0 overflow-hidden">
-            <img src="/buraq-icon.png" alt="Buraq" className="w-full h-full object-cover" />
+            <img src="/icons/icon-192.png" alt="Buraq" className="w-full h-full object-cover" />
           </div>
 
           <div className="min-w-0">
