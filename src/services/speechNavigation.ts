@@ -50,7 +50,7 @@ export class SpeechNavigationService {
   /**
    * Separate navigation event from speech generation with deduplication & graceful fallback
    */
-  public speak(instructionEn: string, instructionUrdu: string, instructionPunjabi?: string, instructionArabic?: string) {
+  public speak(instructionEn: string, instructionUrdu: string, instructionPunjabi?: string, instructionArabic?: string, force = false) {
     if (this.isMuted || !this.synth) return;
 
     let textToSpeak = instructionEn;
@@ -78,7 +78,7 @@ export class SpeechNavigationService {
 
     // 7. Prevention of repeated instructions (12-second deduplication window)
     const now = Date.now();
-    if (textToSpeak === this.lastSpokenText && now - this.lastSpokenTimestamp < 12000) {
+    if (!force && textToSpeak === this.lastSpokenText && now - this.lastSpokenTimestamp < 12000) {
       return;
     }
 

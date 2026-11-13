@@ -28,6 +28,8 @@ export function useVoiceInput(onResult?: (finalText: string) => void): UseVoiceI
   const [interimTranscript, setInterimTranscript] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
+  const onResultRef = useRef(onResult);
+  onResultRef.current = onResult; // always call the latest callback without re-creating the recogniser
 
   const isSupported = typeof window !== 'undefined' && Boolean(
     (window as unknown as IWindow).SpeechRecognition ||
@@ -67,13 +69,8 @@ export function useVoiceInput(onResult?: (finalText: string) => void): UseVoiceI
       setInterimTranscript(currentInterim);
 
       if (currentFinal) {
-        setTranscript((prev) => {
-          const updated = prev ? `${prev} ${currentFinal}` : currentFinal;
-          if (onResult) {
-            onResult(updated);
-          }
-          return updated;
-        });
+        setTranscript(currentFinal);
+        onResultRef.current?.(currentFinal);
       }
     };
 
@@ -101,7 +98,7 @@ export function useVoiceInput(onResult?: (finalText: string) => void): UseVoiceI
         recognitionRef.current.abort();
       }
     };
-  }, [isSupported, onResult]);
+  }, [isSupported]);
 
   const startListening = useCallback((lang: 'ur-PK' | 'en-US' | 'pa-PK' = 'ur-PK') => {
     if (!recognitionRef.current) {
@@ -112,6 +109,7 @@ export function useVoiceInput(onResult?: (finalText: string) => void): UseVoiceI
     try {
       setErrorMessage(null);
       setInterimTranscript('');
+      setTranscript('');
       recognitionRef.current.lang = lang;
       recognitionRef.current.start();
     } catch (err: any) {

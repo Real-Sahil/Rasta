@@ -3,230 +3,71 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { RouteOption, TravelMode, LocationPoint } from '../types';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
-import { speechNavigator } from '../services/speechNavigation';
-import {
-  Navigation,
-  Car,
-  Bike,
-  Train,
-  Footprints,
-  Volume2,
-  VolumeX,
-  Gauge,
-  CornerUpRight,
-  ArrowRight,
-  X,
-  CheckCircle,
-  Clock,
-  Sparkles,
-  Mountain,
-  CloudRain,
-  ShieldAlert,
-  AlertTriangle,
-  RotateCcw,
-  Compass
-} from 'lucide-react';
-import { RouteElevationVisualizer } from './RouteElevationVisualizer';
-import { RouteTimeCostChart } from './RouteTimeCostChart';
-import { TrafficCongestionChart } from './TrafficCongestionChart';
+import { NavSession } from '../core/navigation';
+import { StartResult } from '../core/store';
 import { WeatherData } from '../services/weatherService';
+import { Navigation, Car, Bike, Footprints, X, Clock, CloudRain, AlertTriangle, Loader2 } from 'lucide-react';
+import { RouteTimeCostChart } from './RouteTimeCostChart';
 
 interface NavigationPanelProps {
-  origin: LocationPoint | null;
   destination: LocationPoint | null;
   activeRoute: RouteOption | null;
   routes: RouteOption[];
-  onSelectRoute: (route: RouteOption) => void;
+  routesLoading: boolean;
+  routesSource: 'network' | 'estimate' | null;
+  onSelectRoute: (id: string) => void;
   travelMode: TravelMode;
   onTravelModeChange: (mode: TravelMode) => void;
   onClearNavigation: () => void;
-  isNavigatingLive?: boolean;
-  onStartNavigation?: () => void;
-  onStopNavigation?: () => void;
-  currentStepIndex?: number;
-  onStepChange?: (index: number) => void;
-  simulatedSpeed?: number;
-  onReportIncident?: () => void;
+  session: NavSession | null;
+  hasFix: boolean;
+  onStartNavigation: () => StartResult;
+  onStopNavigation: () => void;
   weatherData?: WeatherData | null;
-  userLocation?: { lat: number; lng: number } | null;
-  onRecenter?: () => void;
 }
 
 export const NavigationPanel: React.FC<NavigationPanelProps> = ({
-  origin,
-  destination,
-  activeRoute,
-  routes,
-  onSelectRoute,
-  travelMode,
-  onTravelModeChange,
-  onClearNavigation,
-  isNavigatingLive: controlledNavigating,
-  onStartNavigation,
-  onStopNavigation,
-  currentStepIndex: controlledStepIndex,
-  onStepChange,
-  simulatedSpeed: controlledSpeed,
-  onReportIncident,
-  weatherData = null,
-  userLocation,
-  onRecenter
+  destination, activeRoute, routes, routesLoading, routesSource, onSelectRoute, travelMode, onTravelModeChange,
+  onClearNavigation, session, hasFix, onStartNavigation, onStopNavigation, weatherData = null
 }) => {
-  const { language, isRtl, t } = useMobilityTheme();
-  const [internalNavigating, setInternalNavigating] = useState(false);
-  const [internalStepIndex, setInternalStepIndex] = useState(0);
-  const [internalSpeed, setInternalSpeed] = useState(42);
-  const [isVoiceMuted, setIsVoiceMuted] = useState(false);
-  const [gpsValidationError, setGpsValidationError] = useState<string | null>(null);
-
-  const isNavigatingLive = controlledNavigating !== undefined ? controlledNavigating : internalNavigating;
-  const currentStepIndex = controlledStepIndex !== undefined ? controlledStepIndex : internalStepIndex;
-  const simulatedSpeed = controlledSpeed !== undefined ? controlledSpeed : internalSpeed;
-
-  const handleStart = () => {
-    // Check if starting from current location but GPS position is unavailable
-    if (!userLocation) {
-      setGpsValidationError(
-        isRtl
-          ? 'GPS لوکیشن دستیاب نہیں یا اجازت درکار ہے۔ براہ کرم مقام کی اجازت دیں یا دستی طور پر منتخب کریں۔'
-          : 'GPS location unavailable or permission denied. Please enable location or choose a manual starting point.'
-      );
-      return;
-    }
-    setGpsValidationError(null);
-    if (onStartNavigation) onStartNavigation();
-    else {
-      setInternalNavigating(true);
-      setInternalStepIndex(0);
-    }
-  };
-
-  const handleStop = () => {
-    if (onStopNavigation) onStopNavigation();
-    else {
-      setInternalNavigating(false);
-    }
-    speechNavigator.stop();
-  };
-
-  useEffect(() => {
-    speechNavigator.setPreferences(language, isVoiceMuted);
-  }, [language, isVoiceMuted]);
-
-  const lastSpokenKeyRef = React.useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!isNavigatingLive || isVoiceMuted) {
-      lastSpokenKeyRef.current = null;
-      speechNavigator.stop();
-      return;
-    }
-
-    if (activeRoute && activeRoute.steps[currentStepIndex]) {
-      const step = activeRoute.steps[currentStepIndex];
-      const stepKey = `${activeRoute.id}_step_${currentStepIndex}`;
-      if (lastSpokenKeyRef.current !== stepKey) {
-        lastSpokenKeyRef.current = stepKey;
-        speechNavigator.speak(step.instruction, step.instructionUrdu, step.instructionUrdu, step.instructionUrdu);
-      }
-    }
-  }, [isNavigatingLive, currentStepIndex, activeRoute?.id, isVoiceMuted, language]);
+  const { isRtl, t } = useMobilityTheme();
+  const [startError, setStartError] = useState<string | null>(null);
 
   if (!destination) return null;
+
+  const handleStart = () => {
+    const res = onStartNavigation();
+    if (res.ok) return setStartError(null);
+    setStartError(
+      res.reason === 'no_fix'
+        ? (isRtl ? 'GPS لوکیشن دستیاب نہیں۔ براہ کرم مقام کی اجازت دیں اور دوبارہ کوشش کریں۔' : 'No GPS fix yet. Allow location access and try again.')
+        : (isRtl ? 'ابھی کوئی راستہ دستیاب نہیں۔' : 'No route available yet.')
+    );
+  };
+
   const fastestDuration = routes.length ? Math.min(...routes.map((r) => r.durationMinutes)) : 0;
 
-  // Active Navigation Screen (Driving HUD mode)
-  if (isNavigatingLive) {
-    const currentStep = activeRoute && activeRoute.steps[currentStepIndex];
+  // Active trip: the map HUD carries turn-by-turn; the sheet shows a compact summary
+  if (session) {
     return (
-      <div className="bg-[#143C35] text-white rounded-3xl shadow-2xl border border-emerald-500/40 p-4 sm:p-5 space-y-4">
-        {/* Top Header Status: Speed, Re-centre, Voice Mute */}
-        <div className="flex items-center justify-between border-b border-emerald-900/50 pb-3">
-          <div className="flex items-center gap-2 font-black text-emerald-300 text-sm">
-            <Gauge className="w-5 h-5 animate-pulse" />
-            <span>{simulatedSpeed} {t.kmh}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Re-centre GPS Button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (onRecenter) onRecenter();
-              }}
-              className="p-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-emerald-200 transition-all cursor-pointer shadow-sm"
-              title={isRtl ? 'مقام پر واپس جائیں' : 'Re-centre on GPS'}
-            >
-              <Compass className="w-4 h-4" />
-            </button>
-
-            {/* Voice Mute Control */}
-            <button
-              type="button"
-              onClick={() => setIsVoiceMuted(!isVoiceMuted)}
-              className={`p-2 rounded-xl transition-all cursor-pointer ${
-                isVoiceMuted ? 'bg-amber-600 text-white' : 'bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200'
-              }`}
-              title={isVoiceMuted ? 'Unmute voice' : 'Mute voice'}
-            >
-              {isVoiceMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </button>
-
-            {/* Incident Report Action */}
-            {onReportIncident && (
-              <button
-                type="button"
-                onClick={onReportIncident}
-                className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                title="Report Hazard"
-              >
-                <AlertTriangle className="w-4 h-4" />
-                <span>{isRtl ? 'رپورٹ' : 'Report'}</span>
-              </button>
-            )}
-
-            {/* Exit Navigation Control */}
-            <button
-              type="button"
-              onClick={handleStop}
-              className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer"
-            >
-              {t.stopNavigation}
-            </button>
-          </div>
+      <div className="bg-[#143C35] text-white rounded-3xl shadow-2xl border border-emerald-500/40 p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm font-black truncate">{isRtl ? destination.nameUrdu : destination.name}</div>
+          <button type="button" onClick={onStopNavigation} className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs cursor-pointer">
+            {t.stopNavigation}
+          </button>
         </div>
-
-        {/* Large Next-Turn Instruction & Distance */}
-        {currentStep && (
-          <div className="space-y-2 py-2">
-            <div className="flex items-center gap-2 text-emerald-300 text-xs font-black uppercase tracking-wider">
-              <CornerUpRight className="w-5 h-5 text-amber-400 animate-bounce" />
-              <span>{isRtl ? 'اگلا مرحلہ' : 'Next step'}</span>
-            </div>
-            <p className="text-xl sm:text-2xl font-black text-white leading-snug">
-              {isRtl ? currentStep.instructionUrdu : currentStep.instruction}
-            </p>
-          </div>
-        )}
-
-        {/* Remaining Distance & ETA */}
         <div className="flex items-center justify-between bg-emerald-950/60 p-3 rounded-2xl border border-emerald-500/30 text-xs font-bold text-emerald-200">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-400" />
-            <span>ETA: {activeRoute?.durationMinutes || 15} Mins</span>
-          </div>
-          <div>
-            <span>Remaining: {activeRoute?.distanceKm || 5.0} km</span>
-          </div>
+          <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-400" />{Math.max(1, Math.round(session.remainingS / 60))} min</span>
+          <span>{(session.remainingM / 1000).toFixed(1)} km</span>
         </div>
       </div>
     );
   }
 
-  // Route Planning Screen
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 space-y-4">
       {/* Origin -> Destination Header */}
@@ -235,7 +76,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
             <span className="font-semibold truncate max-w-[240px]">
-              {userLocation ? (isRtl ? 'موجودہ جی پی ایس مقام' : 'Current GPS Location') : (isRtl ? 'GPS مقام غیر دستیاب' : 'GPS Location Unavailable')}
+              {hasFix ? (isRtl ? 'موجودہ جی پی ایس مقام' : 'Current GPS Location') : (isRtl ? 'GPS مقام غیر دستیاب' : 'GPS Location Unavailable')}
             </span>
           </div>
 
@@ -257,16 +98,16 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
         </button>
       </div>
 
-      {gpsValidationError && (
+      {startError && (
         <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-900 dark:text-rose-200 text-[11px] font-bold flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-          <span>{gpsValidationError}</span>
+          <span>{startError}</span>
         </div>
       )}
-      {!userLocation && !gpsValidationError && (
+      {!hasFix && !startError && (
         <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-900 dark:text-amber-200 text-[11px] font-bold flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-          <span>{isRtl ? 'GPS مقام تلاش کیا جا رہا ہے یا اجازت درکار ہے۔' : 'Waiting for a GPS fix (location permission required). Routes below start from your selected area.'}</span>
+          <span>{isRtl ? 'GPS مقام تلاش کیا جا رہا ہے یا اجازت درکار ہے۔' : 'Waiting for a GPS fix (location permission required). Routes start from the city centre until then.'}</span>
         </div>
       )}
 
@@ -315,6 +156,14 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
           {t.alternativeRoutes}
         </span>
 
+        {routesLoading && (
+          <div className="flex items-center gap-2 text-xs text-slate-500"><Loader2 className="w-4 h-4 animate-spin" />{isRtl ? 'راستے تلاش ہو رہے ہیں…' : 'Finding routes…'}</div>
+        )}
+        {routesSource === 'estimate' && !routesLoading && (
+          <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-900 dark:text-amber-200 text-[11px] font-bold">
+            {isRtl ? 'سڑک کا ڈیٹا دستیاب نہیں؛ صرف اندازہ دکھایا جا رہا ہے۔' : 'Road routing unavailable, showing a rough estimate only.'}
+          </div>
+        )}
         <div className="space-y-2">
           {routes.map((route) => {
             const isSelected = activeRoute?.id === route.id;
@@ -322,7 +171,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
             return (
               <div
                 key={route.id}
-                onClick={() => onSelectRoute(route)}
+                onClick={() => onSelectRoute(route.id)}
                 className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                   isSelected
                     ? 'border-[#20A477] bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-[#20A477]/30 shadow-md'
@@ -370,7 +219,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
         <RouteTimeCostChart
           routes={routes}
           activeRoute={activeRoute}
-          onSelectRoute={onSelectRoute}
+          onSelectRoute={(r) => onSelectRoute(r.id)}
           travelMode={travelMode}
           isRtl={isRtl}
         />

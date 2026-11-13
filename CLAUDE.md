@@ -10,11 +10,15 @@ Pakistan-first mobility PWA (React 19 + Vite 8 + Tailwind 4 + MapLibre GL). Clie
 - `npm run build` – production build + service worker.
 - `npm run check` – lint + test + build (what CI runs).
 
-## Layout
-- `src/App.tsx` – app shell: GPS, routing (OSRM + offline estimate), incidents, tabs.
-- `src/services/` – pure logic (GPS manager, navigation engine, fares, speech, storage, AQI/weather, helpers). Put testable logic here, with a `*.test.ts` beside it.
+## Architecture
+- `src/core/` – **all navigation logic, UI-free and unit-tested**: `geo` (haversine/bearing/projection), `routeMatcher` (true segment matching with a progress window), `navigation` (pure `createSession`/`updateSession`: progress, remaining distance/ETA, step, off-route after 3 fixes, arrival), `announcer` (500/200/50 m prompts, once each), `routing` (OSRM parse/validate + labelled offline estimate), `store` (Zustand: fix, destination, routes, session, reroute, mute; request-sequencing so stale route responses are discarded).
+- `src/hooks/` – thin adapters: `useGpsTracking` (GPS → store), `useRoutePlanner` (reload routes on destination/mode/~200 m start change, frozen mid-trip), `useVoiceAnnouncer` (store announcements → speech, honours mute, works on any tab).
+- `src/App.tsx` – view state + layout only. Never put routing/GPS/navigation logic back in components.
+- `src/services/` – GPS manager, speech, fares, storage, Open-Meteo AQI/weather, incident sync.
 - `src/components/` – UI. `MapLibreProviderAdapter` is the live map; `OsmMapView` is the no-WebGL fallback.
 - `src/data/` – locales (en/ur/pa/ar must keep identical keys) and Lahore location/transit data.
+
+Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI flows, drive the built app with Playwright using `serviceWorkers: 'block'` (the PWA service worker otherwise bypasses `page.route` mocks) and move simulated GPS in realistic hops (the GPS glitch filter rejects jumps over 1.2 km in under 2 s).
 
 ## Rules learned the hard way
 - **Never fabricate data.** No `Math.random()` for AQI/weather/votes, no invented phone numbers, ratings, "verified/official" labels, or fake progress. If real data is unavailable, show nothing or say so.
@@ -27,7 +31,7 @@ Pakistan-first mobility PWA (React 19 + Vite 8 + Tailwind 4 + MapLibre GL). Clie
 - Third-party calls (Nominatim, OSRM, Open-Meteo, ArcGIS/OpenFreeMap tiles) send coordinates/queries off-device; don't claim otherwise in the privacy copy.
 
 ## Known gaps (not yet fixed)
-Voice search re-initialises on each render; app-level voice mute isn't wired to speech; off-route detection is vertex-based; ETA/remaining distance in the HUD are route totals; PWA icons are 1376×768 images declared as 192/512.
+Incidents are device-local (no backend, so no real community sharing or moderation); transit station list is incomplete and fares are estimates; no transit routing; PWA icons are 1376×768 images declared as 192/512; offline map packs and offline routing don't exist; main JS bundle is a single ~1.5 MB chunk; no Playwright suite in CI yet.
 
 ## Hooks
 `.claude/settings.json` installs deps on remote session start and runs a typecheck after edits to `src/**/*.ts(x)`.

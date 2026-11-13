@@ -111,6 +111,7 @@ export class RobustGpsManager {
   private watchId: number | null = null;
   private staleTimer: any = null;
   private lastValidPosition: GpsCoordinates | null = null;
+  private lastSmoothed: GpsCoordinates | null = null;
   private lastUpdateTime: number = 0;
   private onStateChange: (state: GpsState) => void;
   private routePolyline: { lat: number; lng: number }[] | null = null;
@@ -256,18 +257,18 @@ export class RobustGpsManager {
 
     // 6. Location smoothing (Exponential Moving Average: alpha = 0.55 for smooth movement without lag)
     let smoothed: GpsCoordinates;
-    if (this.lastValidPosition) {
+    if (this.lastSmoothed) {
       const alpha = 0.55;
       smoothed = {
-        lat: this.lastValidPosition.lat * (1 - alpha) + rawCoords.lat * alpha,
-        lng: this.lastValidPosition.lng * (1 - alpha) + rawCoords.lng * alpha,
+        lat: this.lastSmoothed.lat * (1 - alpha) + rawCoords.lat * alpha,
+        lng: this.lastSmoothed.lng * (1 - alpha) + rawCoords.lng * alpha,
         accuracy: rawCoords.accuracy,
         heading: rawCoords.heading,
         speed: rawCoords.speed,
         timestamp: rawCoords.timestamp
       };
     } else {
-      smoothed = rawCoords;
+      smoothed = { ...rawCoords };
     }
 
     // 7. Road snapping / map matching if route polyline is available
@@ -280,6 +281,7 @@ export class RobustGpsManager {
     }
 
     this.lastValidPosition = rawCoords;
+    this.lastSmoothed = smoothed;
 
     this.updateState({
       location: rawCoords,
