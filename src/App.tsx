@@ -805,7 +805,7 @@ function MainApp() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans ${isOledNightMode ? 'bg-black text-emerald-400' : 'bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100'} antialiased selection:bg-emerald-500 selection:text-white`}>
+    <div className={`h-screen w-screen flex flex-col font-sans ${isOledNightMode ? 'bg-black text-emerald-400' : 'bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100'} antialiased selection:bg-emerald-500 selection:text-white overflow-hidden`}>
       {/* Tier 2 Demo Key Quota Warning Banner (Skill Requirement) */}
       <QuotaWarningBanner />
 
@@ -841,7 +841,7 @@ function MainApp() {
       )}
 
       {/* Main Content Area: Map-First Uber/Waze Architecture */}
-      <main className="flex-1 relative overflow-hidden h-[calc(100vh-61px)]">
+      <main className="flex-1 relative overflow-hidden flex flex-col min-h-0 w-full">
         {/* Full-Screen Interactive Map Canvas */}
         <div className="absolute inset-0 w-full h-full bg-white dark:bg-slate-950">
           {/* Floating Search Bar Over Map */}
