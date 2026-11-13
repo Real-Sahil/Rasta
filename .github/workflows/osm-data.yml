@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   refresh:
@@ -21,15 +20,11 @@ jobs:
       - run: npm ci
       - name: Fetch Lahore transit stops, hospitals and fuel stations from OpenStreetMap
         run: npm run data:osm
-      - name: Open a pull request if the data changed
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Commit refreshed data to main
         run: |
           if git diff --quiet -- src/data/osm; then echo "No changes"; exit 0; fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -B data/osm-refresh
           git add src/data/osm
           git commit -m "data: refresh OpenStreetMap extracts"
-          git push --force origin data/osm-refresh
-          gh pr create --title "data: refresh OpenStreetMap extracts" --body "Automated monthly refresh. Review station order/counts before merging. Data: OpenStreetMap contributors, ODbL." --base main --head data/osm-refresh || echo "PR already open"
+          git push origin HEAD:main

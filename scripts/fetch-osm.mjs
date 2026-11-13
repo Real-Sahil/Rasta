@@ -4,23 +4,39 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { orderedStops, toStation, toPoi, withMeta } from './lib/osm.mjs';
 
-const ENDPOINT = process.env.OVERPASS_URL || 'https://overpass-api.de/api/interpreter';
+const ENDPOINTS = process.env.OVERPASS_URL
+  ? [process.env.OVERPASS_URL]
+  : ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
 const BBOX = '31.30,74.10,31.70,74.60'; // south,west,north,east: Lahore
 const OUT = new URL('../src/data/osm/', import.meta.url);
 const fetchedAt = new Date().toISOString();
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+
+// Public Overpass servers are often busy: rotate mirrors and back off exponentially.
 async function overpass(query) {
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    const res = await fetch(ENDPOINT, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'buraq-pakistan-data-build/1.0' },
-      body: 'data=' + encodeURIComponent(query)
-    });
-    if (res.ok) return (await res.json()).elements;
-    if (![429, 504].includes(res.status)) throw new Error(`Overpass ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    await new Promise((r) => setTimeout(r, 5000 * attempt));
+  let lastErr;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const endpoint = ENDPOINTS[attempt % ENDPOINTS.length];
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'buraq-pakistan-data-build/1.0' },
+        body: 'data=' + encodeURIComponent(query),
+        signal: AbortSignal.timeout(120_000)
+      });
+      if (res.ok) return (await res.json()).elements;
+      lastErr = new Error(`Overpass ${res.status} from ${new URL(endpoint).host}`);
+      if (!RETRYABLE.has(res.status)) throw lastErr;
+    } catch (e) {
+      lastErr = e;
+      if (e === lastErr && String(e.message).startsWith('Overpass 4')) throw e; // non-retryable client error
+    }
+    console.warn(`  retry ${attempt + 1}: ${lastErr.message}`);
+    await sleep(Math.min(60_000, 4_000 * 2 ** attempt));
   }
-  throw new Error('Overpass busy, try again later');
+  throw lastErr;
 }
 
 async function routeStops({ filter, line, code }) {
@@ -46,9 +62,13 @@ const jobs = {
   fuel: () => poi('["amenity"="fuel"]', 'fuel')
 };
 
+// Refuse to overwrite good data with a suspiciously small result (a partial or failed query)
+const MIN = { orangeline: 10, metrobus: 10, hospitals: 10, fuel: 10 };
+
 await mkdir(OUT, { recursive: true });
 for (const [name, job] of Object.entries(jobs)) {
   const { items, query, ...extra } = await job();
+  if (items.length < MIN[name]) throw new Error(`${name}: only ${items.length} items (expected at least ${MIN[name]}); not writing`);
   await writeFile(new URL(`${name}.json`, OUT), JSON.stringify(withMeta(items, { fetchedAt, bbox: BBOX, query, ...extra }), null, 1) + '\n');
   console.log(`${name}: ${items.length} items${extra.relationName ? ` (${extra.relationName})` : ''}`);
   await new Promise((r) => setTimeout(r, 2000)); // be polite to the public server
