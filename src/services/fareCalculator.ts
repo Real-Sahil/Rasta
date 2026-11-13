@@ -30,8 +30,8 @@ export function calculateMultimodalOptions(
     distanceKm: walkingKm,
     co2Grams: 0,
     comfortRating: 2,
-    highlights: ['Zero cost', 'Zero emissions', 'Good for health & under 2 km'],
-    highlightsUrdu: ['کوئی کرایہ نہیں', 'صفر کاربن اخراج', 'صحت کے لیے مفید']
+    highlights: ['No cost', 'No emissions'],
+    highlightsUrdu: ['کوئی کرایہ نہیں', 'صفر کاربن اخراج']
   };
 
   // 2. Lahore Metrobus
@@ -46,8 +46,8 @@ export function calculateMultimodalOptions(
     distanceKm: safeDistance,
     co2Grams: Math.round(safeDistance * 35),
     comfortRating: 4,
-    highlights: ['Dedicated lane - no traffic jams', 'Flat Rs. 30 ticket', 'Air conditioned with CCTV'],
-    highlightsUrdu: ['ٹریفک جام سے مکمل آزاد کوریڈور', 'یکساں ۳۰ روپے کرایہ', 'مکمل ایئرکنڈیشنڈ']
+    highlights: ['Dedicated bus lane', 'Flat fare (estimate)'],
+    highlightsUrdu: ['مخصوص بس لین', 'یکساں کرایہ (اندازہ)']
   };
 
   // 3. Orange Line Metro Train
@@ -69,8 +69,8 @@ export function calculateMultimodalOptions(
     distanceKm: safeDistance,
     co2Grams: Math.round(safeDistance * 15),
     comfortRating: 5,
-    highlights: ['Electric high-speed train', 'No road delays ever', 'Modern automated stations'],
-    highlightsUrdu: ['تیز رفتار الیکٹرک ٹرین', 'روڈ ٹریفک سے بے نیاز', 'جدید خودکار اسٹیشنز']
+    highlights: ['Electric train on its own track', 'Distance-based fare (estimate)'],
+    highlightsUrdu: ['اپنے ٹریک پر الیکٹرک ٹرین', 'فاصلے کے مطابق کرایہ (اندازہ)']
   };
 
   // 4. Motorbike (Honda CD70 / CG125)

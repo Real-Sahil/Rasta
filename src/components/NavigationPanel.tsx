@@ -3,11 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { RouteOption, TravelMode, LocationPoint } from '../types';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
-import { NavSession } from '../core/navigation';
-import { StartResult } from '../core/store';
 import { WeatherData } from '../services/weatherService';
 import { Navigation, Car, Bike, Footprints, X, Clock, CloudRain, AlertTriangle, Loader2 } from 'lucide-react';
 import { RouteTimeCostChart } from './RouteTimeCostChart';
@@ -22,54 +20,22 @@ interface NavigationPanelProps {
   travelMode: TravelMode;
   onTravelModeChange: (mode: TravelMode) => void;
   onClearNavigation: () => void;
-  session: NavSession | null;
   hasFix: boolean;
-  onStartNavigation: () => StartResult;
-  onStopNavigation: () => void;
   weatherData?: WeatherData | null;
 }
 
 export const NavigationPanel: React.FC<NavigationPanelProps> = ({
   destination, activeRoute, routes, routesLoading, routesSource, onSelectRoute, travelMode, onTravelModeChange,
-  onClearNavigation, session, hasFix, onStartNavigation, onStopNavigation, weatherData = null
+  onClearNavigation, hasFix, weatherData = null
 }) => {
   const { isRtl, t } = useMobilityTheme();
-  const [startError, setStartError] = useState<string | null>(null);
 
   if (!destination) return null;
 
-  const handleStart = () => {
-    const res = onStartNavigation();
-    if (res.ok) return setStartError(null);
-    setStartError(
-      res.reason === 'no_fix'
-        ? (isRtl ? 'GPS لوکیشن دستیاب نہیں۔ براہ کرم مقام کی اجازت دیں اور دوبارہ کوشش کریں۔' : 'No GPS fix yet. Allow location access and try again.')
-        : (isRtl ? 'ابھی کوئی راستہ دستیاب نہیں۔' : 'No route available yet.')
-    );
-  };
-
   const fastestDuration = routes.length ? Math.min(...routes.map((r) => r.durationMinutes)) : 0;
 
-  // Active trip: the map HUD carries turn-by-turn; the sheet shows a compact summary
-  if (session) {
-    return (
-      <div className="bg-[#143C35] text-white rounded-3xl shadow-2xl border border-emerald-500/40 p-4 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-black truncate">{isRtl ? destination.nameUrdu : destination.name}</div>
-          <button type="button" onClick={onStopNavigation} className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs cursor-pointer">
-            {t.stopNavigation}
-          </button>
-        </div>
-        <div className="flex items-center justify-between bg-emerald-950/60 p-3 rounded-2xl border border-emerald-500/30 text-xs font-bold text-emerald-200">
-          <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-400" />{Math.max(1, Math.round(session.remainingS / 60))} min</span>
-          <span>{(session.remainingM / 1000).toFixed(1)} km</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 space-y-4">
+    <div className="space-y-4">
       {/* Origin -> Destination Header */}
       <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
         <div className="space-y-1.5">
@@ -98,13 +64,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
         </button>
       </div>
 
-      {startError && (
-        <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-900 dark:text-rose-200 text-[11px] font-bold flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-          <span>{startError}</span>
-        </div>
-      )}
-      {!hasFix && !startError && (
+      {!hasFix && (
         <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-900 dark:text-amber-200 text-[11px] font-bold flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
           <span>{isRtl ? 'GPS مقام تلاش کیا جا رہا ہے یا اجازت درکار ہے۔' : 'Waiting for a GPS fix (location permission required). Routes start from the city centre until then.'}</span>
@@ -193,7 +153,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
                     )}
                   </div>
                   <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
-                    via {isRtl ? route.viaUrdu : route.via}
+                    {isRtl ? route.viaUrdu : route.via}
                   </p>
                 </div>
 
@@ -215,7 +175,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
       </div>
 
       {/* D3-Based Time vs. Cost Tradeoff Chart */}
-      {routes && routes.length > 0 && (
+      {routes.length > 1 && (
         <RouteTimeCostChart
           routes={routes}
           activeRoute={activeRoute}
@@ -225,15 +185,6 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
         />
       )}
 
-      {/* One Prominent Start Navigation Action */}
-      <button
-        type="button"
-        onClick={handleStart}
-        className="w-full py-4 rounded-2xl bg-[#143C35] hover:bg-[#20A477] text-white font-black text-base shadow-xl shadow-[#143C35]/25 flex items-center justify-center gap-2.5 transition-all transform hover:scale-[1.01] cursor-pointer"
-      >
-        <Navigation className="w-5 h-5 text-[#F2B95D] fill-current" />
-        <span>{t.startNavigation}</span>
-      </button>
     </div>
   );
 };

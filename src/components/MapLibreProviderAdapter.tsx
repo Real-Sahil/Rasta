@@ -151,6 +151,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
   const [styleMode, setStyleMode] = useState<'liberty' | 'bright' | 'arcgis' | 'satellite' | 'greyscale-minimalist'>('liberty');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [styleVersion, setStyleVersion] = useState(0);
+  const [mapSlow, setMapSlow] = useState(false);
   const fittedRouteRef = useRef<string | null>(null);
   const [webGlSupported, setWebGlSupported] = useState(true);
 
@@ -212,7 +213,11 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
     // setStyle() wipes custom sources/layers, so re-add the route every time a style finishes loading
     map.on('style.load', () => setStyleVersion((v) => v + 1));
 
+    // If the basemap hasn't rendered after 10 s, tell the user instead of showing a blank map
+    const slowTimer = setTimeout(() => setMapSlow(true), 10_000);
     map.on('load', () => {
+      clearTimeout(slowTimer);
+      setMapSlow(false);
       setMapLoaded(true);
       map.resize();
     });
@@ -253,6 +258,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
+      clearTimeout(slowTimer);
       resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
@@ -539,14 +545,20 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
       {/* MapLibre Canvas Container */}
       <div ref={containerRef} className="w-full h-full min-h-[300px]" />
 
+      {mapSlow && !mapLoaded && (
+        <div role="status" className="absolute inset-x-4 top-24 z-20 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold p-3 text-center">
+          {isRtl ? 'نقشہ لوڈ نہیں ہو سکا۔ اپنا انٹرنیٹ چیک کریں۔' : "The map couldn't load. Check your connection; routes and search may still work."}
+        </div>
+      )}
+
       {/* Floating Map Controls */}
       <div
         className={`absolute top-4 ${
-          isRtl ? 'left-4' : 'right-4'
+          isRtl ? 'right-4' : 'left-4'
         } z-10 flex flex-col gap-2 items-center`}
       >
         {/* Layer Control Menu */}
-        <div className="relative">
+        <div className={`relative ${isNavigatingLive ? 'hidden' : ''}`}>
           <button
             onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
             className="bg-white/95 dark:bg-slate-900/95 backdrop-blur text-slate-800 dark:text-slate-100 p-2.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
@@ -557,7 +569,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
           </button>
 
           {isLayerMenuOpen && (
-            <div className={`absolute ${isRtl ? 'left-full ml-2' : 'right-full mr-2'} top-0 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3 z-50 space-y-2.5`}>
+            <div className={`absolute ${isRtl ? 'right-full mr-2' : 'left-full ml-2'} top-0 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3 z-50 space-y-2.5`}>
               <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Map Data Layers</span>
                 <button onClick={() => setIsLayerMenuOpen(false)} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>
@@ -599,6 +611,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         {/* Style Switcher */}
         <button
           onClick={toggleStyle}
+          hidden={isNavigatingLive}
           className="bg-white/95 dark:bg-slate-900/95 backdrop-blur text-slate-800 dark:text-slate-100 p-2.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
           title="Cycle Map Styles (Liberty / Bright / ArcGIS / Satellite / Greyscale)"
         >
@@ -617,7 +630,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         </button>
 
         {/* Zoom Controls */}
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+        <div className={`bg-white/95 dark:bg-slate-900/95 backdrop-blur rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden ${isNavigatingLive ? 'hidden' : ''}`}>
           <button
             onClick={() => mapRef.current?.zoomIn()}
             className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 transition-colors"

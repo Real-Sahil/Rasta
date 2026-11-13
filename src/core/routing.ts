@@ -31,6 +31,13 @@ export function buildOsrmUrl(req: RouteRequest): string {
   return `${endpoint(req.mode)}/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true&alternatives=true`;
 }
 
+/** The two longest named roads of a route, used as its 'via' label. */
+export function mainRoads(steps: any[]): string[] {
+  const byName = new Map<string, number>();
+  for (const st of steps) if (st?.name) byName.set(st.name, (byName.get(st.name) ?? 0) + (st.distance ?? 0));
+  return [...byName.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([n]) => n);
+}
+
 /** Validate and convert an OSRM response. Returns [] for anything malformed. */
 export function parseOsrmRoutes(data: any, req: RouteRequest): RouteOption[] {
   if (!data || data.code !== 'Ok' || !Array.isArray(data.routes)) return [];
@@ -40,12 +47,13 @@ export function parseOsrmRoutes(data: any, req: RouteRequest): RouteOption[] {
     const steps = r?.legs?.[0]?.steps;
     if (!Array.isArray(coords) || coords.length < 2 || !Array.isArray(steps) || !Number.isFinite(r.distance)) return;
     const km = Number((r.distance / 1000).toFixed(1));
+    const roads = mainRoads(steps);
     out.push({
       id: `osrm_${req.destId}_${req.mode}_${idx}`,
       title: idx === 0 ? 'Recommended route' : `Alternative route ${idx}`,
       titleUrdu: idx === 0 ? 'تجویز کردہ راستہ' : `متبادل راستہ ${idx}`,
-      via: `Via road network (${km} km)`,
-      viaUrdu: `سڑکوں کے نیٹ ورک کے ذریعے (${km} کلومیٹر)`,
+      via: roads.length ? roads.join(' & ') : 'Main roads',
+      viaUrdu: roads.length ? roads.join(' اور ') : 'مرکزی سڑکیں',
       distanceKm: km,
       durationMinutes: Math.max(1, Math.round(r.duration / 60)),
       hasTolls: false,

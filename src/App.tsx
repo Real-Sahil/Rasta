@@ -18,12 +18,11 @@ import { MultimodalComparison } from './components/MultimodalComparison';
 import { TransitPlanner } from './components/TransitPlanner';
 import { TrafficIncidents } from './components/TrafficIncidents';
 import { EmergencyServices } from './components/EmergencyServices';
-import { OfflineManager } from './components/OfflineManager';
 import { QuotaWarningBanner } from './components/QuotaWarningBanner';
 import { MobilityAlertsHub } from './components/MobilityAlertsHub';
-import { BottomSheet } from './components/BottomSheet';
+import { BottomSheet, SheetSnap } from './components/BottomSheet';
 import { FloatingControls } from './components/FloatingControls';
-import { BottomNav, NavDestination } from './components/BottomNav';
+import { BottomNav, AppTab } from './components/BottomNav';
 import { fetchCityAqi, CityAqiData } from './services/aqiService';
 import { fetchCityWeather, WeatherData } from './services/weatherService';
 import { incidentSyncService, SyncStatusInfo } from './services/incidentSyncService';
@@ -62,8 +61,8 @@ function MainApp() {
   const [currentCity, setCurrentCity] = useState('lahore');
   const [aqiData, setAqiData] = useState<CityAqiData | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [activeTab, setActiveTab] = useState<'navigate' | 'multimodal' | 'transit' | 'incidents' | 'emergency' | 'offline'>('navigate');
-  const [currentDestination, setCurrentDestination] = useState<NavDestination>('explore');
+  const [activeTab, setActiveTab] = useState<AppTab>('navigate');
+  const [sheetSnap, setSheetSnap] = useState<SheetSnap>('peek');
   const [center, setCenter] = useState<{ lat: number; lng: number }>(CITY_CENTERS.lahore);
   const [zoom, setZoom] = useState(13);
   const [isMonsoonMode, setIsMonsoonMode] = useState(false);
@@ -164,6 +163,19 @@ function MainApp() {
     });
   }, [isRtl]);
 
+  const openTab = (tab: AppTab) => {
+    setActiveTab(tab);
+    setSheetSnap((cur) => (cur === 'peek' ? 'half' : cur));
+  };
+
+  // Picking a destination brings up its route; starting a trip hides the sheet; leaving the trip restores it
+  useEffect(() => {
+    if (destination) {
+      setActiveTab('navigate');
+      setSheetSnap('half');
+    }
+  }, [destination?.id]);
+
   const handleCalibrateGps = async () => {
     try {
       const c = await new RobustGpsManager(() => {}).getCurrentPositionOnce();
@@ -205,6 +217,14 @@ function MainApp() {
     }
     return res;
   };
+
+  const sheetTitle = {
+      navigate: destination ? (isRtl ? 'راستہ' : 'Route') : (isRtl ? 'منزل منتخب کریں' : 'Choose a destination'),
+      multimodal: isRtl ? 'سفر کے طریقوں کا موازنہ' : 'Compare ways to travel',
+      transit: isRtl ? 'لاہور میٹرو بس اور اورنج لائن' : 'Lahore Metrobus & Orange Line',
+      incidents: isRtl ? `سڑک کی رپورٹس (${incidents.length})` : `Road reports (${incidents.length})`,
+      emergency: isRtl ? 'ایمرجنسی مدد' : 'Emergency help'
+    }[activeTab];
 
   const mapRoute = useMemo(
     () => (activeRoute ? { id: activeRoute.id, coordinates: activeRoute.pathCoordinates, color: '#10b981', weight: 6 } : null),
@@ -262,7 +282,6 @@ function MainApp() {
   const handleFocusIncident = (inc: CommunityIncident) => {
     setCenter({ lat: inc.lat, lng: inc.lng });
     setZoom(15);
-    setActiveTab('navigate');
   };
 
   const handleFocusStation = (station: TransitStation) => {
@@ -272,7 +291,7 @@ function MainApp() {
       id: station.id, name: station.name, nameUrdu: station.nameUrdu ?? station.name, lat: station.lat, lng: station.lng,
       category: station.line === 'metrobus' ? 'metro' : 'orangeline'
     });
-    setActiveTab('navigate');
+    openTab('navigate');
   };
 
   return (
@@ -285,13 +304,19 @@ function MainApp() {
       <Header
         currentCity={currentCity}
         onCityChange={handleCityChange}
-        onEmergencyClick={() => setActiveTab('emergency')}
+        onEmergencyClick={() => openTab('emergency')}
         syncInfo={syncInfo}
         isMonsoonMode={isMonsoonMode}
         onToggleMonsoon={() => setIsMonsoonMode(!isMonsoonMode)}
         isOledNightMode={isOledNightMode}
         onToggleOledNight={() => setIsOledNightMode(!isOledNightMode)}
       />
+
+      {!syncInfo.isOnline && (
+        <div role="status" className="bg-amber-500 text-slate-950 text-xs font-bold px-4 py-1.5 text-center z-40">
+          {isRtl ? 'آپ آف لائن ہیں: تلاش اور راستے کے لیے انٹرنیٹ درکار ہے۔' : 'You are offline: search and routing need a connection. Areas you have already viewed may still show.'}
+        </div>
+      )}
 
       {toast && (
         <div role="status" className="bg-emerald-600 text-white text-xs font-bold px-4 py-2 text-center shadow-md flex items-center justify-center gap-2 z-40">
@@ -442,24 +467,53 @@ function MainApp() {
             </div>
           )}
 
-          {/* Waze & Uber Style Floating Controls */}
-          <FloatingControls
-            onReportClick={() => setActiveTab('incidents')}
-            onRecenterClick={handleRecenter}
-            onZoomIn={() => setZoom((z) => Math.min(19, z + 1))}
-            onZoomOut={() => setZoom((z) => Math.max(6, z - 1))}
-            isRtl={isRtl}
-          />
         </div>
 
-        {/* Uber/Waze Style Draggable Bottom Sheet */}
         <BottomSheet
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          incidentCount={incidents.length}
+          title={sheetTitle}
+          snap={sheetSnap}
+          onSnapChange={setSheetSnap}
+          hidden={session !== null}
           isRtl={isRtl}
+          floating={
+            <FloatingControls
+              onReportClick={session ? undefined : () => openTab('incidents')}
+              onLocateClick={handleRecenter}
+              isRtl={isRtl}
+            />
+          }
+          footer={
+            activeTab === 'navigate' && destination && !session ? (
+              <button
+                type="button"
+                disabled={!activeRoute || routesLoading}
+                onClick={() => {
+                  const res = handleStart();
+                  if (!res.ok) flash(res.reason === 'no_fix' ? (isRtl ? 'GPS لوکیشن دستیاب نہیں۔ براہ کرم مقام کی اجازت دیں اور دوبارہ کوشش کریں۔' : 'No GPS fix yet. Allow location access and try again.') : (isRtl ? 'ابھی کوئی راستہ دستیاب نہیں۔' : 'No route available yet.'));
+                }}
+                className="w-full py-3.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 disabled:text-slate-500 text-white font-black text-base flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Navigation className="w-5 h-5" />
+                <span>{isRtl ? 'نیویگیشن شروع کریں' : 'Start navigation'}</span>
+              </button>
+            ) : null
+          }
         >
-          {activeTab === 'navigate' && (
+          {activeTab === 'navigate' && !destination && (
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{isRtl ? 'کہاں جانا ہے؟' : 'Where to?'}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{isRtl ? 'اوپر تلاش کریں، نقشے پر ٹیپ کریں، یا یہاں سے منتخب کریں:' : 'Search above, tap the map, or pick a popular place:'}</p>
+              <div className="flex flex-wrap gap-2">
+                {POPULAR_LOCATIONS.slice(0, 6).map((loc) => (
+                  <button key={loc.id} type="button" onClick={() => { store().setDestination(loc); setCenter({ lat: loc.lat, lng: loc.lng }); setZoom(14); }} className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-100 dark:hover:bg-emerald-950 cursor-pointer">
+                    {isRtl ? loc.nameUrdu : loc.name.split(',')[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'navigate' && destination && (
             <NavigationPanel
               destination={destination}
               activeRoute={activeRoute}
@@ -470,10 +524,7 @@ function MainApp() {
               travelMode={travelMode}
               onTravelModeChange={(m) => store().setTravelMode(m)}
               onClearNavigation={() => store().setDestination(null)}
-              session={session}
               hasFix={fix !== null}
-              onStartNavigation={handleStart}
-              onStopNavigation={() => store().stopNavigation()}
               weatherData={weatherData}
             />
           )}
@@ -519,25 +570,9 @@ function MainApp() {
             />
           )}
 
-          {activeTab === 'offline' && (
-            <OfflineManager language={language} />
-          )}
         </BottomSheet>
 
-        {/* Restrained 5-Destination Bottom Navigation Bar */}
-        <BottomNav
-          currentDestination={currentDestination}
-          onNavigate={(dest) => {
-            setCurrentDestination(dest);
-            if (dest === 'explore') setActiveTab('navigate');
-            if (dest === 'transit') setActiveTab('transit');
-            if (dest === 'report') setActiveTab('incidents');
-            if (dest === 'offline') setActiveTab('offline');
-            if (dest === 'sos') setActiveTab('emergency');
-          }}
-          isNavigatingLive={session !== null}
-          isRtl={isRtl}
-        />
+        <BottomNav active={activeTab} onChange={openTab} hidden={session !== null} isRtl={isRtl} />
       </main>
     </div>
   );

@@ -208,6 +208,14 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
 
       {/* Incidents List */}
       <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+        {filteredIncidents.length === 0 && (
+          <div className="py-8 text-center space-y-2">
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{isRtl ? 'ابھی کوئی رپورٹ نہیں' : 'No reports yet'}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {isRtl ? 'راستے میں کچھ نظر آئے تو رپورٹ کریں تاکہ دوسروں کی مدد ہو۔' : 'See something on the road? Report it to help other drivers. Reports expire after a few hours.'}
+            </p>
+          </div>
+        )}
         {filteredIncidents.map((incident) => {
           const badge = getCategoryBadge(incident.category);
 
