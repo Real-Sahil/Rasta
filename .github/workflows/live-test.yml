@@ -1,0 +1,40 @@
+name: Live test
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Deployed site to test
+        default: https://rasta-sahilx.vercel.app
+      write:
+        description: Create test reports through the API/UI (they expire within 2 h)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save playwright   # test-only dependency, kept out of package.json
+      - run: npx playwright install --with-deps chromium
+      - name: Run live test
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          WRITE: ${{ inputs.write && '1' || '0' }}
+          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/live-test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-test-output
+          path: live-out/
