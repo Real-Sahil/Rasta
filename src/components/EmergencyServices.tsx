@@ -3,8 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { EMERGENCY_CONTACTS, LOCAL_SERVICES } from '../data/pakistanLocations';
+import React, { useState, useMemo } from 'react';
+import { EMERGENCY_CONTACTS } from '../data/pakistanLocations';
+import { HOSPITALS, FUEL_STATIONS, OSM_CREDIT, OSM_UPDATED, stationName } from '../data/osmData';
+import { haversineM } from '../core/geo';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
 import {
   PhoneCall,
@@ -29,11 +31,15 @@ export const EmergencyServices: React.FC<EmergencyServicesProps> = ({
   onFocusLocation
 }) => {
   const { isRtl, t } = useMobilityTheme();
-  const [activeFilter, setActiveFilter] = useState<'all' | 'petrol' | 'puncture' | 'hospital'>('all');
+  const [activeFilter, setActiveFilter] = useState<'hospital' | 'fuel'>('hospital');
 
-  const filteredServices = activeFilter === 'all'
-    ? LOCAL_SERVICES
-    : LOCAL_SERVICES.filter(s => s.type === activeFilter);
+  // Nearest first when we have a real GPS fix; otherwise alphabetical (no fake "nearby")
+  const services = useMemo(() => {
+    const list = activeFilter === 'hospital' ? HOSPITALS : FUEL_STATIONS;
+    const withDist = list.map((p) => ({ p, d: userCoords ? haversineM(userCoords, p) : null }));
+    withDist.sort((a, b) => (a.d != null && b.d != null ? a.d - b.d : a.p.name.localeCompare(b.p.name)));
+    return withDist.slice(0, 30);
+  }, [activeFilter, userCoords?.lat, userCoords?.lng]);
 
   // Generate WhatsApp SOS Message with exact GPS coordinates and emergency plea
   const handleShareSos = () => {
@@ -113,65 +119,47 @@ export const EmergencyServices: React.FC<EmergencyServicesProps> = ({
           </span>
           {/* Filter Pills */}
           <div className="flex items-center gap-1 text-[11px]">
-            <button
-              type="button"
-              onClick={() => setActiveFilter('all')}
-              className={`px-2 py-0.5 rounded-lg font-semibold ${
-                activeFilter === 'all' ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-500'
-              }`}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter('puncture')}
-              className={`px-2 py-0.5 rounded-lg font-semibold ${
-                activeFilter === 'puncture' ? 'bg-emerald-600 text-white' : 'text-slate-500'
-              }`}
-            >
-              {isRtl ? 'پنکچر' : 'Puncture'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveFilter('petrol')}
-              className={`px-2 py-0.5 rounded-lg font-semibold ${
-                activeFilter === 'petrol' ? 'bg-emerald-600 text-white' : 'text-slate-500'
-              }`}
-            >
-              {isRtl ? 'پٹرول' : 'Fuel'}
-            </button>
+            {([['hospital', isRtl ? 'ہسپتال' : 'Hospitals'], ['fuel', isRtl ? 'پٹرول' : 'Fuel']] as const).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setActiveFilter(id)}
+                className={`px-2 py-0.5 rounded-lg font-semibold ${activeFilter === id ? 'bg-emerald-600 text-white' : 'text-slate-500'}`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
         <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-          {filteredServices.map((service) => (
+          {services.length === 0 && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 p-2">
+              {isRtl ? 'اس وقت ڈیٹا دستیاب نہیں۔' : 'No place data available yet.'}
+            </p>
+          )}
+          {services.map(({ p, d }) => (
             <div
-              key={service.id}
-              onClick={() => onFocusLocation && onFocusLocation({ lat: service.lat, lng: service.lng })}
-              className="p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center justify-between cursor-pointer"
+              key={p.id}
+              onClick={() => onFocusLocation && onFocusLocation({ lat: p.lat, lng: p.lng })}
+              className="p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center justify-between gap-2"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-white dark:bg-slate-700 shadow-xs text-slate-600 dark:text-slate-300">
-                  {service.type === 'petrol' && <Fuel className="w-4 h-4 text-emerald-600" />}
-                  {service.type === 'puncture' && <Wrench className="w-4 h-4 text-amber-500" />}
-                  {service.type === 'hospital' && <Hospital className="w-4 h-4 text-rose-600" />}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 rounded-xl bg-white dark:bg-slate-700 shadow-xs shrink-0">
+                  {p.kind === 'fuel' ? <Fuel className="w-4 h-4 text-emerald-600" /> : <Hospital className="w-4 h-4 text-rose-600" />}
                 </div>
-
-                <div>
-                  <h5 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                    {isRtl ? service.nameUrdu : service.name}
-                  </h5>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {isRtl ? service.addressUrdu : service.address}
+                <div className="min-w-0">
+                  <h5 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 truncate">{stationName(p, isRtl)}</h5>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    {[d != null ? (d < 1000 ? `${Math.round(d / 10) * 10} m` : `${(d / 1000).toFixed(1)} km`) : null, p.address, p.emergency ? (isRtl ? 'ایمرجنسی' : 'Emergency') : null, p.open24h ? '24/7' : null].filter(Boolean).join(' • ')}
                   </p>
                 </div>
               </div>
-
-              {service.phone && (
+              {p.phone && (
                 <a
-                  href={`tel:${service.phone}`}
+                  href={`tel:${p.phone}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold flex items-center gap-1 hover:bg-emerald-100"
+                  className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-1 shrink-0"
                 >
                   <PhoneCall className="w-3 h-3" />
                   <span>Call</span>
@@ -180,6 +168,9 @@ export const EmergencyServices: React.FC<EmergencyServicesProps> = ({
             </div>
           ))}
         </div>
+        <p className="text-[10px] text-slate-400">
+          {OSM_CREDIT}{OSM_UPDATED ? `, updated ${OSM_UPDATED}` : ''}. {isRtl ? 'فون نمبر اور اوقات صرف جہاں معلوم ہوں۔' : 'Phone numbers and hours are shown only where OpenStreetMap has them; availability is not guaranteed.'}
+        </p>
       </div>
     </div>
   );

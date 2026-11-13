@@ -269,7 +269,7 @@ function MainApp() {
     setCenter({ lat: station.lat, lng: station.lng });
     setZoom(15);
     store().setDestination({
-      id: station.id, name: station.name, nameUrdu: station.nameUrdu, lat: station.lat, lng: station.lng,
+      id: station.id, name: station.name, nameUrdu: station.nameUrdu ?? station.name, lat: station.lat, lng: station.lng,
       category: station.line === 'metrobus' ? 'metro' : 'orangeline'
     });
     setActiveTab('navigate');

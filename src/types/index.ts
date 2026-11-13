@@ -57,12 +57,11 @@ export interface TransitStation {
   id: string;
   code: string;
   name: string;
-  nameUrdu: string;
+  nameUrdu: string | null; // null = OpenStreetMap has no Urdu name; never machine-guessed
   line: 'metrobus' | 'orangeline' | 'speedo';
   lat: number;
   lng: number;
-  zone: number;
-  facilities: string[];
+  osmId: string;
 }
 
 export interface ElevationPoint {
@@ -134,17 +133,17 @@ export interface EmergencyContact {
   descriptionUrdu: string;
 }
 
-export interface LocalService {
+/** Hospital or fuel station from OpenStreetMap. Unknown facts are null, never invented. */
+export interface Poi {
   id: string;
+  kind: 'hospital' | 'fuel';
   name: string;
-  nameUrdu: string;
-  type: 'petrol' | 'cng' | 'puncture' | 'mechanic' | 'hospital' | 'parking';
+  nameUrdu: string | null;
   lat: number;
   lng: number;
-  address: string;
-  addressUrdu: string;
-  phone?: string;
-  isOpen24Hours: boolean;
-  rating: number;
-  fuelAvailable?: { petrol: boolean; diesel: boolean; cng: boolean };
+  address: string | null;
+  phone: string | null;
+  open24h: boolean | null;
+  emergency: boolean | null;
+  osmId: string;
 }

@@ -6,7 +6,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, X, Navigation, Train, Bus, AlertCircle, Loader2, Mic, Radio, Home, Briefcase, Clock, Fuel, Hospital } from 'lucide-react';
 import { LocationPoint } from '../types';
-import { POPULAR_LOCATIONS, METROBUS_STATIONS, ORANGELINE_STATIONS, LOCAL_SERVICES } from '../data/pakistanLocations';
+import { POPULAR_LOCATIONS } from '../data/pakistanLocations';
+import { METROBUS_STATIONS, ORANGELINE_STATIONS, ALL_POIS } from '../data/osmData';
 import { translations } from '../data/locales';
 import { useVoiceInput } from '../services/speechRecognition';
 
@@ -85,38 +86,38 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     }
   }, [initialValue]);
 
-  // Combined dataset with local services & transit
+  // Combined dataset: landmarks + real OpenStreetMap transit stops, hospitals and fuel stations
   const localDataset: LocationPoint[] = [
     ...POPULAR_LOCATIONS,
-    ...METROBUS_STATIONS.map(s => ({
-      id: s.id,
-      name: `${s.name} (Metrobus)`,
-      nameUrdu: `${s.nameUrdu} (میٹرو بس)`,
-      lat: s.lat,
-      lng: s.lng,
-      address: `Metrobus Line Station ${s.code}`,
-      addressUrdu: `میٹرو بس اسٹیشن ${s.code}`,
+    ...METROBUS_STATIONS.map(st => ({
+      id: st.id,
+      name: `${st.name} (Metrobus)`,
+      nameUrdu: `${st.nameUrdu ?? st.name} (میٹرو بس)`,
+      lat: st.lat,
+      lng: st.lng,
+      address: `Metrobus station ${st.code}`,
+      addressUrdu: `میٹرو بس اسٹیشن ${st.code}`,
       category: 'metro' as const
     })),
-    ...ORANGELINE_STATIONS.map(s => ({
-      id: s.id,
-      name: `${s.name} (Orange Line)`,
-      nameUrdu: `${s.nameUrdu} (اورنج لائن)`,
-      lat: s.lat,
-      lng: s.lng,
-      address: `Orange Line Rapid Transit ${s.code}`,
-      addressUrdu: `اورنج لائن میٹرو اسٹیشن ${s.code}`,
+    ...ORANGELINE_STATIONS.map(st => ({
+      id: st.id,
+      name: `${st.name} (Orange Line)`,
+      nameUrdu: `${st.nameUrdu ?? st.name} (اورنج لائن)`,
+      lat: st.lat,
+      lng: st.lng,
+      address: `Orange Line station ${st.code}`,
+      addressUrdu: `اورنج لائن اسٹیشن ${st.code}`,
       category: 'orangeline' as const
     })),
-    ...LOCAL_SERVICES.map(svc => ({
-      id: svc.id,
-      name: svc.name,
-      nameUrdu: svc.nameUrdu,
-      lat: svc.lat,
-      lng: svc.lng,
-      address: svc.address,
-      addressUrdu: svc.addressUrdu,
-      category: svc.type === 'petrol' ? ('fuel' as const) : svc.type === 'hospital' ? ('hospital' as const) : ('hub' as const)
+    ...ALL_POIS.map(poi => ({
+      id: poi.id,
+      name: poi.name,
+      nameUrdu: poi.nameUrdu ?? poi.name,
+      lat: poi.lat,
+      lng: poi.lng,
+      address: poi.address ?? undefined,
+      addressUrdu: poi.address ?? undefined,
+      category: poi.kind === 'fuel' ? ('fuel' as const) : ('hospital' as const)
     }))
   ];
 
@@ -213,10 +214,6 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     inputRef.current?.focus();
   };
 
-  // Home & Work shortcut presets
-  const homeLocation: LocationPoint = POPULAR_LOCATIONS[1]; // Model Town area
-  const workLocation: LocationPoint = POPULAR_LOCATIONS[9]; // DHA Phase 5
-
   return (
     <div ref={containerRef} className="relative w-full z-40">
       <div className="relative flex items-center bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200/80 dark:border-slate-800 transition-all focus-within:ring-2 focus-within:ring-[#20A477] focus-within:border-[#20A477]">
@@ -312,28 +309,6 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       {/* Dropdown Suggestions & Explore Panel */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-96 overflow-y-auto z-50">
-          {/* Home and Work Shortcuts */}
-          {query.trim() === '' && (
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleSelect(homeLocation)}
-                className="flex-1 py-2 px-3 bg-white dark:bg-slate-800 hover:bg-emerald-50 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-xs transition-all cursor-pointer"
-              >
-                <Home className="w-4 h-4 text-[#20A477]" />
-                <span>{isUrdu ? 'گھر (ماڈل ٹاؤن)' : 'Home (Model Town)'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelect(workLocation)}
-                className="flex-1 py-2 px-3 bg-white dark:bg-slate-800 hover:bg-emerald-50 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-xs transition-all cursor-pointer"
-              >
-                <Briefcase className="w-4 h-4 text-amber-500" />
-                <span>{isUrdu ? 'دفتر (ڈی ایچ اے)' : 'Work (DHA Phase 5)'}</span>
-              </button>
-            </div>
-          )}
-
           {/* Recent Destinations */}
           {query.trim() === '' && recentDestinations.length > 0 && (
             <div className="p-3 border-b border-slate-100 dark:border-slate-800 space-y-1.5">
@@ -392,7 +367,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           {localMatches.length > 0 && (
             <div className="py-1">
               <div className="px-3 py-1.5 text-xs font-medium text-slate-400 dark:text-slate-500">
-                {isUrdu ? 'لاہور موبیلیٹی نیٹ ورک' : 'Verified Pakistan Transit Hubs'}
+                {isUrdu ? 'مقامات' : 'Places & stations'}
               </div>
               {localMatches.map((loc) => (
                 <button

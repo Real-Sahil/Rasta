@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { METROBUS_STATIONS, ORANGELINE_STATIONS } from '../data/pakistanLocations';
+import { METROBUS_STATIONS, ORANGELINE_STATIONS, OSM_CREDIT, OSM_UPDATED, stationName } from '../data/osmData';
 import { TransitStation } from '../types';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
 import { Train, Bus, MapPin, Calculator, Check, ArrowRight, ShieldCheck, Ticket } from 'lucide-react';
@@ -19,8 +19,8 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
 
   // Fare calculator state
   const [calcLine, setCalcLine] = useState<'metrobus' | 'orangeline'>('orangeline');
-  const [originId, setOriginId] = useState(ORANGELINE_STATIONS[0].id);
-  const [destId, setDestId] = useState(ORANGELINE_STATIONS[ORANGELINE_STATIONS.length - 1].id);
+  const [originId, setOriginId] = useState(ORANGELINE_STATIONS[0]?.id ?? '');
+  const [destId, setDestId] = useState(ORANGELINE_STATIONS[ORANGELINE_STATIONS.length - 1]?.id ?? '');
   const [isStudent, setIsStudent] = useState(false);
 
   const stations = calcLine === 'metrobus' ? METROBUS_STATIONS : ORANGELINE_STATIONS;
@@ -96,7 +96,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
       {activeTab === 'metrobus' && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-500 pb-1 border-b border-slate-100 dark:border-slate-800">
-            <span>Shahdara ↔ Gajju Matah ({METROBUS_STATIONS.length} stations listed)</span>
+            <span>{METROBUS_STATIONS.length ? `${METROBUS_STATIONS[0].name} ↔ ${METROBUS_STATIONS[METROBUS_STATIONS.length - 1].name} (${METROBUS_STATIONS.length} stops)` : 'No station data yet'}</span>
             <span className="font-bold text-rose-600">Flat Rs. 30</span>
           </div>
 
@@ -113,9 +113,8 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
                   </div>
                   <div>
                     <h5 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                      {isRtl ? station.nameUrdu : station.name}
+                      {stationName(station, isRtl)}
                     </h5>
-                    <span className="text-[10px] text-slate-400">{station.facilities.join(' • ')}</span>
                   </div>
                 </div>
 
@@ -135,7 +134,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
       {activeTab === 'orangeline' && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-500 pb-1 border-b border-slate-100 dark:border-slate-800">
-            <span>Ali Town ↔ Dera Gujran ({ORANGELINE_STATIONS.length} stations listed)</span>
+            <span>{ORANGELINE_STATIONS.length ? `${ORANGELINE_STATIONS[0].name} ↔ ${ORANGELINE_STATIONS[ORANGELINE_STATIONS.length - 1].name} (${ORANGELINE_STATIONS.length} stops)` : 'No station data yet'}</span>
             <span className="font-bold text-amber-600">Distance: Rs. 20 - 40</span>
           </div>
 
@@ -152,9 +151,8 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
                   </div>
                   <div>
                     <h5 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                      {isRtl ? station.nameUrdu : station.name}
+                      {stationName(station, isRtl)}
                     </h5>
-                    <span className="text-[10px] text-slate-400">{station.facilities.join(' • ')}</span>
                   </div>
                 </div>
 
@@ -178,8 +176,8 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
               type="button"
               onClick={() => {
                 setCalcLine('orangeline');
-                setOriginId(ORANGELINE_STATIONS[0].id);
-                setDestId(ORANGELINE_STATIONS[ORANGELINE_STATIONS.length - 1].id);
+                setOriginId(ORANGELINE_STATIONS[0]?.id ?? '');
+                setDestId(ORANGELINE_STATIONS[ORANGELINE_STATIONS.length - 1]?.id ?? '');
               }}
               className={`p-2 rounded-xl border text-xs font-bold transition-all ${
                 calcLine === 'orangeline'
@@ -193,8 +191,8 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
               type="button"
               onClick={() => {
                 setCalcLine('metrobus');
-                setOriginId(METROBUS_STATIONS[0].id);
-                setDestId(METROBUS_STATIONS[METROBUS_STATIONS.length - 1].id);
+                setOriginId(METROBUS_STATIONS[0]?.id ?? '');
+                setDestId(METROBUS_STATIONS[METROBUS_STATIONS.length - 1]?.id ?? '');
               }}
               className={`p-2 rounded-xl border text-xs font-bold transition-all ${
                 calcLine === 'metrobus'
@@ -218,7 +216,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
               >
                 {stations.map(s => (
                   <option key={s.id} value={s.id}>
-                    {isRtl ? s.nameUrdu : s.name} ({s.code})
+                    {stationName(s, isRtl)} ({s.code})
                   </option>
                 ))}
               </select>
@@ -235,7 +233,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
               >
                 {stations.map(s => (
                   <option key={s.id} value={s.id}>
-                    {isRtl ? s.nameUrdu : s.name} ({s.code})
+                    {stationName(s, isRtl)} ({s.code})
                   </option>
                 ))}
               </select>
@@ -272,6 +270,9 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
           </div>
         </div>
       )}
+      <p className="text-[10px] text-slate-400">
+        {OSM_CREDIT}{OSM_UPDATED ? `, updated ${OSM_UPDATED}` : ''}. Fares are estimates; check at the station.
+      </p>
     </div>
   );
 };

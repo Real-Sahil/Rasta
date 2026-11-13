@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { LocationPoint, TransitStation, CommunityIncident, EmergencyContact, LocalService } from '../types';
+import { LocationPoint, CommunityIncident, EmergencyContact } from '../types';
 
 export const LAHORE_DEFAULT_CENTER = {
   lat: 31.5102,
@@ -135,46 +135,6 @@ export const POPULAR_LOCATIONS: LocationPoint[] = [
   }
 ];
 
-export const METROBUS_STATIONS: TransitStation[] = [
-  { id: 'mb_shahdara', code: 'MB01', name: 'Shahdara Terminal', nameUrdu: 'شاہدرہ ٹرمینل', line: 'metrobus', lat: 31.6212, lng: 74.2882, zone: 1, facilities: ['Token Counter', 'Metro Card Recharge', 'Wheelchair Ramp', 'Park & Ride'] },
-  { id: 'mb_niazi', code: 'MB02', name: 'Niazi Chowk', nameUrdu: 'نیازی چوک', line: 'metrobus', lat: 31.6094, lng: 74.2960, zone: 1, facilities: ['Token Counter', 'Metro Card Recharge'] },
-  { id: 'mb_azadi', code: 'MB03', name: 'Azadi Chowk (Minar-e-Pakistan)', nameUrdu: 'آزادی چوک (مینارِ پاکستان)', line: 'metrobus', lat: 31.5932, lng: 74.3090, zone: 1, facilities: ['Token Counter', 'Washrooms', 'Metro Card'] },
-  { id: 'mb_bhatti', code: 'MB04', name: 'Bhatti Chowk', nameUrdu: 'بھٹی چوک', line: 'metrobus', lat: 31.5830, lng: 74.3075, zone: 1, facilities: ['Token Counter', 'Elevator'] },
-  { id: 'mb_kachehri', code: 'MB05', name: 'Kachehri (District Courts)', nameUrdu: 'کچہری', line: 'metrobus', lat: 31.5714, lng: 74.3061, zone: 1, facilities: ['Token Counter'] },
-  { id: 'mb_mao', code: 'MB06', name: 'MAO College', nameUrdu: 'ایم اے او کالج', line: 'metrobus', lat: 31.5647, lng: 74.3082, zone: 1, facilities: ['Token Counter', 'Student Concession Desk'] },
-  { id: 'mb_qartaba', code: 'MB07', name: 'Qartaba Chowk (Mozang)', nameUrdu: 'قرطبہ چوک (موزنگ)', line: 'metrobus', lat: 31.5471, lng: 74.3142, zone: 1, facilities: ['Token Counter', 'Metro Card'] },
-  { id: 'mb_shama', code: 'MB08', name: 'Shama Chowk', nameUrdu: 'شمع چوک', line: 'metrobus', lat: 31.5350, lng: 74.3180, zone: 2, facilities: ['Token Counter'] },
-  { id: 'mb_ichhra', code: 'MB09', name: 'Ichhra Bazaar', nameUrdu: 'اچھرہ بازار', line: 'metrobus', lat: 31.5230, lng: 74.3210, zone: 2, facilities: ['Token Counter', 'Wheelchair Ramp'] },
-  { id: 'mb_canal', code: 'MB10', name: 'Canal Station', nameUrdu: 'کینال اسٹیشن', line: 'metrobus', lat: 31.5175, lng: 74.3262, zone: 2, facilities: ['Token Counter', 'Underpass Link'] },
-  { id: 'mb_gaddafi', code: 'MB11', name: 'Gaddafi Stadium Station', nameUrdu: 'قذافی اسٹیڈیم اسٹیشن', line: 'metrobus', lat: 31.5135, lng: 74.3337, zone: 2, facilities: ['Token Counter', 'Sports Complex Exit'] },
-  { id: 'mb_kalma', code: 'MB12', name: 'Kalma Chowk Station', nameUrdu: 'کلمہ چوک اسٹیشن', line: 'metrobus', lat: 31.5036, lng: 74.3317, zone: 2, facilities: ['Token Counter', 'Metro Card Machine', 'Underpass Access'] },
-  { id: 'mb_modeltown', code: 'MB13', name: 'Model Town Station', nameUrdu: 'ماڈل ٹاؤن اسٹیشن', line: 'metrobus', lat: 31.4870, lng: 74.3360, zone: 2, facilities: ['Token Counter', 'Feeder Bus Stop'] },
-  { id: 'mb_chungi', code: 'MB14', name: 'Chungi Amar Sidhu', nameUrdu: 'چنگی امر سدھو', line: 'metrobus', lat: 31.4580, lng: 74.3480, zone: 3, facilities: ['Token Counter'] },
-  { id: 'mb_kamahan', code: 'MB15', name: 'Kamahan Metro Station', nameUrdu: 'کماہاں اسٹیشن', line: 'metrobus', lat: 31.4390, lng: 74.3540, zone: 3, facilities: ['Token Counter'] },
-  { id: 'mb_gajumata', code: 'MB16', name: 'Gaju Matah Terminal', nameUrdu: 'گجو متہ ٹرمینل', line: 'metrobus', lat: 31.3916, lng: 74.3622, zone: 3, facilities: ['Token Counter', 'Bus Depot', 'Park & Ride'] }
-];
-
-export const ORANGELINE_STATIONS: TransitStation[] = [
-  { id: 'ol_ali_town', code: 'OL01', name: 'Ali Town Terminal', nameUrdu: 'علی ٹاؤن ٹرمینل', line: 'orangeline', lat: 31.4552, lng: 74.2443, zone: 1, facilities: ['Automated Ticket Gates', 'Escalators', 'Elevators', 'Park & Ride'] },
-  { id: 'ol_thokar', code: 'OL02', name: 'Thokar Niaz Baig Station', nameUrdu: 'ٹھوکر نیاز بیگ اسٹیشن', line: 'orangeline', lat: 31.4674, lng: 74.2372, zone: 1, facilities: ['Automated Gates', 'Motorway Connector'] },
-  { id: 'ol_canal_view', code: 'OL03', name: 'Canal View', nameUrdu: 'کینال ویو', line: 'orangeline', lat: 31.4782, lng: 74.2435, zone: 1, facilities: ['Ticket Vending Machines'] },
-  { id: 'ol_hanjarwal', code: 'OL04', name: 'Hanjarwal', nameUrdu: 'ہنجروال', line: 'orangeline', lat: 31.4920, lng: 74.2540, zone: 1, facilities: ['Elevator', 'Token Gates'] },
-  { id: 'ol_wahdat', code: 'OL05', name: 'Wahdat Road Station', nameUrdu: 'وحدت روڈ اسٹیشن', line: 'orangeline', lat: 31.5030, lng: 74.2660, zone: 2, facilities: ['Escalators', 'Token Counters'] },
-  { id: 'ol_awan_town', code: 'OL06', name: 'Awan Town', nameUrdu: 'اعوان ٹاؤن', line: 'orangeline', lat: 31.5120, lng: 74.2750, zone: 2, facilities: ['Token Gates'] },
-  { id: 'ol_sabzazar', code: 'OL07', name: 'Sabzazar Station', nameUrdu: 'سبزہ زار اسٹیشن', line: 'orangeline', lat: 31.5230, lng: 74.2830, zone: 2, facilities: ['Automated Gates', 'Feeder Link'] },
-  { id: 'ol_bund_road', code: 'OL08', name: 'Bund Road', nameUrdu: 'بند روڈ', line: 'orangeline', lat: 31.5360, lng: 74.2930, zone: 2, facilities: ['Token Vending', 'Ramp'] },
-  { id: 'ol_samanabad', code: 'OL09', name: 'Samanabad Station', nameUrdu: 'سمن آباد اسٹیشن', line: 'orangeline', lat: 31.5450, lng: 74.2990, zone: 2, facilities: ['Ticket Gates', 'Elevators'] },
-  { id: 'ol_chauburji', code: 'OL10', name: 'Chauburji Station', nameUrdu: 'چوبرجی اسٹیشن', line: 'orangeline', lat: 31.5544, lng: 74.3039, zone: 2, facilities: ['Elevated Walkway', 'Historic Viewpoint'] },
-  { id: 'ol_anarkali', code: 'OL11', name: 'Anarkali Underground Station', nameUrdu: 'انارکلی زیرِ زمین اسٹیشن', line: 'orangeline', lat: 31.5650, lng: 74.3120, zone: 3, facilities: ['Underground Sub-surface', 'Climate Controlled', 'Mall Road Direct Exit'] },
-  { id: 'ol_gpo', code: 'OL12', name: 'Central GPO Station', nameUrdu: 'جی پی او سنٹرل اسٹیشن', line: 'orangeline', lat: 31.5695, lng: 74.3168, zone: 3, facilities: ['Underground', 'Direct Postal Complex Entry'] },
-  { id: 'ol_lakshmi', code: 'OL13', name: 'Lakshmi Chowk Station', nameUrdu: 'لکشمی چوک اسٹیشن', line: 'orangeline', lat: 31.5735, lng: 74.3245, zone: 3, facilities: ['Ticket Machines', 'Underpass Link'] },
-  { id: 'ol_railway', code: 'OL14', name: 'Railway Station Junction', nameUrdu: 'ریلوے اسٹیشن جنکشن', line: 'orangeline', lat: 31.5794, lng: 74.3323, zone: 3, facilities: ['Direct Train Platform Walkway', 'PMA Integrated Interchange'] },
-  { id: 'ol_sultanpura', code: 'OL15', name: 'Sultanpura', nameUrdu: 'سلطان پورہ', line: 'orangeline', lat: 31.5840, lng: 74.3450, zone: 3, facilities: ['Token Gates', 'Escalators'] },
-  { id: 'ol_uet', code: 'OL16', name: 'UET Lahore (Grand Trunk Rd)', nameUrdu: 'یو ای ٹی جی ٹی روڈ اسٹیشن', line: 'orangeline', lat: 31.5815, lng: 74.3590, zone: 3, facilities: ['Student Concession Helpdesk', 'University Gate Link'] },
-  { id: 'ol_shalamar', code: 'OL17', name: 'Shalamar Gardens Station', nameUrdu: 'شالامار باغ اسٹیشن', line: 'orangeline', lat: 31.5860, lng: 74.3810, zone: 4, facilities: ['Tourism Info', 'Automated Gates'] },
-  { id: 'ol_dera_gujran', code: 'OL18', name: 'Dera Gujran Terminal', nameUrdu: 'ڈیرہ گجراں ٹرمینل', line: 'orangeline', lat: 31.6022, lng: 74.4379, zone: 4, facilities: ['Train Maintenance Depot', 'Ring Road Interchange', 'Park & Ride'] }
-];
-
 // No seeded incidents: only reports created by real users are shown.
 export const INITIAL_INCIDENTS: CommunityIncident[] = [];
 
@@ -207,15 +167,6 @@ export const EMERGENCY_CONTACTS: EmergencyContact[] = [
     descriptionUrdu: 'ایم ۲، ایم ۳، رنگ روڈ اور نیشنل ہائی ویز پر ہنگامی مدد'
   },
   {
-    id: 'ctpl_rasta',
-    title: 'City Traffic Police Lahore (CTPL) Rasta Helpline',
-    titleUrdu: 'سٹی ٹریفک پولیس لاہور راستہ ہیلپ لائن',
-    number: '042-99201996',
-    category: 'traffic',
-    description: 'Live traffic updates, road clearance, breakdown recovery & vehicle towing',
-    descriptionUrdu: 'لائیو ٹریفک رہنمائی، گاڑی خراب ہونے پر لفٹر سروس'
-  },
-  {
     id: 'edhi115',
     title: 'Edhi Foundation Ambulance Service',
     titleUrdu: 'ایدھی فاؤنڈیشن ایمبولینس سروس',
@@ -223,76 +174,6 @@ export const EMERGENCY_CONTACTS: EmergencyContact[] = [
     category: 'ambulance',
     description: 'Rapid private ambulance dispatch across all Lahore sectors',
     descriptionUrdu: 'لاہور کے تمام علاقوں میں فوری ایدھی ایمبولینس'
-  }
-];
-
-export const LOCAL_SERVICES: LocalService[] = [
-  {
-    id: 'pso_liberty',
-    name: 'PSO Fuel Station & Fast Puncture',
-    nameUrdu: 'پی ایس او پٹرول پمپ و پنکچر شاپ',
-    type: 'petrol',
-    lat: 31.5125,
-    lng: 74.3418,
-    address: 'Main Boulevard, Gulberg III, Lahore',
-    addressUrdu: 'مین بلیوارڈ، گلبرگ ۳، لاہور',
-    phone: '042-35751240',
-    isOpen24Hours: true,
-    rating: 4.6,
-    fuelAvailable: { petrol: true, diesel: true, cng: false }
-  },
-  {
-    id: 'shell_ferozepur',
-    name: 'Shell Select & 24/7 Tyre Care',
-    nameUrdu: 'شیل سلیکٹ پمپ و ٹائر کیئر',
-    type: 'petrol',
-    lat: 31.4980,
-    lng: 74.3340,
-    address: 'Near Model Town Crossing, Ferozepur Road',
-    addressUrdu: 'نزد ماڈل ٹاؤن موڑ، فیروزپور روڈ',
-    phone: '042-35882341',
-    isOpen24Hours: true,
-    rating: 4.8,
-    fuelAvailable: { petrol: true, diesel: true, cng: true }
-  },
-  {
-    id: 'puncture_canal',
-    name: 'Ustad Aslam 24/7 Tubeless Puncture & Mobile Mechanic',
-    nameUrdu: 'استاد اسلم ۲۴ گھنٹے ٹیوب لیس پنکچر و مکینک',
-    type: 'puncture',
-    lat: 31.5190,
-    lng: 74.3310,
-    address: 'Canal Bank Road, Under Muslim Town Flyover',
-    addressUrdu: 'کینال بینک روڈ، مسلم ٹاؤن فلائی اوور کے نیچے',
-    phone: '0300-4829104',
-    isOpen24Hours: true,
-    rating: 4.9
-  },
-  {
-    id: 'hosp_services',
-    name: 'Services Hospital Emergency Trauma Centre',
-    nameUrdu: 'سروسز ہسپتال ایمرجنسی ٹراما سنٹر',
-    type: 'hospital',
-    lat: 31.5412,
-    lng: 74.3335,
-    address: 'Jail Road, Shadman, Lahore',
-    addressUrdu: 'جیل روڈ، شادمان، لاہور',
-    phone: '042-99203402',
-    isOpen24Hours: true,
-    rating: 4.5
-  },
-  {
-    id: 'hosp_jinnah',
-    name: 'Jinnah Hospital Lahore 24/7 Emergency',
-    nameUrdu: 'جناح ہسپتال لاہور ایمرجنسی',
-    type: 'hospital',
-    lat: 31.4842,
-    lng: 74.2974,
-    address: 'Usmani Road, Faisal Town, Lahore',
-    addressUrdu: 'عثمانی روڈ، فیصل ٹاؤن، لاہور',
-    phone: '042-99231400',
-    isOpen24Hours: true,
-    rating: 4.6
   }
 ];
 
