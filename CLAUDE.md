@@ -33,6 +33,7 @@ Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI 
 - `src/core/announcer.ts` produces structured announcements (`phrase`, `distanceM`, text per language). It speaks the band (500/200), not the exact distance, so recordings stay a small fixed set.
 - `src/core/voice.ts` (pure): `chooseVoice` (Punjabi uses a Shahmukhi voice if present, else an Urdu voice flagged `approximate`; Gurmukhi `pa-IN` voices are ignored; no voice = `none`) and `planClips`.
 - `src/services/speechNavigation.ts`: plays recorded clips (`public/audio/<lang>/<key>.mp3`, listed in `public/audio/manifest.json`) only when every clip a sentence needs exists, else the phone's TTS voice, else silence with a visible notice in the HUD. Arabic UI speaks English.
+- `npm run voice:generate` (or the "Generate voice clips" workflow) creates the clips with a cloud TTS (azure | elevenlabs | google; see `scripts/lib/voice-gen.mjs`); the full set is 39 clips / ~600 characters. No cloud service has a Shahmukhi Punjabi voice: Punjabi text is read by an Urdu voice, so judge Punjabi by ear and prefer a native recording if it sounds wrong.
 - `npm run voice:list` regenerates `docs/voice-phrases.md`, the recording checklist.
 
 ## Data from OpenStreetMap

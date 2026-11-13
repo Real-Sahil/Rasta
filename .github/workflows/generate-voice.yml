@@ -1,0 +1,57 @@
+name: Generate voice clips
+
+# Generates the spoken-direction audio with a cloud text-to-speech service and commits it to main.
+# Needs repository secrets for the chosen provider (Settings -> Secrets and variables -> Actions):
+#   azure:      AZURE_SPEECH_KEY, AZURE_SPEECH_REGION
+#   elevenlabs: ELEVENLABS_API_KEY, ELEVENLABS_VOICE_EN, ELEVENLABS_VOICE_UR, ELEVENLABS_VOICE_PA
+#   google:     GOOGLE_TTS_API_KEY   (no Punjabi: Google has no Shahmukhi voice)
+# The whole set is ~600 characters, so a run costs next to nothing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: azure | elevenlabs | google
+        default: azure
+      langs:
+        description: Comma-separated languages (en, ur, pa)
+        default: en,ur,pa
+      force:
+        description: Regenerate clips that already exist
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Generate clips
+        env:
+          VOICE_PROVIDER: ${{ inputs.provider }}
+          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_EN: ${{ secrets.ELEVENLABS_VOICE_EN }}
+          ELEVENLABS_VOICE_UR: ${{ secrets.ELEVENLABS_VOICE_UR }}
+          ELEVENLABS_VOICE_PA: ${{ secrets.ELEVENLABS_VOICE_PA }}
+          GOOGLE_TTS_API_KEY: ${{ secrets.GOOGLE_TTS_API_KEY }}
+        run: node scripts/generate-voice.mjs --lang "${{ inputs.langs }}" ${{ inputs.force && '--force' || '' }}
+      - name: Commit clips to main
+        run: |
+          if [ -z "$(git status --porcelain -- public/audio)" ]; then echo "No changes"; exit 0; fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/audio
+          git commit -m "audio: generate spoken-direction clips (${{ inputs.provider }})"
+          git pull --rebase origin main
+          git push origin HEAD:main
