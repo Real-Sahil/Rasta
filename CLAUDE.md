@@ -20,10 +20,13 @@ Pakistan-first mobility PWA (React 19 + Vite 8 + Tailwind 4 + MapLibre GL). Clie
 
 Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI flows, drive the built app with Playwright using `serviceWorkers: 'block'` (the PWA service worker otherwise bypasses `page.route` mocks) and move simulated GPS in realistic hops (the GPS glitch filter rejects jumps over 1.2 km in under 2 s).
 
-## Backend (Supabase, optional)
-- Schema + RLS: `supabase/migrations/*.sql`, tested against a real in-process Postgres (PGlite) in `supabase/schema.test.ts`. Change the SQL → update the tests.
-- Client: `src/services/incidentsApi.ts`. Enabled only when `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set; otherwise the app keeps reports on the device. Needs "Anonymous sign-ins" enabled in the Supabase project. Only ever use the publishable/anon key in the app.
-- Credibility = 50 + 5 per independent confirmation (max 95); users can't confirm their own report; 3 flags hide a report; 10 reports/hour/user; reports live ≤ 6 h.
+## Backend (Vercel Function + Neon Postgres)
+- `api/index.ts` is the whole API (one self-contained file, no relative imports so it deploys on any Vercel runtime): `POST ?op=session`, `GET ?op=list`, `POST ?op=create`, `POST ?op=act` (confirm/flag). Logic takes an injected `db`; tests (`api/api.test.ts`) run it against the real migration on PGlite.
+- Schema: `db/migrations/*.sql` (applied once each, in order, by `scripts/migrate.mjs`, which runs before `vite build` and skips when `DATABASE_URL` is unset). Add new numbered files; never edit an applied one.
+- Identity: anonymous, stateless HMAC-signed device token (`SESSION_SECRET`, else derived from `DATABASE_URL`). The database itself enforces: content limits, Pakistan bounding box, server-controlled counters/expiry (≤ 6 h), 10 reports/h per device and 30/h per IP hash, one confirmation per device, no confirming your own report, 3 flags hide a report.
+- Credibility = 50 + 5 per independent confirmation (max 95). No realtime on Neon: the client polls every 20 s while the tab is visible.
+- Client: `src/services/incidentsApi.ts`. If `/api` isn't reachable (plain `npm run dev`, no function) the app falls back to device-only reports. To test the API locally use `vercel dev` with the Neon env vars.
+- Known limits: per-IP limits are generous because mobile carriers share IPs; the anonymous token can be re-minted, so rate limits and flags are friction, not identity. Moderation of hidden reports is manual SQL for now.
 
 ## Data from OpenStreetMap
 `npm run data:osm` (or the "Refresh OSM data" workflow) writes `src/data/osm/*.json` from Overpass with source/licence/date metadata. Unknown values are `null`, never guessed (e.g. no machine-made Urdu names). ODbL: keep the OpenStreetMap attribution in the app. The hand-typed station lists in `src/data/pakistanLocations.ts` are known to be partly wrong; replace them with the OSM output once generated.

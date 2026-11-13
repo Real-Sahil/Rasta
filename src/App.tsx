@@ -28,7 +28,7 @@ import { fetchCityAqi, CityAqiData } from './services/aqiService';
 import { fetchCityWeather, WeatherData } from './services/weatherService';
 import { incidentSyncService, SyncStatusInfo } from './services/incidentSyncService';
 import { speechNavigator } from './services/speechNavigation';
-import { isBackendConfigured, fetchActiveIncidents, submitIncident, confirmIncident, subscribeIncidents } from './services/incidentsApi';
+import { fetchActiveIncidents, submitIncident, confirmIncident } from './services/incidentsApi';
 import { haversineM } from './core/geo';
 import { useAppStore, activeRouteOf } from './core/store';
 import { useGpsTracking } from './hooks/useGpsTracking';
@@ -124,15 +124,19 @@ function MainApp() {
     return null;
   }, [fix, incidents]);
 
-  // ---- Incidents: shared backend when configured (source of truth), else device-local cache ----
-  const backend = isBackendConfigured();
+  // ---- Incidents: shared backend (Vercel function + Neon) when reachable, else device-local ----
+  const [backendUp, setBackendUp] = useState(false);
+  const backend = backendUp;
   const refreshRemote = () =>
-    fetchActiveIncidents().then(setIncidents).catch((e) => console.warn('Incident feed unavailable:', e));
+    fetchActiveIncidents()
+      .then((list) => { setBackendUp(true); setIncidents(list); })
+      .catch(() => setBackendUp(false));
   useEffect(() => {
-    if (!backend) return;
     void refreshRemote();
-    return subscribeIncidents(() => void refreshRemote());
-  }, [backend]);
+    // No realtime on Neon: poll while the tab is visible
+    const id = setInterval(() => { if (document.visibilityState === 'visible') void refreshRemote(); }, 20_000);
+    return () => clearInterval(id);
+  }, []);
 
   // ---- Incidents: IndexedDB cache + offline queue ----
   useEffect(() => {

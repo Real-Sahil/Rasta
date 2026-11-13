@@ -2,12 +2,11 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { CommunityIncident, IncidentCategory } from '../types';
 
+/** Row shape returned by `GET /api?op=list` (see api/index.ts). */
 export interface IncidentRow {
   id: string;
-  created_by: string;
   category: IncidentCategory;
   title: string;
   title_ur: string | null;
@@ -20,12 +19,14 @@ export interface IncidentRow {
   created_at: string;
   expires_at: string;
   confirmations: number;
+  mine: boolean;
+  confirmed: boolean;
 }
 
 /** Credibility is derived from independent confirmations, never invented: 50% base, +5 per confirmation, capped at 95. */
 export const credibilityFor = (confirmations: number) => Math.min(95, 50 + 5 * Math.max(0, confirmations));
 
-export function rowToIncident(row: IncidentRow, myConfirmed: ReadonlySet<string>, myId: string | null): CommunityIncident {
+export function rowToIncident(row: IncidentRow): CommunityIncident {
   return {
     id: row.id,
     title: row.title,
@@ -39,7 +40,7 @@ export function rowToIncident(row: IncidentRow, myConfirmed: ReadonlySet<string>
     descriptionUrdu: row.description_ur || row.description || '',
     timestamp: new Date(row.created_at).getTime(),
     upvotes: row.confirmations,
-    userConfirmed: myConfirmed.has(row.id) || row.created_by === myId,
+    userConfirmed: row.confirmed || row.mine,
     credibilityScore: credibilityFor(row.confirmations),
     isOfficialVerified: false,
     source: 'Citizen_Report',
@@ -53,13 +54,15 @@ export type NewIncident = Pick<CommunityIncident, 'category' | 'title' | 'titleU
   alternativeRouteAdvice?: string;
 };
 
-export function incidentToInsert(i: NewIncident) {
+export function incidentToBody(i: NewIncident) {
+  const t = i.title.trim();
+  const d = (i.description ?? '').trim();
   return {
     category: i.category,
-    title: i.title.trim(),
-    title_ur: i.titleUrdu && i.titleUrdu.trim() !== i.title.trim() ? i.titleUrdu.trim() : null,
-    description: i.description?.trim() || null,
-    description_ur: i.descriptionUrdu && i.descriptionUrdu.trim() !== (i.description ?? '').trim() ? i.descriptionUrdu.trim() : null,
+    title: t,
+    title_ur: i.titleUrdu && i.titleUrdu.trim() !== t ? i.titleUrdu.trim() : null,
+    description: d || null,
+    description_ur: i.descriptionUrdu && i.descriptionUrdu.trim() !== d ? i.descriptionUrdu.trim() : null,
     location_name: i.locationName?.trim() || null,
     advice: i.alternativeRouteAdvice?.trim() || null,
     lat: i.lat,
@@ -67,61 +70,48 @@ export function incidentToInsert(i: NewIncident) {
   };
 }
 
-// ---------------------------------------------------------------- client (optional: the app works without a backend)
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// ---------------------------------------------------------------- transport
+const TOKEN_KEY = 'buraq_device_token_v1';
+const readToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
+const writeToken = (t: string | null) => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch { /* private mode */ } };
 
-export const isBackendConfigured = (): boolean => Boolean(url && key);
+export class ApiError extends Error {
+  constructor(public status: number, public code: string) {
+    super(code);
+  }
+}
 
-let client: SupabaseClient | null = null;
-const sb = (): SupabaseClient => {
-  if (!client) client = createClient(url!, key!, { auth: { persistSession: true, autoRefreshToken: true } });
-  return client;
-};
+async function request(op: string, init: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<any> {
+  const headers: Record<string, string> = {};
+  if (init.body !== undefined) headers['content-type'] = 'application/json';
+  const token = init.auth === false ? null : readToken();
+  if (token) headers.authorization = `Bearer ${token}`;
+  const res = await fetch(`/api?op=${op}`, { method: init.method ?? 'GET', headers, body: init.body === undefined ? undefined : JSON.stringify(init.body) });
+  // In local dev (no serverless function) the dev server answers with the HTML shell: treat as "no backend"
+  if (!(res.headers.get('content-type') ?? '').includes('application/json')) throw new ApiError(res.status, 'no_backend');
+  const data = await res.json();
+  if (!res.ok) throw new ApiError(res.status, data?.error ?? 'error');
+  return data;
+}
 
-/** One anonymous identity per device: enough for ownership, rate limits and one-confirmation-per-person. */
-async function ensureUserId(): Promise<string> {
-  const { data } = await sb().auth.getSession();
-  if (data.session) return data.session.user.id;
-  const res = await sb().auth.signInAnonymously();
-  if (res.error || !res.data.user) throw res.error ?? new Error('anonymous sign-in failed');
-  return res.data.user.id;
+/** One anonymous, signed identity per device: enough for ownership, rate limits and one confirmation per person. */
+async function authed(op: string, body?: unknown): Promise<any> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (!readToken()) writeToken((await request('session', { method: 'POST', auth: false })).token);
+    try {
+      return await request(op, { method: 'POST', body });
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401 && attempt === 0) { writeToken(null); continue; }
+      throw e;
+    }
+  }
 }
 
 export async function fetchActiveIncidents(): Promise<CommunityIncident[]> {
-  const myId = await ensureUserId();
-  const [inc, mine] = await Promise.all([
-    sb().from('incidents').select('*').gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(200),
-    sb().from('incident_confirmations').select('incident_id')
-  ]);
-  if (inc.error) throw inc.error;
-  const confirmed = new Set<string>((mine.data ?? []).map((r: { incident_id: string }) => r.incident_id));
-  return (inc.data as IncidentRow[]).map((r) => rowToIncident(r, confirmed, myId));
+  const data = await request('list');
+  return (data.incidents as IncidentRow[]).map(rowToIncident);
 }
 
-export async function submitIncident(i: NewIncident): Promise<void> {
-  await ensureUserId();
-  const { error } = await sb().from('incidents').insert(incidentToInsert(i));
-  if (error) throw error;
-}
-
-export async function confirmIncident(incidentId: string): Promise<void> {
-  await ensureUserId();
-  const { error } = await sb().from('incident_confirmations').insert({ incident_id: incidentId });
-  if (error && error.code !== '23505') throw error; // already confirmed is fine
-}
-
-export async function flagIncident(incidentId: string): Promise<void> {
-  await ensureUserId();
-  const { error } = await sb().from('incident_flags').insert({ incident_id: incidentId });
-  if (error && error.code !== '23505') throw error;
-}
-
-/** Calls `onChange` whenever any incident changes. Returns an unsubscribe function. */
-export function subscribeIncidents(onChange: () => void): () => void {
-  const ch = sb()
-    .channel('incidents-feed')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'incidents' }, onChange)
-    .subscribe();
-  return () => void sb().removeChannel(ch);
-}
+export const submitIncident = async (i: NewIncident): Promise<void> => void (await authed('create', incidentToBody(i)));
+export const confirmIncident = async (id: string): Promise<void> => void (await authed('act', { id, action: 'confirm' }));
+export const flagIncident = async (id: string): Promise<void> => void (await authed('act', { id, action: 'flag' }));

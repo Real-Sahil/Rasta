@@ -39,6 +39,7 @@ export default defineConfig(() => {
           ]
         },
         workbox: {
+          navigateFallbackDenylist: [/^\/api/],
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           runtimeCaching: [
@@ -79,7 +80,7 @@ export default defineConfig(() => {
     },
     test: {
       environment: 'node',
-      include: ['src/**/*.test.ts', 'supabase/**/*.test.ts', 'scripts/**/*.test.ts']
+      include: ['src/**/*.test.ts', 'api/**/*.test.ts', 'scripts/**/*.test.ts']
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
