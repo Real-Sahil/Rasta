@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-// @ts-expect-error plain JS module
 import { orderedStops, toStation, toPoi, withMeta } from './osm.mjs';
 
 const nodes = [
