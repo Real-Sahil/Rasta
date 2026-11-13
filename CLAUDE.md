@@ -20,6 +20,14 @@ Pakistan-first mobility PWA (React 19 + Vite 8 + Tailwind 4 + MapLibre GL). Clie
 
 Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI flows, drive the built app with Playwright using `serviceWorkers: 'block'` (the PWA service worker otherwise bypasses `page.route` mocks) and move simulated GPS in realistic hops (the GPS glitch filter rejects jumps over 1.2 km in under 2 s).
 
+## Backend (Supabase, optional)
+- Schema + RLS: `supabase/migrations/*.sql`, tested against a real in-process Postgres (PGlite) in `supabase/schema.test.ts`. Change the SQL → update the tests.
+- Client: `src/services/incidentsApi.ts`. Enabled only when `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set; otherwise the app keeps reports on the device. Needs "Anonymous sign-ins" enabled in the Supabase project. Only ever use the publishable/anon key in the app.
+- Credibility = 50 + 5 per independent confirmation (max 95); users can't confirm their own report; 3 flags hide a report; 10 reports/hour/user; reports live ≤ 6 h.
+
+## Data from OpenStreetMap
+`npm run data:osm` (or the "Refresh OSM data" workflow) writes `src/data/osm/*.json` from Overpass with source/licence/date metadata. Unknown values are `null`, never guessed (e.g. no machine-made Urdu names). ODbL: keep the OpenStreetMap attribution in the app. The hand-typed station lists in `src/data/pakistanLocations.ts` are known to be partly wrong; replace them with the OSM output once generated.
+
 ## Rules learned the hard way
 - **Never fabricate data.** No `Math.random()` for AQI/weather/votes, no invented phone numbers, ratings, "verified/official" labels, or fake progress. If real data is unavailable, show nothing or say so.
 - `userLocation` is `null` until a real GPS fix. Never default to a Lahore coordinate for the user, SOS, or incident reports.

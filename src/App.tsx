@@ -28,6 +28,7 @@ import { fetchCityAqi, CityAqiData } from './services/aqiService';
 import { fetchCityWeather, WeatherData } from './services/weatherService';
 import { incidentSyncService, SyncStatusInfo } from './services/incidentSyncService';
 import { speechNavigator } from './services/speechNavigation';
+import { isBackendConfigured, fetchActiveIncidents, submitIncident, confirmIncident, subscribeIncidents } from './services/incidentsApi';
 import { haversineM } from './core/geo';
 import { useAppStore, activeRouteOf } from './core/store';
 import { useGpsTracking } from './hooks/useGpsTracking';
@@ -123,6 +124,16 @@ function MainApp() {
     return null;
   }, [fix, incidents]);
 
+  // ---- Incidents: shared backend when configured (source of truth), else device-local cache ----
+  const backend = isBackendConfigured();
+  const refreshRemote = () =>
+    fetchActiveIncidents().then(setIncidents).catch((e) => console.warn('Incident feed unavailable:', e));
+  useEffect(() => {
+    if (!backend) return;
+    void refreshRemote();
+    return subscribeIncidents(() => void refreshRemote());
+  }, [backend]);
+
   // ---- Incidents: IndexedDB cache + offline queue ----
   useEffect(() => {
     incidentSyncService.getCachedIncidents().then((cached) => {
@@ -134,9 +145,17 @@ function MainApp() {
     return incidentSyncService.registerNetworkSyncListener((status) => {
       setSyncInfo(status);
       if (status.isOnline && status.pendingSyncCount > 0) {
-        incidentSyncService.syncPendingReports((synced) =>
-          flash(isRtl ? `انٹرنیٹ بحال: ${synced.length} آف لائن رپورٹس اس ڈیوائس پر محفوظ ہیں۔` : `Back online: ${synced.length} offline report(s) are saved on this device.`)
-        );
+        incidentSyncService.syncPendingReports((synced) => {
+          if (backend) {
+            Promise.allSettled(synced.map((i) => submitIncident(i))).then((r) => {
+              const ok = r.filter((x) => x.status === 'fulfilled').length;
+              flash(isRtl ? `انٹرنیٹ بحال: ${ok} رپورٹس بھیج دی گئیں۔` : `Back online: ${ok} of ${synced.length} queued report(s) sent.`);
+              void refreshRemote();
+            });
+          } else {
+            flash(isRtl ? `انٹرنیٹ بحال: ${synced.length} آف لائن رپورٹس اس ڈیوائس پر محفوظ ہیں۔` : `Back online: ${synced.length} offline report(s) are saved on this device.`);
+          }
+        });
       }
     });
   }, [isRtl]);
@@ -205,6 +224,12 @@ function MainApp() {
   );
 
   const handleAddIncident = (newInc: CommunityIncident) => {
+    if (backend && navigator.onLine) {
+      submitIncident(newInc)
+        .then(() => refreshRemote())
+        .catch((e) => flash(isRtl ? 'رپورٹ نہیں بھیجی جا سکی' : `Could not send report: ${e?.message ?? 'error'}`));
+      return;
+    }
     const updated = [newInc, ...incidents];
     setIncidents(updated);
     saveIncidents(updated);
@@ -217,6 +242,10 @@ function MainApp() {
   };
 
   const handleConfirmIncident = (id: string) => {
+    if (backend) {
+      confirmIncident(id).then(() => refreshRemote()).catch((e) => flash(e?.message ?? 'Could not confirm'));
+      return;
+    }
     const updated = incidents.map((inc) =>
       inc.id === id && !inc.userConfirmed
         ? { ...inc, upvotes: inc.upvotes + 1, credibilityScore: Math.min(99, inc.credibilityScore + 2), userConfirmed: true }

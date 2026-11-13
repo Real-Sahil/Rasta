@@ -1,0 +1,35 @@
+name: Refresh OSM data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 1 * *' # monthly
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Fetch Lahore transit stops, hospitals and fuel stations from OpenStreetMap
+        run: npm run data:osm
+      - name: Open a pull request if the data changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- src/data/osm; then echo "No changes"; exit 0; fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B data/osm-refresh
+          git add src/data/osm
+          git commit -m "data: refresh OpenStreetMap extracts"
+          git push --force origin data/osm-refresh
+          gh pr create --title "data: refresh OpenStreetMap extracts" --body "Automated monthly refresh. Review station order/counts before merging. Data: OpenStreetMap contributors, ODbL." --base main --head data/osm-refresh || echo "PR already open"
