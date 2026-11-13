@@ -1,0 +1,283 @@
+{
+ "meta": {
+  "source": "OpenStreetMap contributors, ODbL 1.0 (https://www.openstreetmap.org/copyright)",
+  "fetchedAt": "2026-11-13T13:17:28.416Z",
+  "bbox": "31.30,74.10,31.70,74.60",
+  "query": "[out:json][timeout:90];rel[\"route\"=\"bus\"][\"name\"~\"Metro ?bus\",i][\"name\"!~\"feeder\",i](31.30,74.10,31.70,74.60)->.r;(.r;node(r.r););out body;",
+  "relation": "relation/19984670",
+  "relationName": "Lahore Metro Bus System (MBS)",
+  "count": 27
+ },
+ "items": [
+  {
+   "id": "mb_01",
+   "code": "MB01",
+   "name": "Gajjumata",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.3983276,
+   "lng": 74.3615531,
+   "osmId": "node/13392189274"
+  },
+  {
+   "id": "mb_02",
+   "code": "MB02",
+   "name": "Dulu Khurd",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.4055772,
+   "lng": 74.3604808,
+   "osmId": "node/2401358319"
+  },
+  {
+   "id": "mb_03",
+   "code": "MB03",
+   "name": "Youhanabad",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.4129164,
+   "lng": 74.3594003,
+   "osmId": "node/2401358322"
+  },
+  {
+   "id": "mb_04",
+   "code": "MB04",
+   "name": "Nishtar Colony",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.4198247,
+   "lng": 74.3583839,
+   "osmId": "node/2401358326"
+  },
+  {
+   "id": "mb_05",
+   "code": "MB05",
+   "name": "Atari Saroba",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.4310582,
+   "lng": 74.356728,
+   "osmId": "node/2401358329"
+  },
+  {
+   "id": "mb_06",
+   "code": "MB06",
+   "name": "Kamahan",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.4409127,
+   "lng": 74.3552743,
+   "osmId": "node/2401358332"
+  },
+  {
+   "id": "mb_07",
+   "code": "MB07",
+   "name": "Ghazi Chowk",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.457051,
+   "lng": 74.351205,
+   "osmId": "node/2401358343"
+  },
+  {
+   "id": "mb_08",
+   "code": "MB08",
+   "name": "Qainchi",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.4643674,
+   "lng": 74.3482141,
+   "osmId": "node/2401358346"
+  },
+  {
+   "id": "mb_09",
+   "code": "MB09",
+   "name": "Ittefaq Hospital",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.4792779,
+   "lng": 74.3420004,
+   "osmId": "node/2401358351"
+  },
+  {
+   "id": "mb_10",
+   "code": "MB10",
+   "name": "Naseerabad",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.4870637,
+   "lng": 74.3387352,
+   "osmId": "node/13392211417"
+  },
+  {
+   "id": "mb_11",
+   "code": "MB11",
+   "name": "Model Town",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.4974999,
+   "lng": 74.3343966,
+   "osmId": "node/13392211420"
+  },
+  {
+   "id": "mb_12",
+   "code": "MB12",
+   "name": "Kalmah Chowk",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.5034963,
+   "lng": 74.3318483,
+   "osmId": "node/13392211429"
+  },
+  {
+   "id": "mb_13",
+   "code": "MB13",
+   "name": "Qaddafi Stadium",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.5120217,
+   "lng": 74.3288116,
+   "osmId": "node/13392211430"
+  },
+  {
+   "id": "mb_14",
+   "code": "MB14",
+   "name": "Canal",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.5195279,
+   "lng": 74.3266796,
+   "osmId": "node/2405226788"
+  },
+  {
+   "id": "mb_15",
+   "code": "MB15",
+   "name": "Ichara",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.5313981,
+   "lng": 74.3214495,
+   "osmId": "node/2405226787"
+  },
+  {
+   "id": "mb_16",
+   "code": "MB16",
+   "name": "Shama",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.5390112,
+   "lng": 74.3191417,
+   "osmId": "node/2405226786"
+  },
+  {
+   "id": "mb_17",
+   "code": "MB17",
+   "name": "Cordoba Square",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.5487238,
+   "lng": 74.3151182,
+   "osmId": "node/13392211455"
+  },
+  {
+   "id": "mb_18",
+   "code": "MB18",
+   "name": "Janazgah",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.5539235,
+   "lng": 74.3114877,
+   "osmId": "node/13392220623"
+  },
+  {
+   "id": "mb_19",
+   "code": "MB19",
+   "name": "MAO College",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.5616671,
+   "lng": 74.3067634,
+   "osmId": "node/13392220624"
+  },
+  {
+   "id": "mb_20",
+   "code": "MB20",
+   "name": "Civil Secretariat",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.5687051,
+   "lng": 74.3043247,
+   "osmId": "node/13392220625"
+  },
+  {
+   "id": "mb_21",
+   "code": "MB21",
+   "name": "Katchery",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.5746803,
+   "lng": 74.3064686,
+   "osmId": "node/2401335817"
+  },
+  {
+   "id": "mb_22",
+   "code": "MB22",
+   "name": "Bhatti Chowk",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.580611,
+   "lng": 74.306255,
+   "osmId": "node/13392220626"
+  },
+  {
+   "id": "mb_23",
+   "code": "MB23",
+   "name": "Azadi Chowk",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.590712,
+   "lng": 74.3063808,
+   "osmId": "node/2401335839"
+  },
+  {
+   "id": "mb_24",
+   "code": "MB24",
+   "name": "Timber Market",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.5944944,
+   "lng": 74.3021391,
+   "osmId": "node/2405226778"
+  },
+  {
+   "id": "mb_25",
+   "code": "MB25",
+   "name": "Niazi Chowk",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.6009833,
+   "lng": 74.2992288,
+   "osmId": "node/2405226777"
+  },
+  {
+   "id": "mb_26",
+   "code": "MB26",
+   "name": "Shahdara",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.6152721,
+   "lng": 74.2908644,
+   "osmId": "node/2405226776"
+  },
+  {
+   "id": "mb_27",
+   "code": "MB27",
+   "name": "Chungi Amar Sidhu",
+   "nameUrdu": null,
+   "line": "metrobus",
+   "lat": 31.450361,
+   "lng": 74.3533364,
+   "osmId": "node/8389210063"
+  }
+ ]
+}

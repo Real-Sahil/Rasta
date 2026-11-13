@@ -1,0 +1,273 @@
+{
+ "meta": {
+  "source": "OpenStreetMap contributors, ODbL 1.0 (https://www.openstreetmap.org/copyright)",
+  "fetchedAt": "2026-11-13T13:17:28.416Z",
+  "bbox": "31.30,74.10,31.70,74.60",
+  "query": "[out:json][timeout:90];rel[\"route\"~\"^(subway|light_rail|train)$\"][\"name\"~\"Orange\",i](31.30,74.10,31.70,74.60)->.r;(.r;node(r.r););out body;",
+  "relation": "relation/11803498",
+  "relationName": "Orange Line: Dera Gujran → Ali Town",
+  "count": 26
+ },
+ "items": [
+  {
+   "id": "ol_01",
+   "code": "OL01",
+   "name": "Dera Gujran",
+   "nameUrdu": "ڈیرہ گجراں",
+   "line": "orangeline",
+   "lat": 31.5897164,
+   "lng": 74.4313048,
+   "osmId": "node/8058806367"
+  },
+  {
+   "id": "ol_02",
+   "code": "OL02",
+   "name": "Islam Park",
+   "nameUrdu": "اسلام پارک",
+   "line": "orangeline",
+   "lat": 31.5888576,
+   "lng": 74.4228382,
+   "osmId": "node/8058806363"
+  },
+  {
+   "id": "ol_03",
+   "code": "OL03",
+   "name": "Salamatpura",
+   "nameUrdu": "سلامت پورہ",
+   "line": "orangeline",
+   "lat": 31.5878864,
+   "lng": 74.4130396,
+   "osmId": "node/7643521927"
+  },
+  {
+   "id": "ol_04",
+   "code": "OL04",
+   "name": "Mahmood Booti",
+   "nameUrdu": "محمود بوٹی",
+   "line": "orangeline",
+   "lat": 31.5868398,
+   "lng": 74.4024323,
+   "osmId": "node/7643521935"
+  },
+  {
+   "id": "ol_05",
+   "code": "OL05",
+   "name": "Pakistan Mint Station",
+   "nameUrdu": "پاکستان منٹ اسٹیشن",
+   "line": "orangeline",
+   "lat": 31.5853078,
+   "lng": 74.3892695,
+   "osmId": "node/7643521942"
+  },
+  {
+   "id": "ol_06",
+   "code": "OL06",
+   "name": "Shalimar Garden Station",
+   "nameUrdu": "شالا مار باغ اسٹیشن",
+   "line": "orangeline",
+   "lat": 31.5834526,
+   "lng": 74.3797391,
+   "osmId": "node/7643521959"
+  },
+  {
+   "id": "ol_07",
+   "code": "OL07",
+   "name": "Baghbanpura",
+   "nameUrdu": "باغبان پورہ",
+   "line": "orangeline",
+   "lat": 31.5794381,
+   "lng": 74.3707709,
+   "osmId": "node/7643521979"
+  },
+  {
+   "id": "ol_08",
+   "code": "OL08",
+   "name": "U.E.T",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.577301,
+   "lng": 74.360731,
+   "osmId": "node/8058806346"
+  },
+  {
+   "id": "ol_09",
+   "code": "OL09",
+   "name": "Sultanpura",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.5757812,
+   "lng": 74.3507497,
+   "osmId": "node/7643522381"
+  },
+  {
+   "id": "ol_10",
+   "code": "OL10",
+   "name": "Railway Station",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.5723251,
+   "lng": 74.3361417,
+   "osmId": "node/8058806354"
+  },
+  {
+   "id": "ol_11",
+   "code": "OL11",
+   "name": "Lakshmi",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.5686717,
+   "lng": 74.3271713,
+   "osmId": "node/7643522041"
+  },
+  {
+   "id": "ol_12",
+   "code": "OL12",
+   "name": "G.P.O",
+   "nameUrdu": "جی پی او چوک",
+   "line": "orangeline",
+   "lat": 31.5655383,
+   "lng": 74.3142438,
+   "osmId": "node/7643521893"
+  },
+  {
+   "id": "ol_13",
+   "code": "OL13",
+   "name": "Anarkali",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.5624662,
+   "lng": 74.3093738,
+   "osmId": "node/7643521902"
+  },
+  {
+   "id": "ol_14",
+   "code": "OL14",
+   "name": "Chauburji",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.5523688,
+   "lng": 74.3028855,
+   "osmId": "node/7643518181"
+  },
+  {
+   "id": "ol_15",
+   "code": "OL15",
+   "name": "Gulshan-e-Ravi",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.5449656,
+   "lng": 74.2952107,
+   "osmId": "node/8060376248"
+  },
+  {
+   "id": "ol_16",
+   "code": "OL16",
+   "name": "Samanabad",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.5398208,
+   "lng": 74.2927788,
+   "osmId": "node/8060376237"
+  },
+  {
+   "id": "ol_17",
+   "code": "OL17",
+   "name": "Bund Road",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.5322888,
+   "lng": 74.2875927,
+   "osmId": "node/7643521807"
+  },
+  {
+   "id": "ol_18",
+   "code": "OL18",
+   "name": "Salahudin Road",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.5247106,
+   "lng": 74.283287,
+   "osmId": "node/8060376247"
+  },
+  {
+   "id": "ol_19",
+   "code": "OL19",
+   "name": "Shahnoor",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.517447,
+   "lng": 74.2776103,
+   "osmId": "node/8060376244"
+  },
+  {
+   "id": "ol_20",
+   "code": "OL20",
+   "name": "Sabzazar",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.510128,
+   "lng": 74.2728156,
+   "osmId": "node/7643521832"
+  },
+  {
+   "id": "ol_21",
+   "code": "OL21",
+   "name": "Awan Town",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.503332,
+   "lng": 74.2682636,
+   "osmId": "node/8060376243"
+  },
+  {
+   "id": "ol_22",
+   "code": "OL22",
+   "name": "Wahdat Road",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.4947145,
+   "lng": 74.2633224,
+   "osmId": "node/8060376241"
+  },
+  {
+   "id": "ol_23",
+   "code": "OL23",
+   "name": "Hanjarwal",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.4863202,
+   "lng": 74.2583389,
+   "osmId": "node/7643521853"
+  },
+  {
+   "id": "ol_24",
+   "code": "OL24",
+   "name": "Canal View",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.4807577,
+   "lng": 74.2491949,
+   "osmId": "node/8058806364"
+  },
+  {
+   "id": "ol_25",
+   "code": "OL25",
+   "name": "Thokar Niaz Baig",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.4736209,
+   "lng": 74.2417501,
+   "osmId": "node/7643521871"
+  },
+  {
+   "id": "ol_26",
+   "code": "OL26",
+   "name": "Ali Town",
+   "nameUrdu": null,
+   "line": "orangeline",
+   "lat": 31.4643168,
+   "lng": 74.243851,
+   "osmId": "node/7643518169"
+  }
+ ]
+}
