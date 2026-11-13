@@ -44,14 +44,14 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
         {/* Brand & City */}
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-700 via-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0">
-            <Compass className="w-5 h-5 animate-pulse" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-700 via-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0 overflow-hidden">
+            <img src="/buraq-icon.png" alt="Buraq" className="w-full h-full object-cover" />
           </div>
 
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-slate-900 dark:text-white tracking-tight text-base md:text-lg">
-                {isRtl ? 'راستہ پاکستان' : 'RASTA'}
+                {isRtl ? 'براق پاکستان' : 'BURAQ'}
               </span>
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
                 PK
@@ -117,7 +117,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Professional Rasta HD Vector & Satellite Engine Badge */}
           <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold shadow-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{isRtl ? 'راستہ ایچ ڈی انجن' : 'Rasta HD Engine'}</span>
+            <span>{isRtl ? 'براق ایچ ڈی انجن' : 'Buraq HD Engine'}</span>
           </div>
 
           {/* Emergency 1122 Quick SOS Dial */}
@@ -136,14 +136,13 @@ export const Header: React.FC<HeaderProps> = ({
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as Language)}
-              className="appearance-none pl-2.5 pr-6 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none transition-all"
+              className="pl-3 pr-7 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none transition-all"
             >
               <option value="en">English</option>
-              <option value="ur">اردو (Urdu)</option>
-              <option value="pa">پنجابی (Punjabi)</option>
+              <option value="ur">اردو</option>
+              <option value="pa">پنجابی</option>
               <option value="ar">العربية</option>
             </select>
-            <Globe className="w-3.5 h-3.5 absolute right-2 pointer-events-none text-slate-400" />
           </div>
 
           {/* Monsoon Flood Bypasses Toggle */}

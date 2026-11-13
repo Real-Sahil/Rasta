@@ -22,7 +22,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
   isRtl = false
 }) => {
   return (
-    <div className={`absolute right-4 bottom-32 z-20 flex flex-col gap-3 items-end`}>
+    <div className={`absolute ${isRtl ? 'left-4 items-start' : 'right-4 items-end'} bottom-32 z-20 flex flex-col gap-3`}>
       {/* Waze-style Hazard Report FAB */}
       <button
         type="button"

@@ -22,6 +22,7 @@ import {
 } from './data/pakistanLocations';
 import { getStoredIncidents, saveIncidents } from './services/storage';
 import { RobustGpsManager } from './services/gpsService';
+import { navigationEngineInstance } from './services/navigationEngine';
 
 import { Header } from './components/Header';
 import { GoogleMapView } from './components/GoogleMapView';
@@ -140,6 +141,7 @@ function MainApp() {
   const [fixedRouteStartLocation, setFixedRouteStartLocation] = useState<{ lat: number; lng: number }>(LAHORE_DEFAULT_CENTER);
 
   // Routing State
+  const [originMode, setOriginMode] = useState<'current' | 'manual' | 'map'>('current');
   const [origin, setOrigin] = useState<LocationPoint | null>(null);
   const [destination, setDestination] = useState<LocationPoint | null>(POPULAR_LOCATIONS[1]); // Default Kalma Chowk
   const [travelMode, setTravelMode] = useState<TravelMode>('DRIVING');
@@ -222,7 +224,7 @@ function MainApp() {
 
   // Continuous Robust GPS Live Tracking with smoothing, road snapping, jump rejection & signal loss handling
   useEffect(() => {
-    if (!isLiveTracking) return;
+    if (!isLiveTracking && !isNavigatingLive) return;
 
     const gpsManager = new RobustGpsManager((state) => {
       setGpsSignalLost(state.isSignalLost);
@@ -234,11 +236,26 @@ function MainApp() {
       }
 
       const loc = state.smoothedLocation || state.location;
-      if (loc && !isNavigatingLive) {
+      if (loc) {
         setUserLocation({ lat: loc.lat, lng: loc.lng });
-        // Auto-recenter if within Pakistan bounds
-        if (loc.lat >= 23 && loc.lat <= 37 && loc.lng >= 60 && loc.lng <= 78) {
+
+        if (isNavigatingLive) {
+          setVehicleLocation({ lat: loc.lat, lng: loc.lng });
+          if (loc.heading !== null && loc.heading !== undefined) {
+            setVehicleHeading(loc.heading);
+          }
+          if (loc.speed !== null && loc.speed !== undefined) {
+            setSimulatedSpeed(Math.max(0, Math.round(loc.speed * 3.6)));
+          }
           setCenter({ lat: loc.lat, lng: loc.lng });
+          setZoom(17);
+
+          navigationEngineInstance.processPositionUpdate(loc);
+        } else {
+          // Auto-recenter if within Pakistan bounds when not navigating
+          if (loc.lat >= 23 && loc.lat <= 37 && loc.lng >= 60 && loc.lng <= 78) {
+            setCenter({ lat: loc.lat, lng: loc.lng });
+          }
         }
       }
     });
@@ -694,87 +711,43 @@ function MainApp() {
     }
   }, [generatedRoutes]);
 
-  // Real-Time Turn-by-Turn Navigation Drive along active route coordinates
+  const handleRecenter = () => {
+    const target = isNavigatingLive && vehicleLocation ? vehicleLocation : userLocation;
+    if (target) {
+      setCenter(target);
+      setZoom(17);
+    }
+  };
+
+  // Real-Time GPS-Driven Navigation State Machine & Maneuver Synchronization
   useEffect(() => {
     if (!isNavigatingLive || !activeRoute || !activeRoute.pathCoordinates || activeRoute.pathCoordinates.length < 2) {
       return;
     }
 
-    const path = activeRoute.pathCoordinates;
-    const totalSteps = activeRoute.steps.length;
-    let pointIdx = 0;
-
-    // Start at initial point with close navigation zoom
-    setVehicleLocation(path[0]);
-    setCenter(path[0]);
+    const initialPos = userLocation || activeRoute.pathCoordinates[0];
+    setVehicleLocation(initialPos);
+    setCenter(initialPos);
     setZoom(17);
 
-    const interval = setInterval(() => {
-      pointIdx++;
-      if (pointIdx >= path.length) {
-        // Arrived at destination
-        pointIdx = path.length - 1;
-        setVehicleLocation(path[pointIdx]);
-        setCurrentStepIndex(totalSteps - 1);
-        setDistanceToManeuver(0);
-        return;
+    navigationEngineInstance.startNavigation(activeRoute, destination!, origin, travelMode);
+
+    const unsubscribe = navigationEngineInstance.subscribe((event) => {
+      setCurrentStepIndex(event.currentStepIndex);
+      setDistanceToManeuver(event.distanceToManeuver);
+      if (event.state === 'ARRIVED') {
+        setGpsToast(isRtl ? 'آپ اپنی منزل پر پہنچ گئے ہیں!' : 'You have arrived at your destination!');
+        setTimeout(() => setGpsToast(null), 5000);
+        setIsNavigatingLive(false);
       }
-
-      const currentPt = path[pointIdx];
-      const nextPt = path[Math.min(path.length - 1, pointIdx + 1)];
-      const bearing = calculateBearing(currentPt, nextPt);
-
-      setVehicleHeading(bearing);
-      setVehicleLocation(currentPt);
-      setCenter(currentPt); // Camera follows vehicle!
-
-      // Determine step progress
-      const progressFraction = pointIdx / (path.length - 1);
-      const currentStep = Math.min(totalSteps - 1, Math.floor(progressFraction * totalSteps));
-      setCurrentStepIndex(currentStep);
-
-      // Dynamic distance countdown to the upcoming maneuver
-      const stepFraction = (progressFraction * totalSteps) - currentStep;
-      const stepDistanceMeters = activeRoute.steps[currentStep]?.distanceMeters || 600;
-      const remainingDistance = Math.max(30, Math.round(stepDistanceMeters * (1 - stepFraction)));
-      setDistanceToManeuver(remainingDistance);
-
-      // Speed fluctuation
-      if (travelMode === 'WALKING') {
-        setSimulatedSpeed(5);
-      } else if (travelMode === 'TWO_WHEELER') {
-        setSimulatedSpeed(Math.round(42 + Math.sin(pointIdx * 0.8) * 8));
-      } else {
-        setSimulatedSpeed(Math.round(52 + Math.sin(pointIdx * 0.7) * 14));
-      }
-
-      // Speed camera & police naka proximity check
-      const knownCheckpoints = [
-        { name: 'Ring Road Automated Speed Camera (60 km/h limit)', nameUrdu: 'رنگ روڈ اسپیڈ کیمرا (حد 60 کلومیٹر)', limit: 60, lat: path[0].lat + 0.004, lng: path[0].lng + 0.004 },
-        { name: 'Kalma Chowk Police Naka & Traffic Post', nameUrdu: 'کلمہ چوک پولیس ناکہ اور ٹریفک پوسٹ', limit: 40, lat: path[Math.floor(path.length / 2)].lat, lng: path[Math.floor(path.length / 2)].lng }
-      ];
-      let nearbyNaka = null;
-      for (const cp of knownCheckpoints) {
-        const dist = Math.sqrt(Math.pow(currentPt.lat - cp.lat, 2) + Math.pow(currentPt.lng - cp.lng, 2)) * 111000;
-        if (dist < 600) {
-          nearbyNaka = cp;
-          break;
-        }
-      }
-      setActiveCameraRadar(nearbyNaka);
-      if (nearbyNaka && pointIdx % 10 === 0 && !isVoiceMuted) {
-        speechNavigator.speak(
-          `Alert! Approach ${nearbyNaka.name}. Speed limit ${nearbyNaka.limit} kilometers per hour.`,
-          `خبردار! ${nearbyNaka.nameUrdu} قریب ہے۔ رفتار کی حد ${nearbyNaka.limit} کلومیٹر فی گھنٹہ ہے۔`
-        );
-      }
-    }, 1300);
+    });
 
     return () => {
-      clearInterval(interval);
+      unsubscribe();
+      navigationEngineInstance.stopNavigation();
       setActiveCameraRadar(null);
     };
-  }, [isNavigatingLive, activeRoute?.id, travelMode, isVoiceMuted]);
+  }, [isNavigatingLive, activeRoute?.id]);
 
   const handleAddIncident = (newInc: CommunityIncident) => {
     const updated = [newInc, ...incidents];

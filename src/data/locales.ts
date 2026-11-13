@@ -5,7 +5,7 @@
 
 export const translations = {
   en: {
-    appTitle: 'Rasta Pakistan',
+    appTitle: 'Buraq Pakistan',
     tagline: 'Pakistan-First Mobility Intelligence',
     subtitle: 'Lahore Transit • Live Incidents • Multimodal Savings',
     searchPlaceholder: 'Search destinations, chowks, metro stations in Lahore...',

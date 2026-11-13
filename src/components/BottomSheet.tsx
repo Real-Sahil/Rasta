@@ -43,7 +43,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   };
 
   return (
-    <div className={`absolute bottom-16 inset-x-0 z-30 transition-all duration-300 ${isExpanded ? 'h-[75vh] lg:h-[calc(100vh-100px)]' : 'h-[22vh]'}`}>
+    <div className={`absolute bottom-14 inset-x-0 z-30 transition-all duration-300 ${isExpanded ? 'h-[72vh] max-h-[calc(100vh-130px)]' : 'h-[22vh]'}`}>
       <div className="w-full h-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-emerald-900/10 dark:border-slate-800 shadow-[0_-12px_35px_rgba(20,60,53,0.12)] rounded-t-[2.5rem] flex flex-col overflow-hidden">
         {/* Drag Handle & Clean Header */}
         <div 

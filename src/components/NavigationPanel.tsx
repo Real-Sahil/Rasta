@@ -26,7 +26,8 @@ import {
   CloudRain,
   ShieldAlert,
   AlertTriangle,
-  RotateCcw
+  RotateCcw,
+  Compass
 } from 'lucide-react';
 import { RouteElevationVisualizer } from './RouteElevationVisualizer';
 import { RouteTimeCostChart } from './RouteTimeCostChart';
@@ -49,6 +50,10 @@ interface NavigationPanelProps {
   onStepChange?: (index: number) => void;
   simulatedSpeed?: number;
   onReportIncident?: () => void;
+  originMode?: 'current' | 'manual' | 'map';
+  onOriginModeChange?: (mode: 'current' | 'manual' | 'map') => void;
+  userLocation?: { lat: number; lng: number } | null;
+  onRecenter?: () => void;
 }
 
 export const NavigationPanel: React.FC<NavigationPanelProps> = ({
@@ -66,7 +71,11 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
   currentStepIndex: controlledStepIndex,
   onStepChange,
   simulatedSpeed: controlledSpeed,
-  onReportIncident
+  onReportIncident,
+  originMode = 'current',
+  onOriginModeChange,
+  userLocation,
+  onRecenter
 }) => {
   const { language, isRtl, t } = useMobilityTheme();
   const [internalNavigating, setInternalNavigating] = useState(false);
@@ -74,13 +83,13 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
   const [internalSpeed, setInternalSpeed] = useState(42);
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
   const [avoidTolls, setAvoidTolls] = useState(false);
+  const [gpsValidationError, setGpsValidationError] = useState<string | null>(null);
 
   const isNavigatingLive = controlledNavigating !== undefined ? controlledNavigating : internalNavigating;
   const currentStepIndex = controlledStepIndex !== undefined ? controlledStepIndex : internalStepIndex;
   const simulatedSpeed = controlledSpeed !== undefined ? controlledSpeed : internalSpeed;
 
   const [isAdaptiveRoutingActive, setIsAdaptiveRoutingActive] = useState(true);
-  const [isHudMode, setIsHudMode] = useState(false);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
 
   useEffect(() => {
@@ -94,6 +103,16 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
   }, [isAdaptiveRoutingActive, routes]);
 
   const handleStart = () => {
+    // Check if starting from current location but GPS position is unavailable
+    if (originMode === 'current' && !userLocation) {
+      setGpsValidationError(
+        isRtl
+          ? 'GPS لوکیشن دستیاب نہیں یا اجازت درکار ہے۔ براہ کرم مقام کی اجازت دیں یا دستی طور پر منتخب کریں۔'
+          : 'GPS location unavailable or permission denied. Please enable location or choose a manual starting point.'
+      );
+      return;
+    }
+    setGpsValidationError(null);
     if (onStartNavigation) onStartNavigation();
     else {
       setInternalNavigating(true);
@@ -107,11 +126,6 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
       setInternalNavigating(false);
     }
     speechNavigator.stop();
-  };
-
-  const handleStep = (idx: number) => {
-    if (onStepChange) onStepChange(idx);
-    else setInternalStepIndex(idx);
   };
 
   useEffect(() => {
@@ -137,17 +151,6 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
     }
   }, [isNavigatingLive, currentStepIndex, activeRoute?.id, isVoiceMuted, language]);
 
-  useEffect(() => {
-    if (!isNavigatingLive || controlledSpeed !== undefined) return;
-    const interval = setInterval(() => {
-      setInternalSpeed(prev => {
-        const delta = (Math.random() - 0.5) * 6;
-        return Math.min(75, Math.max(25, Math.round(prev + delta)));
-      });
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [isNavigatingLive, controlledSpeed]);
-
   if (!destination) return null;
 
   // Active Navigation Screen (Driving HUD mode)
@@ -155,7 +158,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
     const currentStep = activeRoute && activeRoute.steps[currentStepIndex];
     return (
       <div className="bg-[#143C35] text-white rounded-3xl shadow-2xl border border-emerald-500/40 p-4 sm:p-5 space-y-4">
-        {/* Top Header Status: Speed & Voice Mute */}
+        {/* Top Header Status: Speed, Re-centre, Voice Mute */}
         <div className="flex items-center justify-between border-b border-emerald-900/50 pb-3">
           <div className="flex items-center gap-2 font-black text-emerald-300 text-sm">
             <Gauge className="w-5 h-5 animate-pulse" />
@@ -163,6 +166,18 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Re-centre GPS Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onRecenter) onRecenter();
+              }}
+              className="p-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-emerald-200 transition-all cursor-pointer shadow-sm"
+              title={isRtl ? 'مقام پر واپس جائیں' : 'Re-centre on GPS'}
+            >
+              <Compass className="w-4 h-4" />
+            </button>
+
             {/* Voice Mute Control */}
             <button
               type="button"
@@ -235,7 +250,11 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
             <span className="font-semibold truncate max-w-[240px]">
-              {origin ? (isRtl ? origin.nameUrdu : origin.name) : t.currentLocation}
+              {originMode === 'current'
+                ? (userLocation ? (isRtl ? 'موجودہ جی پی ایس مقام' : 'Current GPS Location') : (isRtl ? 'GPS مقام غیر دستیاب' : 'GPS Location Unavailable'))
+                : originMode === 'manual'
+                ? (isRtl ? 'دستی طور پر منتخب کردہ مقام' : 'Manually Selected Location')
+                : (isRtl ? 'نقشے پر منتخب کردہ نقطہ' : 'Selected Point on Map')}
             </span>
           </div>
 
@@ -255,6 +274,72 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
         >
           <X className="w-5 h-5" />
         </button>
+      </div>
+
+      {/* Starting Point Option Selector */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-extrabold text-slate-500 uppercase tracking-wider block">
+          {isRtl ? 'آغاز کا مقام (Starting Point)' : 'Starting Point Option'}
+        </label>
+        <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => {
+              if (onOriginModeChange) onOriginModeChange('current');
+              setGpsValidationError(null);
+            }}
+            className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer ${
+              originMode === 'current' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300'
+            }`}
+          >
+            <span>📍 {isRtl ? 'موجودہ' : 'Current'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (onOriginModeChange) onOriginModeChange('manual');
+              setGpsValidationError(null);
+            }}
+            className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer ${
+              originMode === 'manual' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300'
+            }`}
+          >
+            <span>✏️ {isRtl ? 'درست کریں' : 'Manual'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (onOriginModeChange) onOriginModeChange('map');
+              setGpsValidationError(null);
+            }}
+            className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1 transition-all cursor-pointer ${
+              originMode === 'map' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-300'
+            }`}
+          >
+            <span>🗺️ {isRtl ? 'نقشہ' : 'Map Point'}</span>
+          </button>
+        </div>
+
+        {/* GPS Permission or Availability Error Banner */}
+        {gpsValidationError && (
+          <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-900 dark:text-rose-200 text-[11px] font-bold flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{gpsValidationError}</span>
+          </div>
+        )}
+
+        {originMode === 'current' && !userLocation && !gpsValidationError && (
+          <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-900 dark:text-amber-200 text-[11px] font-bold flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>{isRtl ? 'GPS مقام تلاش کیا جا رہا ہے یا اجازت درکار ہے۔' : 'Detecting current GPS position or permission required...'}</span>
+          </div>
+        )}
+
+        {originMode === 'map' && (
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 text-[11px] font-bold">
+            {isRtl ? 'نقشے پر مطلوبہ نقطہ کلک کریں تاکہ آغاز مقرر ہو۔' : 'Tap any location on the map to set starting point.'}
+          </div>
+        )}
       </div>
 
       {/* Adaptive Routing Weather-Aware Toggle */}

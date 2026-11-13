@@ -56,13 +56,13 @@ export const LandingGatekeeper: React.FC<LandingGatekeeperProps> = ({ onLaunchMa
       {/* Navigation Header */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-emerald-900/10 px-4 sm:px-8 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-[#143C35] text-white flex items-center justify-center shadow-lg shadow-[#143C35]/20">
-            <Compass className="w-6 h-6 animate-pulse" />
+          <div className="w-10 h-10 rounded-2xl bg-[#143C35] text-white flex items-center justify-center shadow-lg shadow-[#143C35]/20 overflow-hidden">
+            <img src="/buraq-icon.png" alt="Buraq" className="w-full h-full object-cover" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-black text-lg tracking-tight text-[#143C35]">
-                {isRtl ? 'راستہ پاکستان' : 'RASTA'}
+                {isRtl ? 'براق پاکستان' : 'BURAQ'}
               </span>
               <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-[#20A477] text-white">
                 PK 2.0
@@ -108,7 +108,7 @@ export const LandingGatekeeper: React.FC<LandingGatekeeperProps> = ({ onLaunchMa
             onClick={handleLaunch}
             className="py-2 px-4 rounded-xl bg-[#20A477] hover:bg-[#143C35] text-white font-extrabold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer"
           >
-            <span>{isRtl ? 'راستہ کھولیں' : 'Open Rasta'}</span>
+            <span>{isRtl ? 'براق کھولیں' : 'Open Buraq'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -141,7 +141,7 @@ export const LandingGatekeeper: React.FC<LandingGatekeeperProps> = ({ onLaunchMa
               className="w-full sm:w-auto py-4 px-8 rounded-2xl bg-[#143C35] hover:bg-[#20A477] text-white font-black text-base shadow-xl shadow-[#143C35]/25 flex items-center justify-center gap-3 transition-all transform hover:scale-105 cursor-pointer"
             >
               <Navigation className="w-5 h-5 text-[#F2B95D]" />
-              <span>{isRtl ? 'راستہ لائیو میپ کھولیں' : 'Open Rasta Live Map'}</span>
+              <span>{isRtl ? 'براق لائیو میپ کھولیں' : 'Open Buraq Live Map'}</span>
               <ArrowRight className="w-5 h-5" />
             </button>
 
@@ -184,12 +184,12 @@ export const LandingGatekeeper: React.FC<LandingGatekeeperProps> = ({ onLaunchMa
         </div>
       </section>
 
-      {/* How Rasta Works */}
+      {/* How Buraq Works */}
       <section id="features" className="bg-white px-4 sm:px-8 py-20 border-t border-emerald-950/10">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
             <h2 className="text-3xl sm:text-4xl font-black text-[#143C35]">
-              {isRtl ? 'راستہ کیسے کام کرتا ہے؟' : 'How Rasta Works'}
+              {isRtl ? 'براق کیسے کام کرتا ہے؟' : 'How Buraq Works'}
             </h2>
             <p className="text-sm sm:text-base text-[#143C35]/70 font-medium">
               {isRtl ? 'موبائل اور ڈیسک ٹاپ کے لیے ڈیزائن کیا گیا تیز ترین نیویگیشن سسٹم۔' : 'Built for Pakistani commuters with offline resilience and multi-language support.'}
@@ -328,7 +328,7 @@ export const LandingGatekeeper: React.FC<LandingGatekeeperProps> = ({ onLaunchMa
               </div>
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-[#20A477]" />
-                <span>Email: support@rastapakistan.pk</span>
+                <span>Email: support@buraqpakistan.pk</span>
               </div>
             </div>
           </div>
@@ -339,14 +339,14 @@ export const LandingGatekeeper: React.FC<LandingGatekeeperProps> = ({ onLaunchMa
       <footer className="bg-[#143C35] text-white px-4 sm:px-8 py-12 mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-emerald-200/80">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#20A477] text-white flex items-center justify-center">
-              <Compass className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-xl bg-[#20A477] text-white flex items-center justify-center overflow-hidden">
+              <img src="/buraq-icon.png" alt="Buraq" className="w-full h-full object-cover" />
             </div>
-            <span className="font-bold text-white text-sm">Rasta Pakistan 2.0</span>
+            <span className="font-bold text-white text-sm">Buraq Pakistan 2.0</span>
           </div>
 
           <div className="flex items-center gap-6 font-medium">
-            <a href="#privacy" onClick={(e) => { e.preventDefault(); alert('Rasta Pakistan respects your privacy. No personal telemetry or location data is ever sold or shared.'); }} className="hover:text-white transition-colors">
+            <a href="#privacy" onClick={(e) => { e.preventDefault(); alert('Buraq Pakistan respects your privacy. No personal telemetry or location data is ever sold or shared.'); }} className="hover:text-white transition-colors">
               Privacy Policy
             </a>
             <a href="#terms" onClick={(e) => { e.preventDefault(); alert('Terms of Service: Provided 100% free for safe community navigation across Pakistan.'); }} className="hover:text-white transition-colors">
@@ -358,7 +358,7 @@ export const LandingGatekeeper: React.FC<LandingGatekeeperProps> = ({ onLaunchMa
           </div>
 
           <div>
-            <span>© 2026 Rasta Pakistan. Built for Pakistani Commuters.</span>
+            <span>© 2026 Buraq Pakistan. Built for Pakistani Commuters.</span>
           </div>
         </div>
       </footer>

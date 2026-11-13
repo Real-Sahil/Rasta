@@ -42,8 +42,8 @@ export const EmergencyServices: React.FC<EmergencyServicesProps> = ({
     const mapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
 
     const text = isRtl
-      ? `🚨 ہنگامی مدد درکار ہے! (Emergency SOS via Rasta App)\nمیرے موجودہ کوآرڈینیٹس: ${lat.toFixed(5)}, ${lng.toFixed(5)}\nگوگل میپ لوکیشن: ${mapsLink}\nبراہ کرم فوری مدد یا ریسکیو 1122 کو اطلاع دیں۔`
-      : `🚨 EMERGENCY ASSISTANCE NEEDED! (Rasta Mobility Platform)\nMy GPS Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}\nGoogle Maps Link: ${mapsLink}\nPlease dispatch assistance or contact Rescue 1122.`;
+      ? `🚨 ہنگامی مدد درکار ہے! (Emergency SOS via Buraq App)\nمیرے موجودہ کوآرڈینیٹس: ${lat.toFixed(5)}, ${lng.toFixed(5)}\nگوگل میپ لوکیشن: ${mapsLink}\nبراہ کرم فوری مدد یا ریسکیو 1122 کو اطلاع دیں۔`
+      : `🚨 EMERGENCY ASSISTANCE NEEDED! (Buraq Mobility Platform)\nMy GPS Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}\nGoogle Maps Link: ${mapsLink}\nPlease dispatch assistance or contact Rescue 1122.`;
 
     const encoded = encodeURIComponent(text);
     window.open(`https://wa.me/?text=${encoded}`, '_blank');

@@ -114,8 +114,8 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
       locationNameUrdu: locationName || 'لاہور کینال یا مین شاہراہ',
       lat,
       lng,
-      description: description || 'Reported by commuter via Rasta app.',
-      descriptionUrdu: description || 'شہری کی جانب سے راستہ ایپ کے ذریعے رپورٹ۔',
+      description: description || 'Reported by commuter via Buraq app.',
+      descriptionUrdu: description || 'شہری کی جانب سے براق ایپ کے ذریعے رپورٹ۔',
       timestamp: Date.now(),
       upvotes: 1,
       userConfirmed: true,
@@ -138,8 +138,8 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
 
   const handleShareIncident = (incident: CommunityIncident) => {
     const text = isRtl
-      ? `🚨 راستہ الرٹ: ${incident.titleUrdu}\nمقام: ${incident.locationNameUrdu}\nزمرہ: ${incident.category}\nگوگل میپ: https://www.google.com/maps?q=${incident.lat},${incident.lng}\n- راستہ پاکستان`
-      : `🚨 Rasta Traffic Alert: ${incident.title}\nLocation: ${incident.locationName}\nCategory: ${incident.category.toUpperCase()}\nGoogle Maps: https://www.google.com/maps?q=${incident.lat},${incident.lng}\n- Shared via Rasta Pakistan`;
+      ? `🚨 براق الرٹ: ${incident.titleUrdu}\nمقام: ${incident.locationNameUrdu}\nزمرہ: ${incident.category}\nگوگل میپ: https://www.google.com/maps?q=${incident.lat},${incident.lng}\n- براق پاکستان`
+      : `🚨 Buraq Traffic Alert: ${incident.title}\nLocation: ${incident.locationName}\nCategory: ${incident.category.toUpperCase()}\nGoogle Maps: https://www.google.com/maps?q=${incident.lat},${incident.lng}\n- Shared via Buraq Pakistan`;
 
     if (navigator.share) {
       navigator.share({

@@ -70,7 +70,7 @@ export const PWAInstallButton: React.FC<{ isRtl?: boolean }> = ({ isRtl = false 
       <button
         onClick={handleInstall}
         className="flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-xl shadow-md transition-all cursor-pointer"
-        title="Install Rasta Pakistan PWA"
+        title="Install Buraq Pakistan PWA"
       >
         <Download className="w-3.5 h-3.5 animate-bounce" />
         <span>{isRtl ? 'ایپ انسٹال کریں' : 'Install PWA'}</span>
