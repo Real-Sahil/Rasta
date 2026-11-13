@@ -6,7 +6,7 @@ import { create } from 'zustand';
 import { LocationPoint, RouteOption, TravelMode } from '../types';
 import { LatLng, bearingDeg, haversineM } from './geo';
 import { Fix, NavSession, createSession, updateSession } from './navigation';
-import { Announcement, nextAnnouncement } from './announcer';
+import { Announcement, nextAnnouncement, simpleAnnouncement } from './announcer';
 import { fetchRoutes, RouteResult } from './routing';
 
 export interface GpsStatus {
@@ -81,7 +81,7 @@ export const useAppStore = create<AppState>((set, get) => {
       const best = res.routes[0];
       announced = new Set();
       set({ routes: res.routes, routesSource: res.source, activeRouteId: best.id, session: createSession(best) });
-      announce({ key: `${best.id}:reroute`, en: 'Route recalculated', ur: 'راستہ دوبارہ طے کیا گیا' });
+      announce(simpleAnnouncement(`${best.id}:reroute`, 'reroute'));
     } catch {
       /* cancelled */
     } finally {
@@ -178,7 +178,7 @@ export const useAppStore = create<AppState>((set, get) => {
       lastRerouteAt = 0;
       const session = updateSession(createSession(route), route, st.fix);
       set({ session });
-      announce({ key: `${route.id}:start`, en: route.steps[0]?.instruction ?? 'Starting navigation', ur: route.steps[0]?.instructionUrdu ?? 'سفر شروع' });
+      announce(simpleAnnouncement(`${route.id}:start`, 'start', route.steps[0]?.instruction));
       return { ok: true };
     },
 

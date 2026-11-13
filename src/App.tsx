@@ -27,6 +27,7 @@ import { fetchCityAqi, CityAqiData } from './services/aqiService';
 import { fetchCityWeather, WeatherData } from './services/weatherService';
 import { incidentSyncService, SyncStatusInfo } from './services/incidentSyncService';
 import { speechNavigator } from './services/speechNavigation';
+import { stepAnnouncement } from './core/announcer';
 import { fetchActiveIncidents, submitIncident, confirmIncident } from './services/incidentsApi';
 import { haversineM } from './core/geo';
 import { useAppStore, activeRouteOf } from './core/store';
@@ -55,7 +56,12 @@ function MainApp() {
 
   useGpsTracking(true);
   useRoutePlanner();
-  useVoiceAnnouncer(language);
+  const voiceSupport = useVoiceAnnouncer(language);
+  const voiceNotice = (() => {
+    if (voiceSupport.hasRecordings || voiceSupport.status === 'ok') return null;
+    if (voiceSupport.status === 'approximate') return isRtl ? 'پنجابی آواز دستیاب نہیں؛ اردو آواز استعمال ہو رہی ہے۔' : 'No Punjabi voice on this device: using an Urdu voice (pronunciation is approximate).';
+    return language === 'ur' ? 'اس ڈیوائس پر اردو آواز موجود نہیں؛ ہدایات صرف اسکرین پر ہیں۔' : language === 'pa' ? 'اس ڈیوائس تے پنجابی یا اردو آواز نہیں؛ ہدایات صرف سکرین تے نے۔' : 'No voice available on this device: directions are shown on screen only.';
+  })();
 
   // ---- View state ----
   const [currentCity, setCurrentCity] = useState('lahore');
@@ -361,10 +367,11 @@ function MainApp() {
               speedKmh={fix?.speed != null ? Math.max(0, Math.round(fix.speed * 3.6)) : null}
               muted={voiceMuted}
               rerouting={rerouting}
+              voiceNotice={voiceNotice}
               isRtl={isRtl}
               onRepeat={() => {
                 const st = activeRoute.steps[session.upcomingStepIndex];
-                if (st) speechNavigator.speak(st.instruction, st.instructionUrdu, st.instructionUrdu, undefined, true);
+                if (st) speechNavigator.speakAnnouncement(stepAnnouncement(`${activeRoute.id}:repeat:${Date.now()}`, st, session.distanceToManeuverM <= 50 ? null : (session.distanceToManeuverM > 350 ? 500 : 200)), true);
               }}
               onToggleMute={() => store().toggleMute()}
               onExit={() => store().stopNavigation()}

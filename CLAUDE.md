@@ -28,6 +28,13 @@ Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI 
 - Client: `src/services/incidentsApi.ts`. If `/api` isn't reachable (plain `npm run dev`, no function) the app falls back to device-only reports. To test the API locally use `vercel dev` with the Neon env vars.
 - Known limits: per-IP limits are generous because mobile carriers share IPs; the anonymous token can be re-minted, so rate limits and flags are friction, not identity. Moderation of hidden reports is manual SQL for now.
 
+## Spoken directions (English / Urdu / Punjabi)
+- `src/core/phrases.ts`: the whole spoken vocabulary (11 phrases + 500 m / 200 m prefixes) in en, ur and pa (Shahmukhi). Urdu/Punjabi wording is a **draft pending native-speaker review**; never ship it unreviewed.
+- `src/core/announcer.ts` produces structured announcements (`phrase`, `distanceM`, text per language). It speaks the band (500/200), not the exact distance, so recordings stay a small fixed set.
+- `src/core/voice.ts` (pure): `chooseVoice` (Punjabi uses a Shahmukhi voice if present, else an Urdu voice flagged `approximate`; Gurmukhi `pa-IN` voices are ignored; no voice = `none`) and `planClips`.
+- `src/services/speechNavigation.ts`: plays recorded clips (`public/audio/<lang>/<key>.mp3`, listed in `public/audio/manifest.json`) only when every clip a sentence needs exists, else the phone's TTS voice, else silence with a visible notice in the HUD. Arabic UI speaks English.
+- `npm run voice:list` regenerates `docs/voice-phrases.md`, the recording checklist.
+
 ## Data from OpenStreetMap
 `npm run data:osm` (or the "Refresh OSM data" workflow) writes `src/data/osm/*.json` from Overpass with source/licence/date metadata. Unknown values are `null`, never guessed (e.g. no machine-made Urdu names). ODbL: keep the OpenStreetMap attribution in the app. The hand-typed station lists in `src/data/pakistanLocations.ts` are known to be partly wrong; replace them with the OSM output once generated.
 

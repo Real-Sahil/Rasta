@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "check": "npm run lint && npm run test && npm run build",
     "data:osm": "node scripts/fetch-osm.mjs",
-    "db:migrate": "node scripts/migrate.mjs"
+    "db:migrate": "node scripts/migrate.mjs",
+    "voice:list": "node scripts/voice-phrases.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",

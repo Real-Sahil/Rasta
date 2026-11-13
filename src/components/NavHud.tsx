@@ -13,6 +13,8 @@ interface NavHudProps {
   speedKmh: number | null;
   muted: boolean;
   rerouting: boolean;
+  /** Why directions may not be spoken (no voice on this device, approximate Punjabi). Null = nothing to say. */
+  voiceNotice?: string | null;
   isRtl: boolean;
   onRepeat: () => void;
   onToggleMute: () => void;
@@ -21,7 +23,7 @@ interface NavHudProps {
 
 const fmtDistance = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m / 10) * 10} m`);
 
-export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted, rerouting, isRtl, onRepeat, onToggleMute, onExit }) => {
+export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted, rerouting, voiceNotice = null, isRtl, onRepeat, onToggleMute, onExit }) => {
   const step = route.steps[session.upcomingStepIndex] ?? route.steps[route.steps.length - 1];
   const eta = new Date(Date.now() + session.remainingS * 1000);
   const etaClock = eta.toLocaleTimeString(isRtl ? 'ur-PK' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -58,6 +60,9 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
             </button>
           </div>
         </div>
+        {voiceNotice && !muted && (
+          <p role="status" className="text-[11px] font-semibold text-amber-300">{voiceNotice}</p>
+        )}
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-1 font-bold text-emerald-400">
             <Gauge className="w-3.5 h-3.5" />

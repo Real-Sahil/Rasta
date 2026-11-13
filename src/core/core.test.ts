@@ -119,18 +119,23 @@ describe('navigation session', () => {
 });
 
 describe('announcer', () => {
-  it('speaks each band once per manoeuvre', () => {
+  it('speaks each band once per manoeuvre, using the band value so clips can be pre-recorded', () => {
     let s = createSession(route);
     s = { ...s, upcomingStepIndex: 1, distanceToManeuverM: 480 };
     const seen = new Set<string>();
     const a1 = nextAnnouncement(s, route, seen)!;
-    expect(a1.en).toBe('In 480 meters, Turn left');
+    expect(a1.en).toBe('In 500 meters, Turn left');
+    expect(a1).toMatchObject({ phrase: 'turn-left', distanceM: 500 });
+    expect(a1.ur).toBe('500 میٹر بعد، بائیں مڑیں');
+    expect(a1.pa).toContain('کھبے مڑو');
     seen.add(a1.key);
     expect(nextAnnouncement(s, route, seen)).toBeNull();
     const a2 = nextAnnouncement({ ...s, distanceToManeuverM: 150 }, route, seen)!;
     expect(a2.key).toContain(':200');
+    expect(a2.distanceM).toBe(200);
     const a3 = nextAnnouncement({ ...s, distanceToManeuverM: 30 }, route, new Set())!;
     expect(a3.en).toBe('Turn left');
+    expect(a3.distanceM).toBeNull();
   });
   it('is silent when far away or off-route, announces arrival once', () => {
     const s = { ...createSession(route), distanceToManeuverM: 1500 };
@@ -138,6 +143,7 @@ describe('announcer', () => {
     expect(nextAnnouncement({ ...s, status: 'off_route', distanceToManeuverM: 10 }, route, new Set())).toBeNull();
     const arrived = { ...s, status: 'arrived' as const };
     const a = nextAnnouncement(arrived, route, new Set())!;
+    expect(a.phrase).toBe('arrived');
     expect(nextAnnouncement(arrived, route, new Set([a.key]))).toBeNull();
   });
 });
