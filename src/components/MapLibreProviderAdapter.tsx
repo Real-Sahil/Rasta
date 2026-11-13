@@ -20,6 +20,16 @@ try {
   console.warn('Unable to set MapLibre workerUrl:', err);
 }
 
+// Escape any untrusted text (user reports, geocoder names) before putting it into HTML strings
+function esc(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export interface MapLibreMarkerData {
   id: string;
   lat: number;
@@ -64,7 +74,7 @@ const FREE_ARCGIS_STREETS_STYLE: maplibregl.StyleSpecification = {
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
       ],
       tileSize: 256,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © Esri ArcGIS'
+      attribution: '© Esri, HERE, Garmin, OpenStreetMap contributors'
     }
   },
   layers: [
@@ -96,30 +106,6 @@ const FREE_ARCGIS_SATELLITE_STYLE: maplibregl.StyleSpecification = {
       id: 'arcgis-satellite-layer',
       type: 'raster',
       source: 'arcgis-satellite',
-      minzoom: 0,
-      maxzoom: 19
-    }
-  ]
-};
-
-// High-Contrast Satellite for daytime visibility
-const SATELLITE_HIGH_CONTRAST_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    'satellite-hc': {
-      type: 'raster',
-      tiles: [
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-      ],
-      tileSize: 256,
-      attribution: '© Esri World Imagery (High-Contrast)'
-    }
-  },
-  layers: [
-    {
-      id: 'satellite-hc-layer',
-      type: 'raster',
-      source: 'satellite-hc',
       minzoom: 0,
       maxzoom: 19
     }
@@ -171,8 +157,10 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<{ [key: string]: maplibregl.Marker }>({});
-  const [styleMode, setStyleMode] = useState<'liberty' | 'bright' | 'arcgis' | 'satellite' | 'satellite-high-contrast' | 'greyscale-minimalist'>('liberty');
+  const [styleMode, setStyleMode] = useState<'liberty' | 'bright' | 'arcgis' | 'satellite' | 'greyscale-minimalist'>('liberty');
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [styleVersion, setStyleVersion] = useState(0);
+  const fittedRouteRef = useRef<string | null>(null);
   const [webGlSupported, setWebGlSupported] = useState(true);
 
   // Layer Control Toggles
@@ -196,8 +184,6 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         return FREE_ARCGIS_STREETS_STYLE;
       case 'satellite':
         return FREE_ARCGIS_SATELLITE_STYLE;
-      case 'satellite-high-contrast':
-        return SATELLITE_HIGH_CONTRAST_STYLE;
       case 'greyscale-minimalist':
         return GREYSCALE_MINIMALIST_STYLE;
       case 'liberty':
@@ -231,6 +217,9 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
       setWebGlSupported(false);
       return;
     }
+
+    // setStyle() wipes custom sources/layers, so re-add the route every time a style finishes loading
+    map.on('style.load', () => setStyleVersion((v) => v + 1));
 
     map.on('load', () => {
       setMapLoaded(true);
@@ -313,7 +302,9 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
     if (!map) return;
 
     // Clear obsolete markers
-    const currentMarkerIds = new Set(filteredMarkers.map((m) => m.id));
+    const keyOf = (m: MapLibreMarkerData) =>
+      m.type === 'user' ? m.id : `${m.id}|${m.title ?? ''}|${m.incidentData?.upvotes ?? ''}|${isRtl ? 'r' : 'l'}`;
+    const currentMarkerIds = new Set(filteredMarkers.map(keyOf));
     Object.keys(markersRef.current).forEach((id) => {
       if (!currentMarkerIds.has(id)) {
         markersRef.current[id].remove();
@@ -323,7 +314,8 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
 
     // Render / update markers
     filteredMarkers.forEach((markerData) => {
-      let existingMarker = markersRef.current[markerData.id];
+      const mKey = keyOf(markerData);
+      let existingMarker = markersRef.current[mKey];
 
       if (!existingMarker) {
         const el = document.createElement('div');
@@ -345,7 +337,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
           el.innerHTML = `
             <div class="flex flex-col items-center transform -translate-x-1/2 -translate-y-full">
               <div class="bg-rose-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white flex items-center gap-1 whitespace-nowrap">
-                <span>📍 ${isRtl && markerData.titleUrdu ? markerData.titleUrdu : (markerData.title || 'Destination')}</span>
+                <span>📍 ${esc(isRtl && markerData.titleUrdu ? markerData.titleUrdu : (markerData.title || 'Destination'))}</span>
               </div>
               <div class="w-1.5 h-2.5 bg-rose-600 -mt-0.5"></div>
             </div>
@@ -365,7 +357,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
           }
 
           el.innerHTML = `
-            <div class="w-7 h-7 rounded-full ${badgeColor} text-white border-2 border-white shadow-lg flex items-center justify-center text-xs animate-bounce" title="${markerData.title || 'Traffic Incident'}">
+            <div class="w-7 h-7 rounded-full ${badgeColor} text-white border-2 border-white shadow-lg flex items-center justify-center text-xs animate-bounce" title="${esc(markerData.title || 'Traffic Incident')}">
               <span>${iconSvg}</span>
             </div>
           `;
@@ -385,17 +377,17 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         const popupHtml = `
           <div style="padding: 6px; font-family: sans-serif; min-width: 170px;">
             <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #059669; margin-bottom: 2px;">
-              ${markerData.type.replace('_', ' ').toUpperCase()}
+              ${esc(markerData.type.replace('_', ' ').toUpperCase())}
             </div>
             <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 4px;">
-              ${isRtl && markerData.titleUrdu ? markerData.titleUrdu : (markerData.title || 'Location')}
+              ${esc(isRtl && markerData.titleUrdu ? markerData.titleUrdu : (markerData.title || 'Location'))}
             </div>
             ${markerData.incidentData ? `
               <div style="font-size: 11px; color: #475569; margin-bottom: 3px;">
-                <strong>Credibility:</strong> ${markerData.incidentData.credibilityScore}% Trusted (${markerData.incidentData.upvotes} Upvotes)
+                <strong>Credibility:</strong> ${esc(markerData.incidentData.credibilityScore)}% (${esc(markerData.incidentData.upvotes)} upvotes)
               </div>
               <div style="font-size: 11px; color: #64748b; font-style: italic;">
-                "${isRtl ? markerData.incidentData.descriptionUrdu : markerData.incidentData.description}"
+                "${esc(isRtl ? markerData.incidentData.descriptionUrdu : markerData.incidentData.description)}"
               </div>
             ` : ''}
           </div>
@@ -408,7 +400,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
           .setPopup(popup)
           .addTo(map);
 
-        markersRef.current[markerData.id] = newMarker;
+        markersRef.current[mKey] = newMarker;
       } else {
         existingMarker.setLngLat([markerData.lng, markerData.lat]);
       }
@@ -475,8 +467,9 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         });
       }
 
-      // Auto-fit bounds if not actively navigating in driver POV
-      if (!isNavigatingLive) {
+      // Auto-fit only once per distinct route (never on every re-render / GPS tick)
+      if (!isNavigatingLive && fittedRouteRef.current !== route.id) {
+        fittedRouteRef.current = route.id;
         const bounds = new maplibregl.LngLatBounds();
         route.coordinates.forEach((c) => bounds.extend([c.lng, c.lat]));
         map.fitBounds(bounds, {
@@ -486,22 +479,22 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         });
       }
     } else {
+      if (!route) fittedRouteRef.current = null;
       if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);
       if (map.getLayer(casingLayerId)) map.removeLayer(casingLayerId);
       if (map.getSource(sourceId)) map.removeSource(sourceId);
     }
-  }, [route, mapLoaded, isNavigatingLive, showRouteLayer]);
+  }, [route, mapLoaded, isNavigatingLive, showRouteLayer, styleVersion]);
 
   // Style switcher
   const toggleStyle = () => {
     const map = mapRef.current;
     if (!map) return;
-    const modes: ('liberty' | 'bright' | 'arcgis' | 'satellite' | 'satellite-high-contrast' | 'greyscale-minimalist')[] = [
+    const modes: ('liberty' | 'bright' | 'arcgis' | 'satellite' | 'greyscale-minimalist')[] = [
       'liberty',
       'bright',
       'arcgis',
       'satellite',
-      'satellite-high-contrast',
       'greyscale-minimalist'
     ];
     const nextIdx = (modes.indexOf(styleMode) + 1) % modes.length;
@@ -590,16 +583,6 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
               </label>
 
               <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg">
-                <span className="flex items-center gap-2">🚇 Transit Stations</span>
-                <input
-                  type="checkbox"
-                  checked={showTransitLayer}
-                  onChange={(e) => setShowTransitLayer(e.target.checked)}
-                  className="rounded accent-emerald-600 w-4 h-4"
-                />
-              </label>
-
-              <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg">
                 <span className="flex items-center gap-2">📍 Route Polyline</span>
                 <input
                   type="checkbox"
@@ -610,7 +593,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
               </label>
 
               <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg">
-                <span className="flex items-center gap-2">🔥 Heatmap / Radiance</span>
+                <span className="flex items-center gap-2">📡 Location Pulse</span>
                 <input
                   type="checkbox"
                   checked={showHeatmapLayer}
@@ -626,7 +609,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         <button
           onClick={toggleStyle}
           className="bg-white/95 dark:bg-slate-900/95 backdrop-blur text-slate-800 dark:text-slate-100 p-2.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-          title="Cycle Map Styles (Liberty / Bright / ArcGIS / Satellite HC / Greyscale Minimalist)"
+          title="Cycle Map Styles (Liberty / Bright / ArcGIS / Satellite / Greyscale)"
         >
           <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span className="hidden sm:inline">
@@ -638,9 +621,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
               ? 'ArcGIS Streets'
               : styleMode === 'satellite'
               ? 'Satellite'
-              : styleMode === 'satellite-high-contrast'
-              ? 'Satellite High-Contrast'
-              : 'Greyscale Minimalist'}
+              : 'Light Greyscale'}
           </span>
         </button>
 

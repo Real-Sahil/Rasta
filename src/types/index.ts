@@ -81,7 +81,7 @@ export interface RouteOption {
   viaUrdu: string;
   distanceKm: number;
   durationMinutes: number;
-  trafficStatus: 'normal' | 'moderate' | 'heavy' | 'jam';
+  trafficStatus?: 'normal' | 'moderate' | 'heavy' | 'jam';
   hasTolls: boolean;
   tollCostPkr?: number;
   isRecommended: boolean;

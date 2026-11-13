@@ -4,9 +4,9 @@
  */
 
 import React from 'react';
-import { Compass, Navigation, AlertTriangle, Bookmark, User } from 'lucide-react';
+import { Compass, Train, AlertTriangle, WifiOff, ShieldAlert } from 'lucide-react';
 
-export type NavDestination = 'explore' | 'routes' | 'report' | 'saved' | 'profile';
+export type NavDestination = 'explore' | 'transit' | 'report' | 'offline' | 'sos';
 
 interface BottomNavProps {
   currentDestination: NavDestination;
@@ -26,10 +26,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
   const items = [
     { id: 'explore' as NavDestination, label: isRtl ? 'دریافت' : 'Explore', icon: <Compass className="w-5 h-5" /> },
-    { id: 'routes' as NavDestination, label: isRtl ? 'روٹس' : 'Routes', icon: <Navigation className="w-5 h-5" /> },
+    { id: 'transit' as NavDestination, label: isRtl ? 'میٹرو' : 'Transit', icon: <Train className="w-5 h-5" /> },
     { id: 'report' as NavDestination, label: isRtl ? 'رپورٹ' : 'Report', icon: <AlertTriangle className="w-5 h-5" /> },
-    { id: 'saved' as NavDestination, label: isRtl ? 'محفوظ' : 'Saved', icon: <Bookmark className="w-5 h-5" /> },
-    { id: 'profile' as NavDestination, label: isRtl ? 'پروفائل' : 'Profile', icon: <User className="w-5 h-5" /> },
+    { id: 'offline' as NavDestination, label: isRtl ? 'آف لائن' : 'Offline', icon: <WifiOff className="w-5 h-5" /> },
+    { id: 'sos' as NavDestination, label: isRtl ? 'ایمرجنسی' : 'SOS', icon: <ShieldAlert className="w-5 h-5" /> },
   ];
 
   return (

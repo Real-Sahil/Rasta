@@ -66,6 +66,8 @@ export const Header: React.FC<HeaderProps> = ({
                 <option value="karachi">Karachi (کراچی)</option>
                 <option value="islamabad">Islamabad (اسلام آباد)</option>
                 <option value="rawalpindi">Rawalpindi (راولپنڈی)</option>
+                <option value="multan">Multan (ملتان)</option>
+                <option value="faisalabad">Faisalabad (فیصل آباد)</option>
               </select>
 
               {/* AQI Badge */}
@@ -118,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
                   ? 'bg-cyan-600 text-white border-cyan-700 shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
               }`}
-              title={isMonsoonMode ? 'Monsoon Flood Bypasses: ON' : 'Monsoon Flood Bypasses: OFF'}
+              title={isMonsoonMode ? 'Monsoon advisory: ON' : 'Monsoon advisory: OFF'}
             >
               <CloudRain className="w-4 h-4" />
             </button>

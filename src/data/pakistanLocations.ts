@@ -90,7 +90,7 @@ export const POPULAR_LOCATIONS: LocationPoint[] = [
     lat: 31.5794,
     lng: 74.3323,
     address: 'Empress Road, Railway Colony, Lahore',
-    addressUrdu: 'ایم Empress روڈ، ریلوے کالونی، لاہور',
+    addressUrdu: 'ایمپریس روڈ، ریلوے کالونی، لاہور',
     category: 'orangeline'
   },
   {
@@ -175,92 +175,8 @@ export const ORANGELINE_STATIONS: TransitStation[] = [
   { id: 'ol_dera_gujran', code: 'OL18', name: 'Dera Gujran Terminal', nameUrdu: 'ڈیرہ گجراں ٹرمینل', line: 'orangeline', lat: 31.6022, lng: 74.4379, zone: 4, facilities: ['Train Maintenance Depot', 'Ring Road Interchange', 'Park & Ride'] }
 ];
 
-export const INITIAL_INCIDENTS: CommunityIncident[] = [
-  {
-    id: 'inc_1',
-    title: 'Canal Road Underpass Maintenance & Single Lane',
-    titleUrdu: 'کینال روڈ نیو کیمپس انڈرپاس مرمت و سنگل لین',
-    category: 'construction',
-    locationName: 'Campus Bridge Underpass, Canal Bank Road',
-    locationNameUrdu: 'نیو کیمپس انڈرپاس، کینال بینک روڈ',
-    lat: 31.5050,
-    lng: 74.3080,
-    description: 'Underpass expansion joint repair. Fast lane closed heading towards Thokar. Severe slow crawl.',
-    descriptionUrdu: 'کینال روڈ انڈرپاس کے جوائنٹ کی مرمت۔ ٹھوکر کی طرف جانے والی تیز لین بند ہے۔ گاڑیوں کی لمبی قطار۔',
-    timestamp: Date.now() - 28 * 60 * 1000,
-    upvotes: 24,
-    userConfirmed: true,
-    credibilityScore: 96,
-    isOfficialVerified: true,
-    source: 'PSCA',
-    alternativeRouteAdvice: 'Divert through Wahdat Road or Garden Town to avoid 25 mins delay.',
-    alternativeRouteAdviceUrdu: '۲۵ منٹ کی تاخیر سے بچنے کے لیے وحدت روڈ یا گارڈن ٹاؤن کا راستہ اختیار کریں۔',
-    expiresAt: Date.now() + 180 * 60 * 1000
-  },
-  {
-    id: 'inc_2',
-    title: 'Waterlogging After Rain near Lakshmi Chowk',
-    titleUrdu: 'بارش کے بعد لکشمی چوک پر پانی کا جماؤ',
-    category: 'flooding',
-    locationName: 'Lakshmi Chowk & McLeod Road Junction',
-    locationNameUrdu: 'لکشمی چوک و میکلوڈ روڈ چوراہا',
-    lat: 31.5735,
-    lng: 74.3245,
-    description: 'WASA dewatering machinery operating. 1.5 ft water near cinema crossing. Motorbikes advised to avoid.',
-    descriptionUrdu: 'واسا کا پانی نکالنے والا ٹینکر کام کر رہا ہے۔ ۱.۵ فٹ پانی جمع ہے۔ موٹر سائیکل سوار احتیاط کریں۔',
-    timestamp: Date.now() - 45 * 60 * 1000,
-    upvotes: 18,
-    userConfirmed: false,
-    credibilityScore: 91,
-    isOfficialVerified: false,
-    source: 'Citizen_Report',
-    alternativeRouteAdvice: 'Take Abbott Road or Davis Road towards Railway Station.',
-    alternativeRouteAdviceUrdu: 'ریلوے اسٹیشن کے لیے ایبٹ روڈ یا ڈیوس روڈ کا انتخاب کریں۔',
-    expiresAt: Date.now() + 120 * 60 * 1000
-  },
-  {
-    id: 'inc_3',
-    title: 'Severe Traffic Congestion at Kalma Chowk Signal',
-    titleUrdu: 'کلمہ چوک پر شدید ٹریفک کا دباؤ',
-    category: 'congestion',
-    locationName: 'Kalma Chowk CBD Underpass Towards Barkat Market',
-    locationNameUrdu: 'کلمہ چوک انڈرپاس برکت مارکیٹ رخ',
-    lat: 31.5036,
-    lng: 74.3317,
-    description: 'Broken down dumper truck removed, but bottleneck persists. Heavy slow moving rush.',
-    descriptionUrdu: 'خراب ڈمپر ٹرک ہٹا لیا گیا ہے لیکن ٹریفک کا شدید رش تاحال برقرار ہے۔',
-    timestamp: Date.now() - 15 * 60 * 1000,
-    upvotes: 32,
-    userConfirmed: true,
-    credibilityScore: 98,
-    isOfficialVerified: true,
-    source: 'CTPL_Punjab',
-    alternativeRouteAdvice: 'Use Ferozepur elevated corridor or Centre Point roundabout.',
-    alternativeRouteAdviceUrdu: 'فیروزپور ایلیویٹڈ کوریڈور یا سنٹر پوائنٹ راؤنڈ اباؤٹ استعمال کریں۔',
-    expiresAt: Date.now() + 90 * 60 * 1000
-  },
-  {
-    id: 'inc_4',
-    title: 'Road Blockage / Protest Near Lower Mall',
-    titleUrdu: 'لوئر مال کے قریب سڑک پر رکاوٹ و مظاہرہ',
-    category: 'roadblock',
-    locationName: 'Lower Mall Road Near Civil Secretariat',
-    locationNameUrdu: 'لوئر مال روڈ نزد سول سیکرٹریٹ',
-    lat: 31.5640,
-    lng: 74.3040,
-    description: 'Peaceful union rally. Diversions placed by City Traffic Police Lahore.',
-    descriptionUrdu: 'ملازمین کا پرامن احتجاج۔ ٹریفک پولیس کی جانب سے متبادل روٹس تشکیل۔',
-    timestamp: Date.now() - 60 * 60 * 1000,
-    upvotes: 14,
-    userConfirmed: false,
-    credibilityScore: 88,
-    isOfficialVerified: true,
-    source: 'CTPL_Punjab',
-    alternativeRouteAdvice: 'Traffic diverted via Kachehri Chowk to Ravi Road.',
-    alternativeRouteAdviceUrdu: 'ٹریفک کو کچہری چوک سے راوی روڈ کی جانب موڑ دیا گیا ہے۔',
-    expiresAt: Date.now() + 60 * 60 * 1000
-  }
-];
+// No seeded incidents: only reports created by real users are shown.
+export const INITIAL_INCIDENTS: CommunityIncident[] = [];
 
 export const EMERGENCY_CONTACTS: EmergencyContact[] = [
   {
@@ -379,3 +295,12 @@ export const LOCAL_SERVICES: LocalService[] = [
     rating: 4.6
   }
 ];
+
+export const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
+  lahore: { lat: 31.5204, lng: 74.3587 },
+  karachi: { lat: 24.8607, lng: 67.0011 },
+  islamabad: { lat: 33.6844, lng: 73.0479 },
+  rawalpindi: { lat: 33.5651, lng: 73.0169 },
+  multan: { lat: 30.1575, lng: 71.5249 },
+  faisalabad: { lat: 31.4504, lng: 73.135 }
+};

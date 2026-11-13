@@ -156,7 +156,7 @@ class IncidentSyncService {
             return;
           }
 
-          // Simulate broadcast sync to community pool
+          // No backend exists: queued reports are already stored locally, so just clear the queue marker
           store.clear();
 
           if (onSyncSuccess) {
@@ -182,9 +182,8 @@ class IncidentSyncService {
     this.listeners.push(callback);
 
     const handleOnline = async () => {
-      // Reconnected to internet: trigger background sync
-      await this.syncPendingReports();
-      this.notifyStatus();
+      // Reconnected: just report status; the app-level listener decides what to do with pending reports
+      await this.notifyStatus();
     };
 
     const handleOffline = () => {

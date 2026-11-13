@@ -30,8 +30,10 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
   const destIndex = stations.findIndex(s => s.id === destId);
   const stationCount = Math.abs(destIndex - origIndex);
 
-  let calculatedFare = 30; // Metrobus flat 30
-  if (calcLine === 'orangeline') {
+  let calculatedFare = stationCount === 0 ? 0 : 30; // Metrobus flat fare (estimate)
+  if (stationCount === 0) {
+    calculatedFare = 0;
+  } else if (calcLine === 'orangeline') {
     if (stationCount <= 4) calculatedFare = 20;
     else if (stationCount <= 8) calculatedFare = 25;
     else if (stationCount <= 12) calculatedFare = 30;
@@ -60,7 +62,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
           }`}
         >
           <Bus className="w-4 h-4" />
-          <span>{isRtl ? 'لاہور میٹرو بس' : 'Metrobus (27km)'}</span>
+          <span>{isRtl ? 'لاہور میٹرو بس' : 'Metrobus'}</span>
         </button>
 
         <button
@@ -73,7 +75,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
           }`}
         >
           <Train className="w-4 h-4" />
-          <span>{isRtl ? 'اورنج لائن ٹرین' : 'Orange Line (27km)'}</span>
+          <span>{isRtl ? 'اورنج لائن ٹرین' : 'Orange Line'}</span>
         </button>
 
         <button
@@ -94,7 +96,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
       {activeTab === 'metrobus' && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-500 pb-1 border-b border-slate-100 dark:border-slate-800">
-            <span>Shahdara Terminal ↔ Gaju Matah (27 Stations)</span>
+            <span>Shahdara ↔ Gajju Matah ({METROBUS_STATIONS.length} stations listed)</span>
             <span className="font-bold text-rose-600">Flat Rs. 30</span>
           </div>
 
@@ -133,7 +135,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
       {activeTab === 'orangeline' && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-500 pb-1 border-b border-slate-100 dark:border-slate-800">
-            <span>Ali Town ↔ Dera Gujran (26 Stations)</span>
+            <span>Ali Town ↔ Dera Gujran ({ORANGELINE_STATIONS.length} stations listed)</span>
             <span className="font-bold text-amber-600">Distance: Rs. 20 - 40</span>
           </div>
 
@@ -254,7 +256,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
           <div className="p-3 bg-gradient-to-tr from-emerald-600 to-teal-600 text-white rounded-xl shadow-lg flex items-center justify-between">
             <div>
               <span className="text-[10px] uppercase font-bold text-emerald-100 tracking-wider">
-                Official Government Fare
+                Estimated Fare (verify at station)
               </span>
               <div className="text-2xl font-black">
                 Rs. {calculatedFare}

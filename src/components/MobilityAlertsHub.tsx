@@ -122,10 +122,10 @@ export const MobilityAlertsHub: React.FC<MobilityAlertsHubProps> = ({
                   <div className="space-y-0.5">
                     <div className="font-bold flex items-center gap-1 text-cyan-600 dark:text-cyan-400">
                       <CloudRain className="w-3.5 h-3.5 shrink-0" />
-                      <span>{isRtl ? 'مون سون فلڈ بائی پاس فعال' : 'Monsoon Flood Bypasses Active'}</span>
+                      <span>{isRtl ? 'مون سون ایڈوائزری' : 'Monsoon Advisory'}</span>
                     </div>
                     <p className="text-[11px] text-slate-700 dark:text-cyan-100">
-                      {isRtl ? 'نشیبی انڈرپاسز سے بچنے کے لیے سرفیس روٹس پر رہنمائی جاری ہے۔' : 'Routing via surface slip roads to avoid low-lying underpasses.'}
+                      {isRtl ? 'مون سون ایڈوائزری: بارش میں نشیبی انڈرپاسز سے گریز کریں۔' : 'Monsoon advisory: avoid low-lying underpasses during rain.'}
                     </p>
                   </div>
                 </div>

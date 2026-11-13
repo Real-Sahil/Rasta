@@ -36,9 +36,9 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       case 'emergency':
         return isRtl ? 'ایمرجنسی ۱۱۲۲ SOS' : 'Emergency 1122 & Roadside SOS';
       case 'offline':
-        return isRtl ? 'آف لائن نقشے اور ریجن پیکس' : 'Offline Map Packs & P2P Mesh';
+        return isRtl ? 'آف لائن حیثیت' : 'Offline Status';
       default:
-        return isRtl ? 'موبিলিٹی انٹیلی جنس' : 'Mobility Intelligence';
+        return isRtl ? 'موبیلٹی انٹیلی جنس' : 'Mobility Intelligence';
     }
   };
 
@@ -65,6 +65,31 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               <ChevronUp className="w-4 h-4 text-slate-400 animate-bounce" />
             )}
           </div>
+        </div>
+
+        {/* Section tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto px-4 py-2 border-b border-slate-100 dark:border-slate-800/80 shrink-0 text-xs font-bold">
+          {[
+            { id: 'navigate', en: 'Route', ur: 'راستہ' },
+            { id: 'multimodal', en: 'Compare', ur: 'موازنہ' },
+            { id: 'transit', en: 'Transit', ur: 'میٹرو' },
+            { id: 'incidents', en: 'Alerts', ur: 'الرٹس' },
+            { id: 'emergency', en: 'SOS', ur: 'ایمرجنسی' },
+            { id: 'offline', en: 'Offline', ur: 'آف لائن' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onTabChange(tab.id)}
+              className={`px-3 py-1 rounded-full whitespace-nowrap cursor-pointer transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+              }`}
+            >
+              {isRtl ? tab.ur : tab.en}
+            </button>
+          ))}
         </div>
 
         {/* Content Body */}

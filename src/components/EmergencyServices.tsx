@@ -37,8 +37,12 @@ export const EmergencyServices: React.FC<EmergencyServicesProps> = ({
 
   // Generate WhatsApp SOS Message with exact GPS coordinates and emergency plea
   const handleShareSos = () => {
-    const lat = userCoords?.lat || 31.5102;
-    const lng = userCoords?.lng || 74.3441;
+    if (!userCoords) {
+      alert(isRtl ? 'GPS لوکیشن دستیاب نہیں۔ براہ کرم مقام کی اجازت دیں اور دوبارہ کوشش کریں۔' : 'No GPS fix yet, so your location cannot be shared. Allow location access and try again, or call 1122 / 15 directly.');
+      return;
+    }
+    const lat = userCoords.lat;
+    const lng = userCoords.lng;
     const mapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
 
     const text = isRtl

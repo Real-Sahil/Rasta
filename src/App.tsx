@@ -18,10 +18,11 @@ import {
 } from './types';
 import {
   LAHORE_DEFAULT_CENTER,
-  POPULAR_LOCATIONS
+  POPULAR_LOCATIONS,
+  CITY_CENTERS
 } from './data/pakistanLocations';
 import { getStoredIncidents, saveIncidents } from './services/storage';
-import { RobustGpsManager } from './services/gpsService';
+import { RobustGpsManager, calculateDistanceMeters } from './services/gpsService';
 import { navigationEngineInstance } from './services/navigationEngine';
 
 import { Header } from './components/Header';
@@ -83,23 +84,41 @@ function calculateBearing(start: { lat: number; lng: number }, end: { lat: numbe
   return Math.round((brng + 360) % 360);
 }
 
-// Generate dense, smooth coordinate path between waypoints for continuous navigation rendering
-function generateDenseCoordinates(waypoints: { lat: number; lng: number }[], pointsPerSegment: number = 6): { lat: number; lng: number }[] {
-  if (waypoints.length < 2) return waypoints;
-  const result: { lat: number; lng: number }[] = [];
-  for (let i = 0; i < waypoints.length - 1; i++) {
-    const p1 = waypoints[i];
-    const p2 = waypoints[i + 1];
-    for (let step = 0; step < pointsPerSegment; step++) {
-      const t = step / pointsPerSegment;
-      result.push({
-        lat: Number((p1.lat + (p2.lat - p1.lat) * t).toFixed(6)),
-        lng: Number((p1.lng + (p2.lng - p1.lng) * t).toFixed(6))
-      });
-    }
+type RouteStep = RouteOption['steps'][number];
+
+// Build readable instructions from OSRM maneuver data (OSRM does not return instruction text)
+function osrmStep(s: any): RouteStep {
+  const type: string = s.maneuver?.type || 'continue';
+  const mod: string = s.maneuver?.modifier || 'straight';
+  const name: string = s.name ? String(s.name) : '';
+  const onto = name ? ` onto ${name}` : '';
+  const modUr: Record<string, string> = {
+    left: 'بائیں مڑیں', right: 'دائیں مڑیں', straight: 'سیدھا چلیں',
+    'slight left': 'ہلکا بائیں مڑیں', 'slight right': 'ہلکا دائیں مڑیں',
+    'sharp left': 'تیز بائیں مڑیں', 'sharp right': 'تیز دائیں مڑیں', uturn: 'یو ٹرن لیں'
+  };
+  let instruction: string;
+  let instructionUrdu: string;
+  let maneuver: RouteStep['maneuver'] = 'straight';
+  if (type === 'arrive') {
+    instruction = 'Arrive at destination'; instructionUrdu = 'منزل پر پہنچیں'; maneuver = 'arrive';
+  } else if (type === 'depart') {
+    instruction = name ? `Head out on ${name}` : 'Head toward destination'; instructionUrdu = 'روانہ ہوں';
+  } else if (type === 'roundabout' || type === 'rotary' || type === 'roundabout turn') {
+    instruction = `Enter the roundabout${onto}`; instructionUrdu = 'چوراہے میں داخل ہوں'; maneuver = 'roundabout';
+  } else if (type === 'merge') {
+    instruction = `Merge${onto}`; instructionUrdu = 'سڑک میں شامل ہوں'; maneuver = 'merge';
+  } else {
+    const dir = mod === 'straight' ? 'Continue straight' : mod === 'uturn' ? 'Make a U-turn' : `Turn ${mod}`;
+    instruction = `${dir}${onto}`; instructionUrdu = modUr[mod] || 'آگے بڑھیں';
+    if (mod.includes('left')) maneuver = 'turn-left';
+    else if (mod.includes('right')) maneuver = 'turn-right';
+    else if (mod === 'uturn') maneuver = 'u-turn';
   }
-  result.push(waypoints[waypoints.length - 1]);
-  return result;
+  return {
+    instruction, instructionUrdu, maneuver,
+    distanceMeters: Math.round(s.distance), durationSeconds: Math.round(s.duration)
+  };
 }
 
 function MainApp() {
@@ -127,7 +146,9 @@ function MainApp() {
   // Map Camera State
   const [center, setCenter] = useState<{ lat: number; lng: number }>(LAHORE_DEFAULT_CENTER);
   const [zoom, setZoom] = useState(13);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(LAHORE_DEFAULT_CENTER);
+  // null until a real GPS fix arrives: never pretend the user is somewhere they are not
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const hasFixedOnceRef = React.useRef(false);
 
   // Live Tracking and Real-Time Navigation Driving State
   const [isNavigatingLive, setIsNavigatingLive] = useState(false);
@@ -139,6 +160,7 @@ function MainApp() {
   const [distanceToManeuver, setDistanceToManeuver] = useState<number>(500);
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
   const [fixedRouteStartLocation, setFixedRouteStartLocation] = useState<{ lat: number; lng: number }>(LAHORE_DEFAULT_CENTER);
+  const userFixKey = userLocation ? `${Math.round(userLocation.lat * 500)}_${Math.round(userLocation.lng * 500)}` : 'none';
 
   // Routing State
   const [originMode, setOriginMode] = useState<'current' | 'manual' | 'map'>('current');
@@ -154,9 +176,9 @@ function MainApp() {
   // Sync fixed route start location when not driving
   useEffect(() => {
     if (!isNavigatingLive) {
-      setFixedRouteStartLocation(origin ? { lat: origin.lat, lng: origin.lng } : (userLocation || LAHORE_DEFAULT_CENTER));
+      setFixedRouteStartLocation(origin ? { lat: origin.lat, lng: origin.lng } : (userLocation || CITY_CENTERS[currentCity] || LAHORE_DEFAULT_CENTER));
     }
-  }, [destination?.id, origin?.id, currentCity, isNavigatingLive]);
+  }, [destination?.id, origin?.id, currentCity, isNavigatingLive, userFixKey]);
   const [selectedMultimodalMode, setSelectedMultimodalMode] = useState('metrobus');
   const [selectedMapMarker, setSelectedMapMarker] = useState<MapLibreMarkerData | null>(null);
 
@@ -175,7 +197,7 @@ function MainApp() {
 
     for (const inc of incidents) {
       if (inc.category === 'roadblock' || inc.category === 'accident' || inc.category === 'flooding') {
-        const distKm = Math.sqrt(Math.pow(inc.lat - refLoc.lat, 2) + Math.pow(inc.lng - refLoc.lng, 2)) * 111;
+        const distKm = calculateDistanceMeters(inc, refLoc) / 1000;
         if (distKm <= 2.0) {
           return { incident: inc, distanceKm: distKm };
         }
@@ -208,8 +230,8 @@ function MainApp() {
         incidentSyncService.syncPendingReports((synced) => {
           setSyncToastMessage(
             isRtl
-              ? `انٹرنیٹ بحال: ${synced.length} زیرِ التوا ٹریفک الرٹس کمیونٹی نیٹ ورک پر اپ ڈیٹ ہو گئیں!`
-              : `Internet restored: ${synced.length} offline report(s) auto-synced to community network!`
+              ? `انٹرنیٹ بحال: ${synced.length} آف لائن رپورٹس اس ڈیوائس پر محفوظ ہیں۔`
+              : `Back online: ${synced.length} offline report(s) are saved on this device.`
           );
           setTimeout(() => setSyncToastMessage(null), 4500);
         });
@@ -252,8 +274,9 @@ function MainApp() {
 
           navigationEngineInstance.processPositionUpdate(loc);
         } else {
-          // Auto-recenter if within Pakistan bounds when not navigating
-          if (loc.lat >= 23 && loc.lat <= 37 && loc.lng >= 60 && loc.lng <= 78) {
+          // Centre on the first real fix only (never fight the user's panning); the Recenter button does the rest
+          if (!hasFixedOnceRef.current && loc.lat >= 23 && loc.lat <= 37 && loc.lng >= 60 && loc.lng <= 78) {
+            hasFixedOnceRef.current = true;
             setCenter({ lat: loc.lat, lng: loc.lng });
           }
         }
@@ -298,55 +321,48 @@ function MainApp() {
     }
   };
 
-  // Fetch real OSRM road routes when online with fallback to high-precision local generator
+  // Fetch real road routes (OSRM) when online; clear stale routes immediately when inputs change
   useEffect(() => {
-    if (!destination) {
-      setOsrmRoutes(null);
-      return;
-    }
+    setOsrmRoutes(null);
+    if (!destination) return;
     const startLat = origin ? origin.lat : fixedRouteStartLocation.lat;
     const startLng = origin ? origin.lng : fixedRouteStartLocation.lng;
+    const dest = destination;
+    const modeKey = travelMode;
 
     let isMounted = true;
     async function fetchOsrm() {
       try {
-        const profile = travelMode === 'WALKING' ? 'foot' : travelMode === 'TWO_WHEELER' ? 'bike' : 'driving';
+        // The public OSRM demo server only has a car profile; walking uses the FOSSGIS foot server
+        const base = modeKey === 'WALKING'
+          ? 'https://routing.openstreetmap.de/routed-foot/route/v1/driving'
+          : 'https://router.project-osrm.org/route/v1/driving';
         const res = await fetch(
-          `https://router.project-osrm.org/route/v1/${profile}/${startLng},${startLat};${destination!.lng},${destination!.lat}?overview=full&geometries=geojson&steps=true`,
-          { signal: AbortSignal.timeout(4000) }
+          `${base}/${startLng},${startLat};${dest.lng},${dest.lat}?overview=full&geometries=geojson&steps=true&alternatives=true`,
+          { signal: AbortSignal.timeout(6000) }
         );
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.routes && data.routes.length > 0 && isMounted) {
-            const mapped: RouteOption[] = data.routes.map((r: any, idx: number) => ({
-              id: `osrm_route_${idx}`,
-              title: idx === 0 ? 'Fastest Real-Time Route (OSRM)' : `Alternative Route ${idx + 1}`,
-              titleUrdu: idx === 0 ? 'تیز ترین اصل روٹ (OSRM)' : `متبادل راستہ ${idx + 1}`,
-              via: `Via Optimized Road Corridor (${Math.round(r.distance / 1000)} km)`,
-              viaUrdu: `بہترین روڈ کوریڈور (${Math.round(r.distance / 1000)} کلومیٹر)`,
-              distanceKm: Number((r.distance / 1000).toFixed(1)),
-              durationMinutes: Math.max(2, Math.round(r.duration / 60)),
-              trafficStatus: idx === 0 ? 'normal' : 'moderate',
-              hasTolls: false,
-              isRecommended: idx === 0,
-              steps: r.legs[0].steps.map((s: any) => ({
-                instruction: s.maneuver.instruction || 'Continue on route',
-                instructionUrdu: s.maneuver.instruction || 'راستے پر آگے بڑھیں',
-                distanceMeters: Math.round(s.distance),
-                durationSeconds: Math.round(s.duration),
-                maneuver: s.maneuver.type || 'straight'
-              })),
-              pathCoordinates: r.geometry.coordinates.map((coord: [number, number]) => ({
-                lat: coord[1],
-                lng: coord[0]
-              }))
-            }));
-            setOsrmRoutes(mapped);
-          }
-        }
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isMounted || !data?.routes?.length) return;
+        const mapped: RouteOption[] = data.routes.slice(0, 3).map((r: any, idx: number) => {
+          const km = Number((r.distance / 1000).toFixed(1));
+          return {
+            id: `osrm_${dest.id}_${modeKey}_${idx}`,
+            title: idx === 0 ? 'Recommended route' : `Alternative route ${idx}`,
+            titleUrdu: idx === 0 ? 'تجویز کردہ راستہ' : `متبادل راستہ ${idx}`,
+            via: `Via road network (${km} km)`,
+            viaUrdu: `سڑکوں کے نیٹ ورک کے ذریعے (${km} کلومیٹر)`,
+            distanceKm: km,
+            durationMinutes: Math.max(1, Math.round(r.duration / 60)),
+            hasTolls: false,
+            isRecommended: idx === 0,
+            steps: r.legs[0].steps.map(osrmStep),
+            pathCoordinates: r.geometry.coordinates.map((c: [number, number]) => ({ lat: c[1], lng: c[0] }))
+          } as RouteOption;
+        });
+        setOsrmRoutes(mapped);
       } catch (err) {
-        console.warn('OSRM network fetch notice (using high-precision local fallback):', err);
-        if (isMounted) setOsrmRoutes(null);
+        console.warn('Road routing unavailable, showing offline estimate:', err);
       }
     }
 
@@ -359,339 +375,55 @@ function MainApp() {
   // Update center when city is changed
   const handleCityChange = (city: string) => {
     setCurrentCity(city);
-    if (city === 'lahore') {
-      setCenter(LAHORE_DEFAULT_CENTER);
-    } else if (city === 'karachi') {
-      setCenter({ lat: 24.8607, lng: 67.0011 });
-    } else if (city === 'islamabad') {
-      setCenter({ lat: 33.6844, lng: 73.0479 });
-    } else if (city === 'multan') {
-      setCenter({ lat: 30.1575, lng: 71.5249 });
-    } else if (city === 'faisalabad') {
-      setCenter({ lat: 31.4504, lng: 73.1350 });
+    const c = CITY_CENTERS[city];
+    if (c) setCenter(c);
+    // The previous destination belongs to the previous city
+    if (city !== 'lahore') {
+      setDestination(null);
+      setActiveRoute(null);
     }
     setZoom(13);
   };
 
-  // Generate realistic route alternatives between origin/user and destination based on travelMode
+  // Offline fallback: a single, clearly-labelled straight-line estimate (no invented streets, tolls or traffic)
   const localGeneratedRoutes = useMemo((): RouteOption[] => {
     if (!destination) return [];
-
-    const startLat = origin ? origin.lat : fixedRouteStartLocation.lat;
-    const startLng = origin ? origin.lng : fixedRouteStartLocation.lng;
-
-    // Approximate Euclidean to road distance in Lahore
-    const dLat = (destination.lat - startLat) * 111;
-    const dLng = (destination.lng - startLng) * 95;
-    const directKm = Math.sqrt(dLat * dLat + dLng * dLng);
-
-    // Dense road-following waypoint sequences
-    const rawWaypointsA = [
-      { lat: startLat, lng: startLng },
-      { lat: startLat + (destination.lat - startLat) * 0.25 + 0.003, lng: startLng + (destination.lng - startLng) * 0.2 - 0.004 },
-      { lat: startLat + (destination.lat - startLat) * 0.52 + 0.005, lng: startLng + (destination.lng - startLng) * 0.48 - 0.006 },
-      { lat: startLat + (destination.lat - startLat) * 0.78 - 0.002, lng: startLng + (destination.lng - startLng) * 0.76 + 0.003 },
-      { lat: destination.lat, lng: destination.lng }
-    ];
-    const pathA = generateDenseCoordinates(rawWaypointsA, 6);
-
-    const rawWaypointsB = [
-      { lat: startLat, lng: startLng },
-      { lat: startLat + (destination.lat - startLat) * 0.35 - 0.006, lng: startLng + (destination.lng - startLng) * 0.42 + 0.007 },
-      { lat: startLat + (destination.lat - startLat) * 0.68 + 0.003, lng: startLng + (destination.lng - startLng) * 0.68 - 0.003 },
-      { lat: destination.lat, lng: destination.lng }
-    ];
-    const pathB = generateDenseCoordinates(rawWaypointsB, 8);
-
-    const rawWaypointsC = [
-      { lat: startLat, lng: startLng },
-      { lat: startLat + (destination.lat - startLat) * 0.22 - 0.003, lng: startLng + (destination.lng - startLng) * 0.32 + 0.002 },
-      { lat: startLat + (destination.lat - startLat) * 0.58 + 0.003, lng: startLng + (destination.lng - startLng) * 0.55 - 0.004 },
-      { lat: startLat + (destination.lat - startLat) * 0.84 + 0.001, lng: startLng + (destination.lng - startLng) * 0.86 + 0.001 },
-      { lat: destination.lat, lng: destination.lng }
-    ];
-    const pathC = generateDenseCoordinates(rawWaypointsC, 6);
-
-    // 1. MOTORCYCLE / TWO-WHEELER SPECIFIC ROUTING
-    if (travelMode === 'TWO_WHEELER') {
-      const bikeDistance = Math.max(1.5, Number((directKm * 1.2).toFixed(1)));
-      const bikeDuration = Math.max(4, Math.round(bikeDistance * 1.6));
-
-      return [
-        {
-          id: 'bike_canal_service',
-          title: 'Canal Bank Motorcycle Service Corridor',
-          titleUrdu: 'کینال بینک بائیک سروس روڈ (تیز ترین)',
-          via: 'Via Motorcycle Service Road & Underpasses',
-          viaUrdu: 'بائیک سروس روڈ اور کینال انڈرپاسز',
-          distanceKm: bikeDistance,
-          durationMinutes: bikeDuration,
-          trafficStatus: 'normal',
-          hasTolls: false,
-          tollCostPkr: 0,
-          isRecommended: true,
-          steps: [
-            {
-              instruction: 'Enter motorcycle service lane along Main Boulevard',
-              instructionUrdu: 'مین بلیوارڈ کی بائیک سروس لین پر چلیں',
-              distanceMeters: 700,
-              durationSeconds: 70,
-              maneuver: 'straight'
-            },
-            {
-              instruction: 'Filter through traffic before Kalma Chowk underpass',
-              instructionUrdu: 'کلمہ چوک انڈرپاس سے پہلے رش کے درمیان سے گزریں',
-              distanceMeters: 1400,
-              durationSeconds: 140,
-              maneuver: 'merge'
-            },
-            {
-              instruction: 'Continue in outer shaded motorcycle lane to destination',
-              instructionUrdu: 'منزل کی جانب سایہ دار بائیک لین میں سفر جاری رکھیں',
-              distanceMeters: 1000,
-              durationSeconds: 100,
-              maneuver: 'arrive'
-            }
-          ],
-          pathCoordinates: pathA
-        },
-        {
-          id: 'bike_shadman_shortcut',
-          title: 'Shadman - Jail Road City Shortcut',
-          titleUrdu: 'شادمان و جیل روڈ لوکل بائی پاس',
-          via: 'Via Inner Mohalla Bypasses (Zero Bottlenecks)',
-          viaUrdu: 'اندرونی شادمان بائی پاس (شارٹ کٹ)',
-          distanceKm: Number((bikeDistance * 0.9).toFixed(1)),
-          durationMinutes: Math.round(bikeDuration * 1.1),
-          trafficStatus: 'normal',
-          hasTolls: false,
-          tollCostPkr: 0,
-          isRecommended: false,
-          steps: [
-            {
-              instruction: 'Turn into Shadman Market link lane',
-              instructionUrdu: 'شادمان مارکیٹ لنک لین کی طرف موڑیں',
-              distanceMeters: 900,
-              durationSeconds: 90,
-              maneuver: 'turn-left'
-            },
-            {
-              instruction: 'Avoid congested signal by using roundabout service exit',
-              instructionUrdu: 'راؤنڈ اباؤٹ کی سروس سڑک سے سگنل بائی پاس کریں',
-              distanceMeters: 1200,
-              durationSeconds: 130,
-              maneuver: 'straight'
-            },
-            {
-              instruction: 'Arrive at destination',
-              instructionUrdu: 'منزل پر پہنچیں',
-              distanceMeters: 600,
-              durationSeconds: 70,
-              maneuver: 'arrive'
-            }
-          ],
-          pathCoordinates: pathB
-        }
-      ];
-    }
-
-    // 2. WALKING / PEDESTRIAN SPECIFIC ROUTING
-    if (travelMode === 'WALKING') {
-      const walkKm = Math.max(0.6, Number((directKm * 1.1).toFixed(1)));
-      const walkDuration = Math.max(5, Math.round(walkKm * 12)); // 5 km/h walking pace
-
-      return [
-        {
-          id: 'walk_footpath',
-          title: 'Shaded Pedestrian Footpath & Footbridge',
-          titleUrdu: 'سایہ دار فٹ پاتھ و پیدل پل (محفوظ ترین)',
-          via: 'Via Dedicated Sidewalks & Pedestrian Overheads',
-          viaUrdu: 'محفوظ فٹ پاتھ اور اوور ہیڈ واک وے',
-          distanceKm: walkKm,
-          durationMinutes: walkDuration,
-          trafficStatus: 'normal',
-          hasTolls: false,
-          tollCostPkr: 0,
-          isRecommended: true,
-          steps: [
-            {
-              instruction: 'Walk north on dedicated pedestrian sidewalk',
-              instructionUrdu: 'محفوظ فٹ پاتھ پر شمال کی جانب پیدل چلیں',
-              distanceMeters: 400,
-              durationSeconds: 280,
-              maneuver: 'straight'
-            },
-            {
-              instruction: 'Use overhead pedestrian bridge to cross main road safely',
-              instructionUrdu: 'مین سڑک پار کرنے کے لیے اوور ہیڈ واک وے استعمال کریں',
-              distanceMeters: 120,
-              durationSeconds: 120,
-              maneuver: 'merge'
-            },
-            {
-              instruction: 'Follow shaded tree-lined footpath to destination',
-              instructionUrdu: 'درختوں کے سائے میں منزل کی طرف پیدل سفر جاری رکھیں',
-              distanceMeters: 600,
-              durationSeconds: 420,
-              maneuver: 'arrive'
-            }
-          ],
-          pathCoordinates: pathA
-        },
-        {
-          id: 'walk_park_trail',
-          title: 'Canal Green Promenade Walking Trail',
-          titleUrdu: 'نہر کنارے گرین واکنگ ٹریک',
-          via: 'Via Canal Park Walking Promenade',
-          viaUrdu: 'نہر کنارے پارک واک وے',
-          distanceKm: Number((walkKm * 1.15).toFixed(1)),
-          durationMinutes: Math.round(walkDuration * 1.15),
-          trafficStatus: 'normal',
-          hasTolls: false,
-          tollCostPkr: 0,
-          isRecommended: false,
-          steps: [
-            {
-              instruction: 'Enter Canal Bank recreational park trail',
-              instructionUrdu: 'نہر کنارے تفریحی واکنگ ٹریک پر داخل ہوں',
-              distanceMeters: 500,
-              durationSeconds: 350,
-              maneuver: 'straight'
-            },
-            {
-              instruction: 'Cross canal using historic pedestrian suspension bridge',
-              instructionUrdu: 'پیدل پل سے نہر کراس کریں',
-              distanceMeters: 200,
-              durationSeconds: 150,
-              maneuver: 'merge'
-            },
-            {
-              instruction: 'Walk final 300m to destination entrance',
-              instructionUrdu: 'منزل کے مرکزی گیٹ کی طرف پیدل چلیں',
-              distanceMeters: 300,
-              durationSeconds: 220,
-              maneuver: 'arrive'
-            }
-          ],
-          pathCoordinates: pathC
-        }
-      ];
-    }
-
-    // 3. PRIVATE CAR / DRIVING SPECIFIC ROUTING
-    const baseDistance = Math.max(2.5, Number((directKm * 1.35).toFixed(1)));
-    const baseDuration = Math.max(6, Math.round(baseDistance * 2.2));
-
+    const start = origin
+      ? { lat: origin.lat, lng: origin.lng }
+      : { lat: fixedRouteStartLocation.lat, lng: fixedRouteStartLocation.lng };
+    const end = { lat: destination.lat, lng: destination.lng };
+    const straightKm = calculateDistanceMeters(start, end) / 1000;
+    const factor = travelMode === 'WALKING' ? 1.2 : 1.35; // typical road-vs-straight-line ratio
+    const speedKmh = travelMode === 'WALKING' ? 5 : travelMode === 'TWO_WHEELER' ? 25 : 30;
+    const km = Math.max(0.1, Number((straightKm * factor).toFixed(1)));
+    const minutes = Math.max(1, Math.round((km / speedKmh) * 60));
+    const path = Array.from({ length: 13 }, (_, i) => ({
+      lat: start.lat + ((end.lat - start.lat) * i) / 12,
+      lng: start.lng + ((end.lng - start.lng) * i) / 12
+    }));
+    const meters = Math.round(km * 1000);
     return [
       {
-        id: 'route_canal',
-        title: 'Fastest Route (Canal Bank Road & Main Blvd)',
-        titleUrdu: 'تیز ترین راستہ (کینال روڈ و مین بلیوارڈ)',
-        via: 'Via Main Boulevard & Canal Underpasses',
-        viaUrdu: 'مین بلیوارڈ اور کینال انڈرپاسز کے راستے',
-        distanceKm: baseDistance,
-        durationMinutes: baseDuration,
-        trafficStatus: 'normal',
+        id: `local_${destination.id}_${travelMode}`,
+        title: 'Estimated route (offline)',
+        titleUrdu: 'اندازہً راستہ (آف لائن)',
+        via: 'Straight-line estimate, no road data. Connect to the internet for turn-by-turn routing',
+        viaUrdu: 'سیدھی لکیر کا اندازہ، سڑک کا ڈیٹا دستیاب نہیں۔ درست رہنمائی کے لیے انٹرنیٹ سے جڑیں',
+        distanceKm: km,
+        durationMinutes: minutes,
         hasTolls: false,
         isRecommended: true,
         steps: [
           {
-            instruction: 'Head toward Main Boulevard Gulberg',
-            instructionUrdu: 'مین بلیوارڈ گلبرگ کی طرف روانہ ہوں',
-            distanceMeters: 800,
-            durationSeconds: 120,
+            instruction: 'Head toward your destination',
+            instructionUrdu: 'اپنی منزل کی طرف روانہ ہوں',
+            distanceMeters: Math.max(0, meters - 1),
+            durationSeconds: Math.max(0, minutes * 60 - 1),
             maneuver: 'straight'
           },
-          {
-            instruction: 'Take the flyover toward Kalma Chowk Underpass',
-            instructionUrdu: 'کلمہ چوک انڈرپاس کے لیے فلائی اوور پر چڑھیں',
-            distanceMeters: 1800,
-            durationSeconds: 240,
-            maneuver: 'merge'
-          },
-          {
-            instruction: 'Continue straight to destination',
-            instructionUrdu: 'منزل کی جانب سیدھا سفر جاری رکھیں',
-            distanceMeters: 1200,
-            durationSeconds: 180,
-            maneuver: 'arrive'
-          }
+          { instruction: 'Arrive at destination', instructionUrdu: 'منزل پر پہنچیں', distanceMeters: 1, durationSeconds: 1, maneuver: 'arrive' }
         ],
-        pathCoordinates: pathA
-      },
-      {
-        id: 'route_ringroad',
-        title: 'Expressway (Lahore Ring Road Bypass)',
-        titleUrdu: 'ایکسپریس وے (لاہور رنگ روڈ بائی پاس)',
-        via: 'Via LRR Southern Loop (Free Flow)',
-        viaUrdu: 'لاہور رنگ روڈ سدرن لوپ',
-        distanceKm: Number((baseDistance * 1.25).toFixed(1)),
-        durationMinutes: Math.max(8, Math.round(baseDuration * 0.8)),
-        trafficStatus: 'normal',
-        hasTolls: true,
-        tollCostPkr: 60,
-        isRecommended: false,
-        steps: [
-          {
-            instruction: 'Enter Lahore Ring Road via nearest interchange',
-            instructionUrdu: 'قریبی انٹرچینج سے لاہور رنگ روڈ میں داخل ہوں',
-            distanceMeters: 2500,
-            durationSeconds: 180,
-            maneuver: 'merge'
-          },
-          {
-            instruction: 'Pass Toll Plaza (Toll Rs. 60)',
-            instructionUrdu: 'ٹول پلازہ کراس کریں (ٹول ۶۰ روپے)',
-            distanceMeters: 500,
-            durationSeconds: 60,
-            maneuver: 'straight'
-          },
-          {
-            instruction: 'Take exit toward destination corridor',
-            instructionUrdu: 'منزل کے کوریڈور کی طرف ایگزٹ لیں',
-            distanceMeters: 2200,
-            durationSeconds: 200,
-            maneuver: 'turn-right'
-          }
-        ],
-        pathCoordinates: pathB
-      },
-      {
-        id: 'route_arterial',
-        title: 'Budget Route (Ferozepur & Jail Road)',
-        titleUrdu: 'کم خرچ راستہ (فیروزپور روڈ و جیل روڈ)',
-        via: 'Via Ferozepur Road & Inner Arterials',
-        viaUrdu: 'فیروزپور روڈ اور لوکل گزرگاہیں',
-        distanceKm: Number((baseDistance * 0.92).toFixed(1)),
-        durationMinutes: Math.round(baseDuration * 1.25),
-        trafficStatus: 'moderate',
-        hasTolls: false,
-        tollCostPkr: 0,
-        isRecommended: false,
-        steps: [
-          {
-            instruction: 'Follow Ferozepur Road northbound corridor',
-            instructionUrdu: 'فیروزپور روڈ کی جانب آگے بڑھیں',
-            distanceMeters: 1400,
-            durationSeconds: 160,
-            maneuver: 'straight'
-          },
-          {
-            instruction: 'Pass traffic signal at Ichhra Chowk',
-            instructionUrdu: 'اچھڑہ چوک ٹریفک سگنل پار کریں',
-            distanceMeters: 1900,
-            durationSeconds: 240,
-            maneuver: 'straight'
-          },
-          {
-            instruction: 'Turn into destination link road',
-            instructionUrdu: 'منزل کی لنک روڈ پر موڑ لیں',
-            distanceMeters: 900,
-            durationSeconds: 140,
-            maneuver: 'arrive'
-          }
-        ],
-        pathCoordinates: pathC
+        pathCoordinates: path
       }
     ];
   }, [destination?.id, origin?.id, fixedRouteStartLocation.lat, fixedRouteStartLocation.lng, travelMode]);
@@ -700,12 +432,7 @@ function MainApp() {
 
   useEffect(() => {
     if (generatedRoutes.length > 0) {
-      setActiveRoute(prev => {
-        if (prev && generatedRoutes.some(r => r.id === prev.id)) {
-          return prev;
-        }
-        return generatedRoutes[0];
-      });
+      setActiveRoute(prev => generatedRoutes.find(r => prev && r.id === prev.id) || generatedRoutes[0]);
     } else {
       setActiveRoute(null);
     }
@@ -749,6 +476,11 @@ function MainApp() {
     };
   }, [isNavigatingLive, activeRoute?.id]);
 
+  const mapRoute = useMemo(
+    () => (activeRoute ? { id: activeRoute.id, coordinates: activeRoute.pathCoordinates, color: '#10b981', weight: 6 } : null),
+    [activeRoute]
+  );
+
   const handleAddIncident = (newInc: CommunityIncident) => {
     const updated = [newInc, ...incidents];
     setIncidents(updated);
@@ -761,8 +493,8 @@ function MainApp() {
       incidentSyncService.queueOfflineReport(newInc);
       setSyncToastMessage(
         isRtl
-          ? 'رپورٹ IndexedDB میں آف لائن محفوظ ہو گئی۔ انٹرنیٹ آتے ہی خودکار سنک ہو جائے گی۔'
-          : 'Offline Mode: Incident queued in IndexedDB. Will auto-sync when online.'
+          ? 'رپورٹ اس ڈیوائس پر محفوظ ہو گئی۔'
+          : 'Offline: report saved on this device.'
       );
       setTimeout(() => setSyncToastMessage(null), 4500);
     }
@@ -1012,16 +744,7 @@ function MainApp() {
                 heading={vehicleHeading}
                 isNavigatingLive={isNavigatingLive}
                 markers={memoizedMarkers}
-                route={
-                  activeRoute
-                    ? {
-                        id: activeRoute.id,
-                        coordinates: activeRoute.pathCoordinates,
-                        color: '#10b981',
-                        weight: 6
-                      }
-                    : null
-                }
+                route={mapRoute}
                 showTrafficOverlay={showTraffic}
                 onMapClick={(coords: { lat: number; lng: number }) => {
                   setDestination({
@@ -1162,6 +885,9 @@ function MainApp() {
               currentStepIndex={currentStepIndex}
               onStepChange={setCurrentStepIndex}
               simulatedSpeed={simulatedSpeed}
+              userLocation={userLocation}
+              weatherData={weatherData}
+              onRecenter={handleRecenter}
             />
           )}
 
@@ -1211,10 +937,10 @@ function MainApp() {
           onNavigate={(dest) => {
             setCurrentDestination(dest);
             if (dest === 'explore') setActiveTab('navigate');
-            if (dest === 'routes') setActiveTab('navigate');
+            if (dest === 'transit') setActiveTab('transit');
             if (dest === 'report') setActiveTab('incidents');
-            if (dest === 'saved') setActiveTab('offline');
-            if (dest === 'profile') setActiveTab('emergency');
+            if (dest === 'offline') setActiveTab('offline');
+            if (dest === 'sos') setActiveTab('emergency');
           }}
           isNavigatingLive={isNavigatingLive}
           isRtl={isRtl}

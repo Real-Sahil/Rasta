@@ -43,24 +43,6 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<IncidentCategory | 'all'>('all');
 
-  // Community traffic poll state
-  const [pollVotes, setPollVotes] = useState({ light: 38, moderate: 47, heavy: 15 });
-  const [userVoted, setUserVoted] = useState<string | null>(null);
-
-  const handleVote = (option: 'light' | 'moderate' | 'heavy') => {
-    if (userVoted) return;
-    setPollVotes(prev => ({
-      ...prev,
-      [option]: prev[option] + 1
-    }));
-    setUserVoted(option);
-  };
-
-  const totalVotes = pollVotes.light + pollVotes.moderate + pollVotes.heavy;
-  const lightPct = Math.round((pollVotes.light / totalVotes) * 100);
-  const moderatePct = Math.round((pollVotes.moderate / totalVotes) * 100);
-  const heavyPct = 100 - lightPct - moderatePct;
-
   // New report form state
   const [title, setTitle] = useState('');
   const [titleUrdu, setTitleUrdu] = useState('');
@@ -68,6 +50,7 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
   const [locationName, setLocationName] = useState('');
   const [description, setDescription] = useState('');
   const [advice, setAdvice] = useState('');
+  const [reportError, setReportError] = useState<string | null>(null);
   const [voiceTarget, setVoiceTarget] = useState<'title' | 'description' | null>(null);
 
   const {
@@ -102,8 +85,13 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
     e.preventDefault();
     if (!title.trim() && !titleUrdu.trim()) return;
 
-    const lat = userCoords?.lat || 31.5102 + (Math.random() - 0.5) * 0.05;
-    const lng = userCoords?.lng || 74.3441 + (Math.random() - 0.5) * 0.05;
+    if (!userCoords) {
+      setReportError(isRtl ? 'رپورٹ کے لیے GPS لوکیشن درکار ہے۔ براہ کرم مقام کی اجازت دیں۔' : 'A GPS fix is required to report an incident. Please allow location access and try again.');
+      return;
+    }
+    setReportError(null);
+    const lat = userCoords.lat;
+    const lng = userCoords.lng;
 
     const newIncident: CommunityIncident = {
       id: `rep_${Date.now()}`,
@@ -119,7 +107,7 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
       timestamp: Date.now(),
       upvotes: 1,
       userConfirmed: true,
-      credibilityScore: 85,
+      credibilityScore: 50,
       isOfficialVerified: false,
       source: 'Citizen_Report',
       alternativeRouteAdvice: advice || undefined,
@@ -192,60 +180,6 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
           <PlusCircle className="w-4 h-4" />
           <span>{t.reportButton}</span>
         </button>
-      </div>
-
-      {/* Live Traffic Flow Polling Widget */}
-      <div className="p-3 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 rounded-xl space-y-2">
-        <div className="flex items-center justify-between text-xs">
-          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-            <Radio className="w-4 h-4 text-emerald-600 dark:text-emerald-400 animate-pulse" />
-            <span>{isRtl ? 'لائیو ٹریفک پول: اس وقت سڑک پر رش کیسا ہے؟' : 'Live Community Traffic Pulse Poll'}</span>
-          </div>
-          <span className="text-[10px] text-slate-500">{totalVotes} votes</span>
-        </div>
-
-        {userVoted ? (
-          <div className="space-y-1.5 pt-1">
-            <div className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-              {isRtl ? 'آپ کا ووٹ درج ہو گیا! شکریہ۔' : 'Thanks for voting! Community consensus:'}
-            </div>
-            <div className="grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold">
-              <div className="p-1.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                Light ({lightPct}%)
-              </div>
-              <div className="p-1.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
-                Moderate ({moderatePct}%)
-              </div>
-              <div className="p-1.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300">
-                Heavy ({heavyPct}%)
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-1.5 pt-1">
-            <button
-              type="button"
-              onClick={() => handleVote('light')}
-              className="py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-transform hover:scale-105 cursor-pointer"
-            >
-              {isRtl ? 'ہلکی (Light)' : '🟢 Light'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleVote('moderate')}
-              className="py-1.5 px-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-transform hover:scale-105 cursor-pointer"
-            >
-              {isRtl ? 'درمیانی (Moderate)' : '🟡 Moderate'}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleVote('heavy')}
-              className="py-1.5 px-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-transform hover:scale-105 cursor-pointer"
-            >
-              {isRtl ? 'شدید (Heavy)' : '🔴 Heavy'}
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Category Pills Filter */}
@@ -394,6 +328,9 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   {isRtl ? 'مسئلے کی قسم' : 'Incident Category'}
                 </label>
+                {reportError && (
+                  <div className="p-2 rounded-lg bg-rose-500/15 border border-rose-500/40 text-rose-800 dark:text-rose-200 text-[11px] font-bold">{reportError}</div>
+                )}
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as IncidentCategory)}
