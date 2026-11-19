@@ -17,7 +17,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Install GDAL (retry: the Ubuntu mirrors are occasionally flaky)
+      - name: Install GDAL with retries
         timeout-minutes: 8
         run: |
           for i in 1 2 3; do
