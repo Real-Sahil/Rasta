@@ -2,6 +2,11 @@ name: Refresh OSM data
 
 on:
   workflow_dispatch:
+    inputs:
+      only:
+        description: 'Comma-separated datasets to fetch (orangeline,metrobus,hospitals,fuel,lines); empty = all'
+        required: false
+        default: ''
   schedule:
     - cron: '17 3 1 * *' # monthly
 
@@ -21,6 +26,8 @@ jobs:
       - run: npm ci
       - name: Fetch Lahore stops/hospitals/fuel and metro lines of other cities from OpenStreetMap
         run: npm run data:osm
+        env:
+          OSM_ONLY: ${{ github.event.inputs.only }}
       - name: Copy the extracts into the Flutter app (a test fails if the copies differ)
         run: node mobile/tool/sync_osm.mjs
       - name: Commit refreshed data to main
