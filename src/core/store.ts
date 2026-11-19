@@ -113,7 +113,8 @@ export const useAppStore = create<AppState>((set, get) => {
     setFix: (fix) => {
       const prev = get().fix;
       let heading = get().heading;
-      if (fix.heading != null && Number.isFinite(fix.heading)) heading = fix.heading;
+      // A phone's compass-style heading is noise when (almost) stationary: keep the last real one
+      if (fix.heading != null && Number.isFinite(fix.heading) && (fix.speed == null || fix.speed >= 1)) heading = fix.heading;
       else if (prev && haversineM(prev, fix) > 5) heading = bearingDeg(prev, fix);
       set({ fix, heading });
 

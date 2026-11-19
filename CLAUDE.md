@@ -62,6 +62,7 @@ Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI 
 - **CSP** lives in `vercel.json` (`Content-Security-Policy`). Every external host must be listed there; `npm run test:e2e` enforces the policy against the built app and fails on any violation. MapLibre needs `worker-src blob:` and inline styles.
 - **Function region**: `sin1` (next to the Neon database).
 - **Bundle**: the map engine and tab screens are lazy chunks (`lazy()` in `App.tsx`); the entry chunk is ~0.5 MB.
+- **Drive test**: `node scripts/drive-test.mjs` (after build) simulates a drive and checks vehicle position/arrow, turn handling, arrival; screenshots in `drive-out/` (git-ignored).
 - **Browser tests**: `npm run test:e2e` (Playwright, mocked OSRM/Nominatim/Open-Meteo/API, runs in CI after `npm run build`; install with `npm install --no-save playwright`; set `CHROMIUM_PATH` to use a preinstalled browser).
 
 ## Known gaps (not yet fixed)

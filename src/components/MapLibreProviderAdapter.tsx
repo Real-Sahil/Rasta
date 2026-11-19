@@ -222,6 +222,8 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         zoom: zoom || 17,
         bearing: heading || 0,
         pitch: 45,
+        // push the vehicle towards the bottom so the road ahead fills the screen
+        padding: { top: Math.round(map.getContainer().clientHeight * 0.4), bottom: 0, left: 0, right: 0 },
         duration: 900,
         essential: true
       });
@@ -231,6 +233,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         zoom: zoom,
         bearing: 0,
         pitch: 0,
+        padding: { top: 0, bottom: 0, left: 0, right: 0 },
         essential: true,
         duration: 700
       });
@@ -268,7 +271,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
             <div class="relative flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2">
               ${showHeatmapLayer ? '<span class="animate-radar-glow absolute inline-flex h-16 w-16 rounded-full bg-emerald-400 opacity-60"></span><span class="animate-ping absolute inline-flex h-10 w-10 rounded-full bg-emerald-500 opacity-75"></span>' : ''}
               <div class="relative z-10 w-7 h-7 rounded-full bg-emerald-600 border-2 border-white shadow-xl flex items-center justify-center text-white ring-2 ring-emerald-300">
-                <svg class="w-4 h-4 fill-current transform rotate-45" viewBox="0 0 24 24">
+                <svg data-arrow class="w-4 h-4 fill-current" viewBox="0 0 24 24">
                   <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
                 </svg>
               </div>
@@ -345,8 +348,13 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
       } else {
         existingMarker.setLngLat([markerData.lng, markerData.lat]);
       }
+      if (markerData.type === 'user') {
+        // While navigating the map itself turns to the heading, so the arrow points up; otherwise (north-up) it shows the heading.
+        const arrow = markersRef.current[mKey]?.getElement().querySelector<SVGElement>('[data-arrow]');
+        if (arrow) arrow.style.transform = `rotate(${isNavigatingLive ? 0 : (markerData.heading ?? 0)}deg)`;
+      }
     });
-  }, [filteredMarkers, isRtl, onMarkerClick, showHeatmapLayer]);
+  }, [filteredMarkers, isRtl, onMarkerClick, showHeatmapLayer, isNavigatingLive]);
 
   // Past-flooding layer: the data is a separate chunk, fetched only the first time the layer is switched on
   useEffect(() => {
