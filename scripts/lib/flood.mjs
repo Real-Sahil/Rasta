@@ -66,6 +66,3 @@ export function clipAndSimplify(features, { bbox, tol = 0.0003, minArea = 2e-8, 
   }
   return out; // array of polygons (each an array of rings)
 }
-
-/** The shapefile .prj must be WGS84 geographic; refuse to guess otherwise. */
-export const isWgs84Prj = (prj) => /GCS_WGS_1984|WGS[_ ]?84/i.test(prj) && /GEOGCS/i.test(prj) && !/PROJCS/i.test(prj);

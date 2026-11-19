@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Satellite-detected flood extents (UNOSAT, via HDX) clipped to the Lahore region -> src/data/flood/lahore.json.
-// Needs network + `unzip` + the `shapefile` package (CI installs it with --no-save). Run: npm run data:flood
+// Needs network + `unzip` + GDAL's `ogr2ogr` (apt gdal-bin; the workflow installs it). Run: npm run data:flood
 // Licence: CC BY-SA (UNOSAT). Credit is shown in the app; share-alike applies to the derived layer.
 import { mkdir, writeFile, readFile, readdir } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
@@ -9,7 +9,7 @@ import { Readable } from 'node:stream';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { clipAndSimplify, isWgs84Prj } from './lib/flood.mjs';
+import { clipAndSimplify } from './lib/flood.mjs';
 
 const BBOX = [73.6, 30.9, 75.0, 31.9]; // west,south,east,north: greater Lahore
 const DATASETS = [
@@ -17,7 +17,6 @@ const DATASETS = [
   'satellite-detected-water-extents-from-26-august-to-7-september-2025-over-pakistan'
 ];
 const OUT = new URL('../src/data/flood/', import.meta.url);
-const { open } = await import('shapefile');
 
 const work = await (await import('node:fs/promises')).mkdtemp(join(tmpdir(), 'flood-'));
 const events = [];
@@ -37,18 +36,18 @@ for (const id of DATASETS) {
   const all = [];
   const walk = async (d) => { for (const e of await readdir(d, { withFileTypes: true })) { const p = join(d, e.name); e.isDirectory() ? await walk(p) : all.push(p); } };
   await walk(dir);
-  const shps = all.filter((p) => /\.shp$/i.test(p));
-  console.log(`  shapefiles: ${shps.map((p) => p.replace(dir, '')).join(', ')}`);
+  // Only the detected-flood layers: skip analysis extents, cloud masks and permanent-water baselines.
+  const shps = all.filter((p) => /FloodExtent.*\.shp$/i.test(p));
+  console.log(`  flood layers: ${shps.map((p) => p.replace(dir, '')).join(', ')}`);
 
   const polygons = [];
-  for (const shp of shps) {
-    const prj = all.find((p) => p.toLowerCase() === shp.replace(/\.shp$/i, '.prj').toLowerCase());
-    if (!prj || !isWgs84Prj(await readFile(prj, 'utf8'))) { console.warn(`  skip ${shp}: projection missing or not WGS84`); continue; }
-    const src = await open(shp);
-    const feats = [];
-    for (let x = await src.read(); !x.done; x = await src.read()) feats.push(x.value);
+  for (const [i, shp] of shps.entries()) {
+    // ogr2ogr filters to the region with the spatial index and reprojects to WGS84, so we never parse the full national file in JS.
+    const geo = join(work, `${id.slice(0, 20)}-${i}.geojson`);
+    execFileSync('ogr2ogr', ['-f', 'GeoJSON', '-t_srs', 'EPSG:4326', '-spat', ...BBOX.map(String), '-spat_srs', 'EPSG:4326', geo, shp], { stdio: 'inherit', maxBuffer: 1 << 28 });
+    const feats = JSON.parse(await readFile(geo, 'utf8')).features;
     const clipped = clipAndSimplify(feats, { bbox: BBOX });
-    console.log(`  ${shp.split('/').pop()}: ${feats.length} features -> ${clipped.length} polygons in region`);
+    console.log(`  ${shp.split('/').pop()}: ${feats.length} features in region -> ${clipped.length} polygons kept`);
     polygons.push(...clipped);
   }
   const range = /\[(\d{4}-\d{2}-\d{2})/.exec(meta.dataset_date ?? '');

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clipAndSimplify, simplifyRing, isWgs84Prj } from '../../scripts/lib/flood.mjs';
+import { clipAndSimplify, simplifyRing } from '../../scripts/lib/flood.mjs';
 
 const sq = (x: number, y: number, s: number) => [[x, y], [x + s, y], [x + s, y + s], [x, y + s], [x, y]];
 const feat = (coords: number[][][]) => ({ geometry: { type: 'Polygon', coordinates: coords } });
@@ -22,9 +22,5 @@ describe('flood helpers', () => {
     const f = { geometry: { type: 'MultiPolygon', coordinates: [[sq(74.123456, 31.123456, 0.05)]] } };
     const out = clipAndSimplify([f], { bbox });
     expect(out[0][0][0][0]).toBe(74.1235);
-  });
-  it('accepts only geographic WGS84 projection files', () => {
-    expect(isWgs84Prj('GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984"]]')).toBe(true);
-    expect(isWgs84Prj('PROJCS["WGS_1984_UTM_Zone_43N",GEOGCS["GCS_WGS_1984"]]')).toBe(false);
   });
 });
