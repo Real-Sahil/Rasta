@@ -76,3 +76,19 @@ describe('fetch-osm queries', () => {
     expect(src).not.toMatch(/;\s*->/);
   });
 });
+
+describe('orderedStops with platform ways', () => {
+  it('uses a platform way centre, skips road ways and counts stop + platform of one station once', () => {
+    const els = [
+      { type: 'node', id: 10, lat: 30.2, lon: 71.5, tags: { name: 'Chowk Kumharan' } },
+      { type: 'way', id: 20, center: { lat: 30.21, lon: 71.51 }, tags: { name: 'Chowk Kumharan', public_transport: 'platform' } },
+      { type: 'way', id: 21, center: { lat: 30.25, lon: 71.52 }, tags: { name: 'BZU', public_transport: 'platform' } },
+      { type: 'way', id: 22, center: { lat: 30.3, lon: 71.53 }, tags: { name: 'Bosan Road', highway: 'primary' } }
+    ];
+    const r = { type: 'relation', id: 1, members: [
+      { type: 'node', ref: 10, role: 'stop' }, { type: 'way', ref: 20, role: 'platform' },
+      { type: 'way', ref: 21, role: 'platform' }, { type: 'way', ref: 22, role: '' }
+    ] };
+    expect(orderedStops(r, els).map((e) => [e.tags.name, e.lat])).toEqual([['Chowk Kumharan', 30.2], ['BZU', 30.25]]);
+  });
+});
