@@ -60,7 +60,7 @@ export const MultimodalComparison: React.FC<MultimodalComparisonProps> = ({
       {/* Header and Student Concession Toggle */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
         <div>
-          <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-1.5">
+          <h3 className="skin-display font-extrabold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-1.5">
             <Coins className="w-4 h-4 text-emerald-600" />
             <span>{t.multimodalTitle}</span>
           </h3>

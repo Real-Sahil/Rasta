@@ -84,7 +84,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ title, snap, onSnapCha
     >
       {floating && <div className={`absolute ${side} bottom-full mb-3 flex flex-col gap-3 items-center`}>{floating}</div>}
 
-      <div className="w-full h-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-t-3xl shadow-[0_-12px_35px_rgba(15,23,42,0.18)] flex flex-col overflow-hidden">
+      <div className="skin-sheet w-full h-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-t-3xl shadow-[0_-12px_35px_rgba(15,23,42,0.18)] flex flex-col overflow-hidden">
         {/* Drag handle + title */}
         <div
           role="button"
@@ -97,9 +97,9 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ title, snap, onSnapCha
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSnapChange(snap === 'full' ? 'peek' : 'full'); }}
           className="touch-none select-none cursor-grab active:cursor-grabbing shrink-0 pt-2 pb-2 px-5 border-b border-slate-100 dark:border-slate-800"
         >
-          <div className="mx-auto w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700 mb-2" />
+          <div className="skin-handle mx-auto w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700 mb-2" />
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 truncate">{title}</h3>
+            <h3 className="skin-display text-sm font-extrabold text-slate-800 dark:text-slate-100 truncate">{title}</h3>
             {snap === 'full' ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
           </div>
         </div>

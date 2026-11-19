@@ -6,7 +6,7 @@ import React from 'react';
 import { RouteOption } from '../types';
 import { NavSession } from '../core/navigation';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
-import { isChamakSkin, CHAMAK_STRIP, ensureChamakFont } from './chamakSkin';
+import { useSkin, CHAMAK_STRIP } from './chamakSkin';
 import { CornerUpLeft, CornerUpRight, ArrowUp, CheckCircle, Volume2, VolumeX, RotateCcw, Gauge, Loader2, Share2 } from 'lucide-react';
 
 interface NavHudProps {
@@ -30,8 +30,7 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
   const step = route.steps[session.upcomingStepIndex] ?? route.steps[route.steps.length - 1];
   const eta = new Date(Date.now() + session.remainingS * 1000);
   const etaClock = eta.toLocaleTimeString(isRtl ? 'ur-PK' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
-  const chamak = React.useMemo(() => isChamakSkin(), []);
-  React.useEffect(() => { if (chamak && !isRtl) ensureChamakFont(); }, [chamak, isRtl]);
+  const chamak = useSkin() === 'chamak';
   const yatra = chamak && !isRtl ? { fontFamily: "'Yatra One', 'Plus Jakarta Sans', serif" } : undefined;
   const { theme } = useMobilityTheme();
   const light = chamak && theme === 'light';

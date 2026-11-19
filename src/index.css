@@ -102,3 +102,28 @@
 .animate-radar-glow {
   animation: radar-glow 2.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
 }
+
+/* ---------- Optional "Chamak" skin (truck-art). Chrome only; <html data-skin="chamak"> ---------- */
+html[data-skin="chamak"] {
+  --ck-gold: #F5B700;
+  --ck-red: #D7263D;
+  --ck-strip: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10'%3E%3Crect width='20' height='10' fill='%238E939B'/%3E%3Cpath d='M10 0L17 5L10 10L3 5Z' fill='%23E4E7EB'/%3E%3Cpath d='M0 0L10 5L20 0M0 10L10 5L20 10' fill='none' stroke='%235E626A' stroke-width='.8'/%3E%3C/svg%3E");
+}
+/* Yatra One has no Arabic-script glyphs, so only left-to-right text uses it. */
+html[data-skin="chamak"] [dir="ltr"] .skin-display { font-family: 'Yatra One', 'Plus Jakarta Sans', serif; font-weight: 400; letter-spacing: 0; }
+
+html[data-skin="chamak"] .skin-header { position: relative; border-bottom: 2px solid var(--ck-gold); }
+html[data-skin="chamak"] .skin-header::after { content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 6px; background: var(--ck-strip) 0 0 / 20px 6px; pointer-events: none; }
+
+html[data-skin="chamak"] .skin-nav { border-top: 2px solid var(--ck-gold); }
+html[data-skin="chamak"] .skin-nav::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--ck-strip) 0 0 / 20px 5px; pointer-events: none; }
+html[data-skin="chamak"] .skin-nav [aria-current="page"] { color: #B01E31; }
+html.dark[data-skin="chamak"] .skin-nav [aria-current="page"] { color: var(--ck-gold); }
+html[data-skin="chamak"] .skin-nav [aria-current="page"] > span:first-child { background: var(--ck-red); color: #fff; box-shadow: 0 0 0 2px var(--ck-gold); }
+
+html[data-skin="chamak"] .skin-sheet { position: relative; border-top: 2px solid var(--ck-gold); }
+html[data-skin="chamak"] .skin-sheet::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--ck-strip) 0 0 / 20px 5px; pointer-events: none; }
+html[data-skin="chamak"] .skin-handle { background: var(--ck-gold); }
+
+html[data-skin="chamak"] .skin-primary:not(:disabled) { background: var(--ck-red); color: #fff; box-shadow: inset 0 0 0 2px var(--ck-gold); }
+html[data-skin="chamak"] .skin-primary:not(:disabled):hover { background: #B01E31; }

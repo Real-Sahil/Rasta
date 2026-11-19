@@ -54,7 +54,7 @@ export const TransitReports: React.FC<{ city: string }> = ({ city }) => {
 
   return (
     <section className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-2.5" aria-label={tr.repTitle}>
-      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">{tr.repTitle}</h3>
+      <h3 className="skin-display text-sm font-bold text-slate-800 dark:text-slate-100">{tr.repTitle}</h3>
       {stats && stats.length > 0
         ? <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-300">{stats.map((s) => <li key={`${s.kind}_${s.mode}`}>{line(s)}</li>)}</ul>
         : <p className="text-xs text-slate-500">{tr.repNoStats}</p>}

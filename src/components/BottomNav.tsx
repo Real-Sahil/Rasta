@@ -27,7 +27,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ active, onChange, hidden =
   ];
 
   return (
-    <nav aria-label="Main" className="absolute bottom-0 inset-x-0 z-40 h-16 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+    <nav aria-label="Main" className="skin-nav absolute bottom-0 inset-x-0 z-40 h-16 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
       <div className="max-w-md mx-auto h-full px-2 flex items-center justify-around">
         {items.map((item) => {
           const isActive = active === item.id;

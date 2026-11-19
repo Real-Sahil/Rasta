@@ -7,7 +7,8 @@ import React from 'react';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
 import { Language } from '../types';
 import { SyncStatusInfo } from '../services/incidentSyncService';
-import { Moon, Sun, ShieldAlert, CloudRain, Zap, Wind, Info } from 'lucide-react';
+import { useSkin, setSkin } from './chamakSkin';
+import { Moon, Sun, Flower2, ShieldAlert, CloudRain, Zap, Wind, Info } from 'lucide-react';
 import { fetchCityAqi, CityAqiData } from '../services/aqiService';
 
 interface HeaderProps {
@@ -34,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   onLegalClick
 }) => {
   const { language, setLanguage, theme, toggleTheme, isRtl, t } = useMobilityTheme();
+  const skin = useSkin();
   const [aqiData, setAqiData] = React.useState<CityAqiData | null>(null);
 
   React.useEffect(() => {
@@ -41,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, [currentCity]);
 
   return (
-    <header className="shrink-0 z-30 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs">
+    <header className="skin-header shrink-0 z-30 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-3">
         {/* Brand & City */}
         <div className="flex items-center gap-2.5 min-w-0">
@@ -51,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-slate-900 dark:text-white tracking-tight text-sm sm:text-base truncate">
+              <span className="skin-display font-extrabold text-slate-900 dark:text-white tracking-tight text-sm sm:text-base truncate">
                 {isRtl ? 'براق پاکستان' : 'BURAQ'}
               </span>
               <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 shrink-0">
@@ -84,13 +86,13 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Action Controls - Cleanly Spaced to Prevent Overlaps and Mis-clicks */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Multilingual Selector */}
           <div className="relative flex items-center">
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as Language)}
-              className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none transition-all shadow-xs"
+              className="px-1.5 sm:px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none transition-all shadow-xs"
               title="Select Language"
             >
               <option value="en">English</option>
@@ -104,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onEmergencyClick}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 text-xs font-bold hover:bg-rose-100 transition-all shadow-xs shrink-0"
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 text-xs font-bold hover:bg-rose-100 transition-all shadow-xs shrink-0"
             title="Emergency 1122 & Roadside Help"
           >
             <ShieldAlert className="w-4 h-4 text-rose-600 animate-bounce shrink-0" />
@@ -144,16 +146,27 @@ export const Header: React.FC<HeaderProps> = ({
 
           {onLegalClick && (
             <button type="button" onClick={onLegalClick} aria-label={t.legalLink} title={t.legalLink}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors shrink-0">
+              className="p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors shrink-0">
               <Info className="w-4 h-4" />
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => setSkin(skin === 'chamak' ? 'default' : 'chamak')}
+            aria-pressed={skin === 'chamak'}
+            aria-label={t.skinLabel}
+            title={t.skinLabel}
+            className={`p-1.5 sm:p-2 rounded-xl border transition-colors shrink-0 cursor-pointer ${skin === 'chamak' ? 'bg-[#D7263D] text-white border-[#F5B700]' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'}`}
+          >
+            <Flower2 className="w-4 h-4" />
+          </button>
 
           {/* Theme Mode Toggle */}
           <button
             type="button"
             onClick={toggleTheme}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors shrink-0"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors shrink-0"
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Night Mode'}
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}

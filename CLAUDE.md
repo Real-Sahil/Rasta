@@ -90,3 +90,9 @@ Transit station list is incomplete and fares are estimates; no transit routing; 
 - Application ids: Android `pk.buraq.mobile`, separate from the Capacitor shell `pk.buraq.app`.
 - `mobile/lib/l10n_web.dart` is **generated** from `src/data/locales.ts` (`node mobile/tool/gen_web_strings.mjs`); mobile-only strings live in `l10n_app.dart` (incl. mobile-specific privacy paragraphs 2 and 4: no crash reports, background location notice). Reporting needs a real GPS fix. API base defaults to the production site (`--dart-define=API_BASE=...` to override).
 - Bundled OSM data: `mobile/assets/osm/*.json` are copies of `src/data/osm/*.json`; a test fails if they differ (also for the flood file). Refresh with `node mobile/tool/sync_osm.mjs` after `npm run data:osm` / `npm run data:flood`. Stage 3 strings live in `l10n_more.dart` and override older tables in `tr()`. Privacy copy now names Open-Meteo: keep it in step with any new host. iOS deployment target is 15.5 (required by `maplibre_gl`).
+
+## Chamak skin (optional, truck-art look)
+- Off by default. Header flower button (`skinLabel` in all four locales) or `?skin=chamak` / `?skin=default`; state in `src/components/chamakSkin.ts` (`useSkin`/`setSkin`, localStorage `buraq.skin`), mirrored to `<html data-skin="chamak">`.
+- Chrome only: header, bottom sheet, bottom nav, Start button (`skin-*` hook classes styled in `index.css`) and the driving HUD (`NavHud`, follows light/dark, calmer above 30 km/h). The map, search box and data views are deliberately untouched so the road stays the focus.
+- Yatra One is requested only when the skin is on and only styles left-to-right text (no Arabic-script glyphs). Add new chrome by adding a `skin-*` class and a rule under the Chamak block, never by branching components.
+- Not applied to the Flutter app.

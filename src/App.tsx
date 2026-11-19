@@ -605,7 +605,7 @@ function MainApp() {
                   const res = handleStart();
                   if (!res.ok) flash(res.reason === 'custom_origin' ? t.previewOnly : res.reason === 'no_fix' ? (isRtl ? 'GPS لوکیشن دستیاب نہیں۔ براہ کرم مقام کی اجازت دیں اور دوبارہ کوشش کریں۔' : 'No GPS fix yet. Allow location access and try again.') : (isRtl ? 'ابھی کوئی راستہ دستیاب نہیں۔' : 'No route available yet.'));
                 }}
-                className="w-full py-3.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 disabled:text-slate-500 text-white font-black text-base flex items-center justify-center gap-2 cursor-pointer"
+                className="skin-primary w-full py-3.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 disabled:text-slate-500 text-white font-black text-base flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Navigation className="w-5 h-5" />
                 <span>{isRtl ? 'نیویگیشن شروع کریں' : 'Start navigation'}</span>
