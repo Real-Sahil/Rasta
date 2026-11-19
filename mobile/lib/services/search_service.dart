@@ -16,7 +16,8 @@ class Place {
 
 /// Why a search failed, so the UI can tell "no internet" from "the search service is busy".
 class SearchException implements Exception {
-  const SearchException(this.busy);
+  const SearchException(this.busy, [this.detail = '']);
+  final String detail; // exception type / HTTP status, shown small so a failure on a real phone can be diagnosed
   final bool busy; // true: the server answered with an error / rate limit; false: no connection or timeout
   @override
   String toString() => busy ? 'SearchException(busy)' : 'SearchException(offline)';
@@ -53,15 +54,19 @@ class SearchService {
         if (r.statusCode == 200) {
           res = r;
         } else {
-          failure = const SearchException(true); // 403/429/5xx: server reachable but refusing or overloaded
+          failure = SearchException(true, 'HTTP ${r.statusCode}'); // 403/429/5xx: server reachable but refusing or overloaded
           if (r.statusCode != 429 && r.statusCode < 500) break;
         }
       } on TimeoutException {
-        failure = const SearchException(false);
-      } on SocketException {
-        failure = const SearchException(false);
-      } on http.ClientException {
-        failure = const SearchException(false);
+        failure = const SearchException(false, 'timeout');
+      } on SocketException catch (e) {
+        failure = SearchException(false, 'SocketException: ${e.message}');
+      } on http.ClientException catch (e) {
+        failure = SearchException(false, 'ClientException: ${e.message}');
+      } on IOException catch (e) {
+        failure = SearchException(false, '${e.runtimeType}'); // e.g. TLS handshake failure
+      } catch (e) {
+        throw SearchException(true, '${e.runtimeType}'); // not a network problem: do not call it "no internet"
       }
       if (mine != _seq) return null;
       if (res == null && attempt == 0) await Future<void>.delayed(const Duration(milliseconds: 600));
@@ -72,7 +77,7 @@ class SearchService {
     try {
       list = jsonDecode(res.body);
     } on FormatException {
-      throw const SearchException(true);
+      throw const SearchException(true, 'bad response');
     }
     final out = <Place>[];
     if (list is List) {

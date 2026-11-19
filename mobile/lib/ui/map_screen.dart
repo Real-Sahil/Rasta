@@ -71,7 +71,27 @@ class _MapScreenState extends State<MapScreen> {
     super.dispose();
   }
 
+  bool _syncing = false, _syncAgain = false;
+
+  /// Map calls are async: two overlapping runs both saw `_vehicle == null` and each added a dot (two blue dots).
+  /// Run one at a time and replay once if something changed meanwhile.
   Future<void> _sync() async {
+    if (_syncing) {
+      _syncAgain = true;
+      return;
+    }
+    _syncing = true;
+    try {
+      do {
+        _syncAgain = false;
+        await _syncOnce();
+      } while (_syncAgain && mounted);
+    } finally {
+      _syncing = false;
+    }
+  }
+
+  Future<void> _syncOnce() async {
     final map = _map;
     final logicalHeight = mounted ? MediaQuery.of(context).size.height : 800.0;
     if (map == null || !_styleReady || !mounted) return;
@@ -323,6 +343,7 @@ class _SearchPanelState extends State<SearchPanel> {
   bool _hadRoute = false;
   Timer? _debounce;
   String? _error;
+  String _errorDetail = '';
 
   AppState get app => widget.app;
 
@@ -344,11 +365,12 @@ class _SearchPanelState extends State<SearchPanel> {
         setState(() {
           _results = r;
           _error = r.isEmpty && q.trim().length >= 2 ? 'noResults' : null;
+          _errorDetail = '';
         });
       } on SearchException catch (e) {
-        if (mounted) setState(() { _results = const []; _error = e.busy ? 'searchBusy' : 'offline'; });
-      } catch (_) {
-        if (mounted) setState(() { _results = const []; _error = 'offline'; });
+        if (mounted) setState(() { _results = const []; _error = e.busy ? 'searchBusy' : 'offline'; _errorDetail = e.detail; });
+      } catch (e) {
+        if (mounted) setState(() { _results = const []; _error = 'searchBusy'; _errorDetail = '${e.runtimeType}'; });
       }
     });
   }
@@ -449,7 +471,7 @@ class _SearchPanelState extends State<SearchPanel> {
             ]),
           ),
         ),
-      if (_error != null && _results.isEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, _error!))),
+      if (_error != null && _results.isEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: _errorDetail.isEmpty ? tr(lang, _error!) : '${tr(lang, _error!)}\n($_errorDetail)')),
     ]);
   }
 }
