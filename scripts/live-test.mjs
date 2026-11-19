@@ -115,6 +115,8 @@ if (reachable) {
 
   await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(5000);
+  await step('legal', 'first-run driving-safety notice is shown and can be dismissed', async () => { const ok = /Never use your phone while driving/.test(await text()); await page.getByRole('button', { name: 'I understand' }).click(); return ok; });
+  await page.waitForTimeout(500);
   await shot('01_home');
   await step('ui', 'app renders header, search, bottom nav', async () => (await text()).includes('BURAQ') && (await page.locator('nav[aria-label="Main"]').count()) === 1);
   await step('ui', 'map canvas is present and has size', async () => { const b = await page.locator('canvas.maplibregl-canvas').first().boundingBox(); return !!b && b.width > 200 && b.height > 200 ? `${Math.round(b.width)}x${Math.round(b.height)}` : false; });
