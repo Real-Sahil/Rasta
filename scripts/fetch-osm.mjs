@@ -27,7 +27,8 @@ async function overpass(query) {
         signal: AbortSignal.timeout(120_000)
       });
       if (res.ok) return (await res.json()).elements;
-      lastErr = new Error(`Overpass ${res.status} from ${new URL(endpoint).host}`);
+      const why = res.status >= 400 && res.status < 500 ? `: ${(await res.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300)}` : '';
+      lastErr = new Error(`Overpass ${res.status} from ${new URL(endpoint).host}${why}`);
       if (!RETRYABLE.has(res.status)) throw lastErr;
     } catch (e) {
       lastErr = e;
@@ -63,14 +64,22 @@ const METRO_CITIES = {
   karachi: '24.75,66.85,25.10,67.30'
 };
 const TRANSIT_ROUTE = '["type"="route"]["route"~"^(bus|trolleybus|light_rail|subway|train|tram|monorail)$"]';
-const METRO_NAME = 'metro|brt|bus rapid|green line|red line|blue line|orange line|(^|[^a-z])zu([^a-z]|$)';
+// Plain alternation only: Overpass rejected bracket classes here with HTTP 400.
+const METRO_NAME = 'metro|brt|bus rapid|green line|red line|blue line|orange line|zu peshawar|zu bus';
 
 async function metroLines() {
   const items = [];
   const cities = {};
   for (const [city, bbox] of Object.entries(METRO_CITIES)) {
     const q = `[out:json][timeout:120];(rel${TRANSIT_ROUTE}["name"~"${METRO_NAME}",i](${bbox});rel${TRANSIT_ROUTE}["network"~"${METRO_NAME}",i](${bbox}););->.r;(.r;node(r.r);rel(br.r)["type"="route_master"];);out body;`;
-    const els = await overpass(q);
+    let els;
+    try {
+      els = await overpass(q);
+    } catch (e) {
+      console.error(`  ${city}: FAILED (${e.message})`);
+      cities[city] = { bbox, failed: true };
+      continue;
+    }
     const lines = pickLines(els, city);
     // what OSM had, for review: every candidate relation name, so a missing line can be traced
     const candidates = [...new Set(els.filter((e) => e.type === 'relation' && e.tags?.type === 'route').map((e) => e.tags.name).filter(Boolean))].sort();
