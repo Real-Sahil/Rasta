@@ -18,15 +18,51 @@ const metro = load<TransitStation>('metrobus');
 const hospitals = load<Poi>('hospitals');
 const fuel = load<Poi>('fuel');
 
+/** Metro / BRT lines outside Lahore (`lines.json`), each with its stations in route order. */
+export interface MetroLine {
+  id: string;
+  city: string;
+  name: string;
+  nameUrdu: string | null;
+  ref: string | null;
+  colour: string | null;
+  mode: string | null;
+  operator: string | null;
+  relation: string;
+  stations: { id: string; name: string | null; nameUrdu: string | null; line: string; lat: number; lng: number; osmId: string }[];
+}
+const lines = load<MetroLine>('lines');
+
 export const ORANGELINE_STATIONS: TransitStation[] = orange?.items ?? [];
 export const METROBUS_STATIONS: TransitStation[] = metro?.items ?? [];
 export const HOSPITALS: Poi[] = hospitals?.items ?? [];
 export const FUEL_STATIONS: Poi[] = fuel?.items ?? [];
+/** Lines with named stations only; unnamed stops are kept out rather than labelled with a guess. */
+export const METRO_LINES: MetroLine[] = (lines?.items ?? [])
+  .map((l) => ({ ...l, stations: l.stations.filter((s) => s.name && Number.isFinite(s.lat) && Number.isFinite(s.lng)) }))
+  .filter((l) => l.stations.length >= 2);
+/** City ids that have at least one line, in a stable order. */
+/** Display names for the metro city keys used in lines.json (proper nouns, both scripts). */
+export const METRO_CITY_NAMES: Record<string, { en: string; ur: string }> = {
+  lahore: { en: 'Lahore', ur: 'لاہور' },
+  islamabad_rawalpindi: { en: 'Islamabad–Rawalpindi', ur: 'اسلام آباد–راولپنڈی' },
+  multan: { en: 'Multan', ur: 'ملتان' },
+  peshawar: { en: 'Peshawar', ur: 'پشاور' },
+  karachi: { en: 'Karachi', ur: 'کراچی' }
+};
+/** Header city → metro area key (Islamabad and Rawalpindi share one system). */
+export const metroCityFor = (city: string) => (city === 'islamabad' || city === 'rawalpindi' ? 'islamabad_rawalpindi' : city);
+export const METRO_CITY_IDS: string[] = [...new Set(METRO_LINES.map((l) => l.city))];
+
+/** A line's stations as TransitStation rows (code = position along the line), for the list, diagram and map. */
+export const lineStations = (l: MetroLine): TransitStation[] =>
+  l.stations.map((s, i) => ({ id: s.id, code: String(i + 1), name: s.name as string, nameUrdu: s.nameUrdu, line: l.id, lat: s.lat, lng: s.lng, osmId: s.osmId }));
+
 export const ALL_POIS: Poi[] = [...HOSPITALS, ...FUEL_STATIONS];
 
 /** Latest extraction date across the files, for "data from OpenStreetMap, updated …" credits. */
 export const OSM_UPDATED: string | null =
-  [orange, metro, hospitals, fuel].map((f) => f?.meta.fetchedAt).filter(Boolean).sort().at(-1)?.slice(0, 10) ?? null;
+  [orange, metro, hospitals, fuel, lines].map((f) => f?.meta.fetchedAt).filter(Boolean).sort().at(-1)?.slice(0, 10) ?? null;
 
 export const OSM_CREDIT = '© OpenStreetMap contributors (ODbL)';
 

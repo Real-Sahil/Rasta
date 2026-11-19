@@ -69,6 +69,7 @@ flutter:
     - assets/osm/fuel.json
     - assets/osm/metrobus.json
     - assets/osm/orangeline.json
+    - assets/osm/lines.json
     - assets/flood/lahore.json
 
   # To add assets to your application, add an assets section, like this:

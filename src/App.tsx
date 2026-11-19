@@ -346,7 +346,7 @@ function MainApp() {
     setZoom(15);
     store().setDestination({
       id: station.id, name: station.name, nameUrdu: station.nameUrdu ?? station.name, lat: station.lat, lng: station.lng,
-      category: station.line === 'metrobus' ? 'metro' : 'orangeline'
+      category: station.line === 'orangeline' ? 'orangeline' : 'metro'
     });
     openTab('navigate');
   };

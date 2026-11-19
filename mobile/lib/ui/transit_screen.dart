@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:material_ui/material_ui.dart';
 
+import '../core/conditions.dart' show nearestCity;
 import '../core/transit.dart';
 import '../l10n.dart';
 import '../services/reports_api.dart';
@@ -10,14 +11,26 @@ import 'line_diagram.dart';
 import 'riders_screen.dart';
 
 class _Lines {
-  const _Lines(this.metrobus, this.orange);
+  const _Lines(this.metrobus, this.orange, this.others);
   final List<Station> metrobus, orange;
+  final List<MetroLine> others; // lines outside Lahore
+}
+
+Future<List<MetroLine>> _others() async {
+  try {
+    return parseLines(await rootBundle.loadString('assets/osm/lines.json'));
+  } catch (_) {
+    return const []; // no extract bundled yet
+  }
 }
 
 Future<_Lines> _load() async => _Lines(
       parseStations(await rootBundle.loadString('assets/osm/metrobus.json')),
       parseStations(await rootBundle.loadString('assets/osm/orangeline.json')),
+      await _others(),
     );
+
+const _fallbackColours = [Color(0xFF0E7490), Color(0xFF7C3AED), Color(0xFF16A34A), Color(0xFFDC2626), Color(0xFF2563EB), Color(0xFFCA8A04)];
 
 /// Stations (tap one to route to it), a station-count fare estimate, and the riders' report card.
 class TransitScreen extends StatefulWidget {
@@ -36,6 +49,7 @@ class _TransitScreenState extends State<TransitScreen> {
   bool _student = false;
   bool _diagram = false; // stations tab: list or schematic
   String? _from, _to;
+  String? _city; // metro area on the stations tab; null = follow the fix (else Lahore)
   late final Future<_Lines> _data = _load();
 
   String _fill(String lang, String key, Map<String, Object> v) {
@@ -107,7 +121,48 @@ class _TransitScreenState extends State<TransitScreen> {
           if (list.isEmpty) Padding(padding: const EdgeInsets.all(16), child: Text(tr(lang, 'trNoData'))),
           LineDiagram(stations: list, color: c, lang: lang, onPick: _routeTo, boardLabel: tr(lang, 'diagBoard'), alightLabel: tr(lang, 'diagAlight'), note: tr(lang, 'diagNote')),
         ]);
+    final cities = ['lahore', ...{for (final l in d.others) l.city}.where((c) => c != 'lahore')];
+    final auto = metroCityFor(nearestCity(widget.app.fix?.point));
+    final city = _city ?? (cities.contains(auto) ? auto : 'lahore');
+    final lines = d.others.where((l) => l.city == city).toList();
+    Color colourOf(int i) => lines[i].colour != null ? Color(lines[i].colour!) : _fallbackColours[i % _fallbackColours.length];
+    Widget otherSection(int i) {
+      final l = lines[i];
+      final head = Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: Text('${l.label(lang)} · ${_fill(lang, 'trStops', {'n': l.stations.length})}', style: Theme.of(context).textTheme.titleMedium),
+      );
+      if (_diagram) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          head,
+          LineDiagram(stations: l.stations, color: colourOf(i), lang: lang, onPick: _routeTo, boardLabel: tr(lang, 'diagBoard'), alightLabel: tr(lang, 'diagAlight'), note: tr(lang, 'diagNote')),
+        ]);
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        head,
+        for (final s in l.stations)
+          ListTile(
+            dense: true,
+            leading: CircleAvatar(radius: 12, backgroundColor: colourOf(i), child: Text(s.code, style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w700))),
+            title: Text(s.label(lang)),
+            trailing: const Icon(Icons.directions),
+            onTap: () => _routeTo(s),
+          ),
+      ]);
+    }
     return ListView(children: [
+      if (cities.length > 1)
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(children: [
+            for (final c in cities)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: 6),
+                child: ChoiceChip(label: Text(tr(lang, 'mc_$c')), selected: c == city, onSelected: (_) => setState(() => _city = c)),
+              ),
+          ]),
+        ),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: SegmentedButton<bool>(
@@ -117,7 +172,10 @@ class _TransitScreenState extends State<TransitScreen> {
         ),
       ),
       Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 0), child: Text(tr(lang, 'trTapHint'))),
-      if (_diagram) ...[diagram('trOrange', d.orange, const Color(0xFFF26A21)), diagram('trMetrobus', d.metrobus, const Color(0xFFE11D48))] else ...[section('trOrange', d.orange), section('trMetrobus', d.metrobus)],
+      if (city != 'lahore') ...[
+        for (var i = 0; i < lines.length; i++) otherSection(i),
+        Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 0), child: Text(tr(lang, 'metroNoFares'))),
+      ] else if (_diagram) ...[diagram('trOrange', d.orange, const Color(0xFFF26A21)), diagram('trMetrobus', d.metrobus, const Color(0xFFE11D48))] else ...[section('trOrange', d.orange), section('trMetrobus', d.metrobus)],
       Padding(padding: const EdgeInsets.all(16), child: Text(tr(lang, 'trCredit'), style: Theme.of(context).textTheme.bodySmall)),
     ]);
   }

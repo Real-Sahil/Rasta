@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { METROBUS_STATIONS, ORANGELINE_STATIONS, OSM_CREDIT, OSM_UPDATED, stationName } from '../data/osmData';
+import { METROBUS_STATIONS, METRO_CITY_IDS, METRO_CITY_NAMES, METRO_LINES, ORANGELINE_STATIONS, OSM_CREDIT, OSM_UPDATED, lineStations, metroCityFor, stationName } from '../data/osmData';
 import { TransitStation } from '../types';
 import { LineDiagram } from './LineDiagram';
 import { TransitReports } from './TransitReports';
@@ -18,6 +18,8 @@ interface TransitPlannerProps {
 
 export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation, city = 'lahore' }) => {
   const { isRtl, t } = useMobilityTheme();
+  const metroCities = ['lahore', ...METRO_CITY_IDS.filter((c) => c !== 'lahore')];
+  const [metroCity, setMetroCity] = useState(() => (metroCities.includes(metroCityFor(city)) ? metroCityFor(city) : 'lahore'));
   const [activeTab, setActiveTab] = useState<'metrobus' | 'orangeline' | 'calculator'>('metrobus');
   const [view, setView] = useState<'list' | 'diagram'>('list');
   const diagram = (list: typeof METROBUS_STATIONS, color: string) => (
@@ -67,6 +69,19 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
 
   return (
     <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+      {metroCities.length > 1 && (
+        <div role="group" aria-label={t.metroCityLabel} className="flex gap-1.5 overflow-x-auto pb-0.5">
+          {metroCities.map((c) => (
+            <button key={c} type="button" aria-pressed={metroCity === c} onClick={() => setMetroCity(c)}
+              className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border cursor-pointer ${metroCity === c ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}>
+              {isRtl ? METRO_CITY_NAMES[c]?.ur ?? c : METRO_CITY_NAMES[c]?.en ?? c}
+            </button>
+          ))}
+        </div>
+      )}
+      {metroCity !== 'lahore' ? (
+        <CityLines city={metroCity} isRtl={isRtl} t={t} viewToggle={viewToggle} view={view} onPick={onSelectStation} />
+      ) : (<>
       {/* Tab Nav */}
       <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
         <button
@@ -295,10 +310,65 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
           </div>
         </div>
       )}
+      </>)}
       <TransitReports city={city} />
       <p className="text-[10px] text-slate-400">
-        {OSM_CREDIT}{OSM_UPDATED ? `, updated ${OSM_UPDATED}` : ''}. Fares are estimates; check at the station.
+        {OSM_CREDIT}{OSM_UPDATED ? `, updated ${OSM_UPDATED}` : ''}.{metroCity === 'lahore' ? ' Fares are estimates; check at the station.' : ''}
       </p>
+    </div>
+  );
+};
+
+const FALLBACK_COLOURS = ['#0E7490', '#7C3AED', '#16A34A', '#DC2626', '#2563EB', '#CA8A04'];
+
+/** Lines of one city outside Lahore: one tab per line, list or schematic, tap a station to route to it. No fares. */
+const CityLines: React.FC<{
+  city: string;
+  isRtl: boolean;
+  t: ReturnType<typeof useMobilityTheme>['t'];
+  viewToggle: React.ReactNode;
+  view: 'list' | 'diagram';
+  onPick: (s: TransitStation) => void;
+}> = ({ city, isRtl, t, viewToggle, view, onPick }) => {
+  const lines = React.useMemo(() => METRO_LINES.filter((l) => l.city === city), [city]);
+  const [lineId, setLineId] = useState(lines[0]?.id ?? '');
+  const line = lines.find((l) => l.id === lineId) ?? lines[0];
+  const stations = React.useMemo(() => (line ? lineStations(line) : []), [line]);
+  if (!line) return null;
+  const colourOf = (i: number) => lines[i].colour ?? FALLBACK_COLOURS[i % FALLBACK_COLOURS.length];
+  const colour = colourOf(lines.indexOf(line));
+  const label = (l: typeof line) => (isRtl && l.nameUrdu) || l.name;
+  return (
+    <div className="space-y-2">
+      {lines.length > 1 && (
+        <div className="flex flex-wrap gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          {lines.map((l, i) => (
+            <button key={l.id} type="button" aria-pressed={l.id === line.id} onClick={() => setLineId(l.id)}
+              style={l.id === line.id ? { background: colourOf(i) } : undefined}
+              className={`flex-1 min-w-[30%] py-1.5 px-2 rounded-lg text-xs font-bold truncate ${l.id === line.id ? 'text-white shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}>
+              {label(l)}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-2 text-xs text-slate-500 pb-1 border-b border-slate-100 dark:border-slate-800">
+        <span className="min-w-0 truncate"><b className="text-slate-800 dark:text-slate-200">{label(line)}</b> · {stationName(stations[0], isRtl)} ↔ {stationName(stations[stations.length - 1], isRtl)} ({stations.length})</span>
+        {viewToggle}
+      </div>
+      {view === 'diagram' ? (
+        <LineDiagram stations={stations} color={colour} isRtl={isRtl} onPick={onPick} boardLabel={t.diagramBoard} alightLabel={t.diagramAlight} note={t.diagramNote} />
+      ) : (
+        <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+          {stations.map((s, idx) => (
+            <button key={s.id} type="button" onClick={() => onPick(s)}
+              className="w-full text-start p-2.5 rounded-xl border border-slate-200/70 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-2.5">
+              <span className="w-6 h-6 shrink-0 rounded-full text-white font-bold text-[10px] flex items-center justify-center" style={{ background: colour }}>{idx + 1}</span>
+              <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 truncate">{stationName(s, isRtl)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] text-slate-500">{t.metroNoFares}</p>
     </div>
   );
 };

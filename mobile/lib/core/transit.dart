@@ -52,3 +52,41 @@ int transitMinutes(String line, int stationCount) {
   if (stationCount <= 0) return 0;
   return (line == 'metrobus' ? math.max(5, stationCount * 2.8) : math.max(4, stationCount * 2.1)).round();
 }
+
+/// A metro / BRT line outside Lahore (`assets/osm/lines.json`), stations in route order. Port of web `METRO_LINES`.
+class MetroLine {
+  const MetroLine({required this.id, required this.city, required this.name, this.nameUrdu, this.colour, required this.stations});
+  final String id, city, name;
+  final String? nameUrdu;
+  final int? colour; // ARGB from OSM `colour` (#rrggbb), null when OSM has none
+  final List<Station> stations;
+
+  String label(String lang) => (lang == 'ur' || lang == 'pa') && nameUrdu != null ? nameUrdu! : name;
+}
+
+/// Lines with at least two named stations; unnamed stops are dropped, never labelled with a guess.
+/// Each station's code is its position along the line.
+List<MetroLine> parseLines(String json) {
+  final d = jsonDecode(json);
+  final items = d is Map ? d['items'] : null;
+  if (items is! List) return const [];
+  final out = <MetroLine>[];
+  for (final l in items) {
+    if (l is! Map || l['id'] is! String || l['city'] is! String || l['name'] is! String || l['stations'] is! List) continue;
+    final raw = [for (final s in l['stations'] as List) if (Station.fromJson(s) != null) Station.fromJson(s)!];
+    final stations = [
+      for (var i = 0; i < raw.length; i++)
+        Station(id: raw[i].id, code: '${i + 1}', name: raw[i].name, nameUrdu: raw[i].nameUrdu, line: l['id'] as String, point: raw[i].point),
+    ];
+    if (stations.length < 2) continue;
+    final c = l['colour'];
+    final hex = c is String && RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(c) ? int.parse(c.substring(1), radix: 16) | 0xFF000000 : null;
+    final u = l['nameUrdu'];
+    out.add(MetroLine(id: l['id'] as String, city: l['city'] as String, name: l['name'] as String, nameUrdu: u is String && u.trim().isNotEmpty ? u.trim() : null, colour: hex, stations: stations));
+  }
+  return out;
+}
+
+/// Area key in lines.json for a point: the nearest listed city within 80 km, with Islamabad and Rawalpindi merged.
+String metroCityFor(String? weatherCity) =>
+    weatherCity == 'islamabad' || weatherCity == 'rawalpindi' ? 'islamabad_rawalpindi' : (weatherCity ?? 'lahore');

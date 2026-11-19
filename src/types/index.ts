@@ -58,7 +58,7 @@ export interface TransitStation {
   code: string;
   name: string;
   nameUrdu: string | null; // null = OpenStreetMap has no Urdu name; never machine-guessed
-  line: 'metrobus' | 'orangeline' | 'speedo';
+  line: 'metrobus' | 'orangeline' | 'speedo' | (string & {}); // other cities: the line id from lines.json
   lat: number;
   lng: number;
   osmId: string;
