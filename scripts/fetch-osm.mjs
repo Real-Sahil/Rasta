@@ -2,7 +2,7 @@
 // Pull real Lahore transit stops, hospitals and fuel stations from OpenStreetMap (Overpass API)
 // into src/data/osm/*.json. Run: npm run data:osm   (needs network access to overpass-api.de)
 import { mkdir, writeFile } from 'node:fs/promises';
-import { orderedStops, pickLines, toStation, toPoi, withMeta } from './lib/osm.mjs';
+import { describeRoute, orderedStops, pickLines, toStation, toPoi, withMeta } from './lib/osm.mjs';
 
 const ENDPOINTS = process.env.OVERPASS_URL
   ? [process.env.OVERPASS_URL]
@@ -65,13 +65,14 @@ const METRO_CITIES = {
 };
 const TRANSIT_ROUTE = '["type"="route"]["route"~"^(bus|trolleybus|light_rail|subway|train|tram|monorail)$"]';
 // Plain alternation only: Overpass rejected bracket classes here with HTTP 400.
+const METRO_OPERATOR = 'transpeshawar|mass transit|metro';
 const METRO_NAME = 'metro|brt|bus rapid|green line|red line|blue line|orange line|zu peshawar|zu bus';
 
 async function metroLines() {
   const items = [];
   const cities = {};
   for (const [city, bbox] of Object.entries(METRO_CITIES)) {
-    const q = `[out:json][timeout:120];(rel${TRANSIT_ROUTE}["name"~"${METRO_NAME}",i](${bbox});rel${TRANSIT_ROUTE}["network"~"${METRO_NAME}",i](${bbox});)->.r;(.r;node(r.r);rel(br.r)["type"="route_master"];);out body;`;
+    const q = `[out:json][timeout:120];(rel${TRANSIT_ROUTE}["name"~"${METRO_NAME}",i](${bbox});rel${TRANSIT_ROUTE}["network"~"${METRO_NAME}",i](${bbox});rel${TRANSIT_ROUTE}["operator"~"${METRO_OPERATOR}",i](${bbox});)->.r;(.r;node(r.r);way(r.r)["public_transport"];way(r.r)["railway"="platform"];way(r.r)["highway"="platform"];rel(br.r)["type"="route_master"];);out body center;`;
     let els;
     try {
       els = await overpass(q);
@@ -84,6 +85,7 @@ async function metroLines() {
     // what OSM had, for review: every candidate relation name, so a missing line can be traced
     const candidates = [...new Set(els.filter((e) => e.type === 'relation' && e.tags?.type === 'route').map((e) => e.tags.name).filter(Boolean))].sort();
     cities[city] = { bbox, lines: lines.map((l) => `${l.name} (${l.stations.length})`), candidates };
+    for (const r of els.filter((e) => e.type === 'relation' && e.tags?.type === 'route')) console.log(`    ${describeRoute(r, els)}`);
     items.push(...lines);
     console.log(`  ${city}: ${lines.length} lines; candidates: ${candidates.join(' | ') || 'none'}`);
     await sleep(2000);

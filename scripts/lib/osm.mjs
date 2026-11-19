@@ -2,19 +2,28 @@
 
 /** Stops of a route relation in route order, using the relation's own member order. */
 export function orderedStops(relation, elements) {
-  const nodes = new Map(elements.filter((e) => e.type === 'node').map((n) => [n.id, n]));
+  const byKey = new Map(elements.filter((e) => e.type === 'node' || e.type === 'way').map((e) => [`${e.type}${e.id}`, e]));
   const seen = new Set();
   const out = [];
   for (const m of relation.members ?? []) {
-    if (m.type !== 'node' || !/^(stop|stop_entry_only|stop_exit_only|platform.*)?$/.test(m.role ?? '')) continue;
-    const n = nodes.get(m.ref);
-    if (!n || seen.has(n.id)) continue;
-    const name = n.tags?.name || n.tags?.['name:en'];
-    if (!name) continue;
-    seen.add(n.id);
-    out.push(n);
+    if ((m.type !== 'node' && m.type !== 'way') || !/^(stop|stop_entry_only|stop_exit_only|platform.*)?$/.test(m.role ?? '')) continue;
+    if (m.type === 'way' && !/^platform/.test(m.role ?? '')) continue; // a way with an empty role is the road itself
+    const e = byKey.get(`${m.type}${m.ref}`);
+    const at = e?.type === 'way' ? e.center : e;
+    if (!e || !at || !Number.isFinite(at.lat) || !Number.isFinite(at.lon)) continue;
+    const name = e.tags?.name || e.tags?.['name:en'];
+    if (!name || seen.has(name.trim().toLowerCase())) continue; // stop + platform of one station count once
+    seen.add(name.trim().toLowerCase());
+    out.push(e.type === 'way' ? { ...e, lat: at.lat, lon: at.lon } : e);
   }
   return out;
+}
+
+/** Why a route gave few stops: member counts by type/role and how many resolved with a name. For the refresh log. */
+export function describeRoute(relation, elements) {
+  const counts = {};
+  for (const m of relation.members ?? []) counts[`${m.type}:${m.role || '-'}`] = (counts[`${m.type}:${m.role || '-'}`] ?? 0) + 1;
+  return `${relation.tags?.name ?? relation.id} [${Object.entries(counts).map(([k, v]) => `${k}=${v}`).join(' ')}] named stops=${orderedStops(relation, elements).length}`;
 }
 
 const pick = (tags, ...keys) => keys.map((k) => tags?.[k]).find(Boolean);
@@ -115,7 +124,7 @@ export function pickLines(elements, city, { minStops = 5 } = {}) {
         line: id,
         lat: n.lat,
         lng: n.lon,
-        osmId: `node/${n.id}`
+        osmId: `${n.type ?? 'node'}/${n.id}`
       }))
     });
   }
