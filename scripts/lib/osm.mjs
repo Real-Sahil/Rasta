@@ -62,3 +62,62 @@ export const withMeta = (items, meta) => ({
   },
   items
 });
+
+/** Line name without the direction part OSM adds to each variant ("Green Line BRT: Surjani => Numaish" -> "Green Line BRT"). */
+export const baseLineName = (name) => String(name ?? '').split(/\s*(?::|=>|→|->|⇒)\s*/)[0].trim();
+
+const slug = (s) => String(s).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30);
+
+/**
+ * Metro / BRT lines of one city from an Overpass result (route relations + their stop nodes + route_masters).
+ * Variants of the same line (directions, short turns) are grouped by route_master, else by ref, else by base name;
+ * the variant with the most named stops is kept. Feeder routes and lines with fewer than `minStops` are dropped.
+ * Everything comes from OSM tags; missing values stay null.
+ */
+export function pickLines(elements, city, { minStops = 5 } = {}) {
+  const routes = elements.filter((e) => e.type === 'relation' && e.tags?.type === 'route');
+  const masters = elements.filter((e) => e.type === 'relation' && e.tags?.type === 'route_master');
+  const masterOf = new Map();
+  for (const m of masters) for (const mem of m.members ?? []) if (mem.type === 'relation') masterOf.set(mem.ref, m);
+  const groups = new Map();
+  for (const r of routes) {
+    if (/feeder/i.test(r.tags?.name ?? '')) continue;
+    const m = masterOf.get(r.id);
+    const key = m ? `m${m.id}` : r.tags?.ref ? `ref:${r.tags.ref}` : `n:${baseLineName(r.tags?.name).toLowerCase()}`;
+    const stops = orderedStops(r, elements);
+    const g = groups.get(key);
+    if (!g || stops.length > g.stops.length) groups.set(key, { r, m, stops });
+  }
+  const lines = [];
+  const used = new Set();
+  for (const { r, m, stops } of groups.values()) {
+    if (stops.length < minStops) continue;
+    const t = { ...(r.tags ?? {}), ...(m?.tags ?? {}) }; // master tags win (they name the line, not a direction)
+    const name = baseLineName(pick(t, 'name:en', 'name') ?? r.tags?.ref);
+    if (!name) continue;
+    let id = `${city}_${slug(name)}`;
+    for (let i = 2; used.has(id); i++) id = `${city}_${slug(name)}_${i}`;
+    used.add(id);
+    lines.push({
+      id,
+      city,
+      name,
+      nameUrdu: t['name:ur'] ? baseLineName(t['name:ur']) : null,
+      ref: t.ref ?? null,
+      colour: /^#[0-9a-f]{6}$/i.test(t.colour ?? '') ? t.colour : null,
+      mode: r.tags?.route ?? null,
+      operator: t.operator ?? null,
+      relation: `relation/${r.id}`,
+      stations: stops.map((n, i) => ({
+        id: `${id}_${String(i + 1).padStart(2, '0')}`,
+        name: pick(n.tags, 'name:en', 'name'),
+        nameUrdu: n.tags?.['name:ur'] ?? null,
+        line: id,
+        lat: n.lat,
+        lng: n.lon,
+        osmId: `node/${n.id}`
+      }))
+    });
+  }
+  return lines.sort((a, b) => a.name.localeCompare(b.name));
+}

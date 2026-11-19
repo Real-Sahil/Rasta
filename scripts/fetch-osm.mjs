@@ -2,7 +2,7 @@
 // Pull real Lahore transit stops, hospitals and fuel stations from OpenStreetMap (Overpass API)
 // into src/data/osm/*.json. Run: npm run data:osm   (needs network access to overpass-api.de)
 import { mkdir, writeFile } from 'node:fs/promises';
-import { orderedStops, toStation, toPoi, withMeta } from './lib/osm.mjs';
+import { orderedStops, pickLines, toStation, toPoi, withMeta } from './lib/osm.mjs';
 
 const ENDPOINTS = process.env.OVERPASS_URL
   ? [process.env.OVERPASS_URL]
@@ -55,21 +55,49 @@ const poi = async (selector, kind) => {
   return { items, query: q };
 };
 
+// Metro / BRT outside Lahore (Lahore's two lines keep their own files). Areas are generous city boxes: s,w,n,e.
+const METRO_CITIES = {
+  islamabad_rawalpindi: '33.45,72.80,33.85,73.30',
+  multan: '30.05,71.35,30.35,71.62',
+  peshawar: '33.90,71.38,34.12,71.68',
+  karachi: '24.75,66.85,25.10,67.30'
+};
+const TRANSIT_ROUTE = '["type"="route"]["route"~"^(bus|trolleybus|light_rail|subway|train|tram|monorail)$"]';
+const METRO_NAME = 'metro|brt|bus rapid|green line|red line|blue line|orange line|(^|[^a-z])zu([^a-z]|$)';
+
+async function metroLines() {
+  const items = [];
+  const cities = {};
+  for (const [city, bbox] of Object.entries(METRO_CITIES)) {
+    const q = `[out:json][timeout:120];(rel${TRANSIT_ROUTE}["name"~"${METRO_NAME}",i](${bbox});rel${TRANSIT_ROUTE}["network"~"${METRO_NAME}",i](${bbox}););->.r;(.r;node(r.r);rel(br.r)["type"="route_master"];);out body;`;
+    const els = await overpass(q);
+    const lines = pickLines(els, city);
+    // what OSM had, for review: every candidate relation name, so a missing line can be traced
+    const candidates = [...new Set(els.filter((e) => e.type === 'relation' && e.tags?.type === 'route').map((e) => e.tags.name).filter(Boolean))].sort();
+    cities[city] = { bbox, lines: lines.map((l) => `${l.name} (${l.stations.length})`), candidates };
+    items.push(...lines);
+    console.log(`  ${city}: ${lines.length} lines; candidates: ${candidates.join(' | ') || 'none'}`);
+    await sleep(2000);
+  }
+  return { items, query: `per city: rel${TRANSIT_ROUTE}[name|network ~ ${METRO_NAME}]`, cities };
+}
+
 const jobs = {
   orangeline: () => routeStops({ filter: '["route"~"^(subway|light_rail|train)$"]["name"~"Orange",i]', line: 'orangeline', code: 'OL' }),
   metrobus: () => routeStops({ filter: '["route"="bus"]["name"~"Metro ?bus",i]["name"!~"feeder",i]', line: 'metrobus', code: 'MB' }),
   hospitals: () => poi('["amenity"="hospital"]', 'hospital'),
-  fuel: () => poi('["amenity"="fuel"]', 'fuel')
+  fuel: () => poi('["amenity"="fuel"]', 'fuel'),
+  lines: metroLines
 };
 
 // Refuse to overwrite good data with a suspiciously small result (a partial or failed query)
-const MIN = { orangeline: 10, metrobus: 10, hospitals: 10, fuel: 10 };
+const MIN = { orangeline: 10, metrobus: 10, hospitals: 10, fuel: 10, lines: 1 };
 
 await mkdir(OUT, { recursive: true });
 for (const [name, job] of Object.entries(jobs)) {
   const { items, query, ...extra } = await job();
   if (items.length < MIN[name]) throw new Error(`${name}: only ${items.length} items (expected at least ${MIN[name]}); not writing`);
-  await writeFile(new URL(`${name}.json`, OUT), JSON.stringify(withMeta(items, { fetchedAt, bbox: BBOX, query, ...extra }), null, 1) + '\n');
+  await writeFile(new URL(`${name}.json`, OUT), JSON.stringify(withMeta(items, { fetchedAt, bbox: extra.cities ? null : BBOX, query, ...extra }), null, 1) + '\n');
   console.log(`${name}: ${items.length} items${extra.relationName ? ` (${extra.relationName})` : ''}`);
   await new Promise((r) => setTimeout(r, 2000)); // be polite to the public server
 }
