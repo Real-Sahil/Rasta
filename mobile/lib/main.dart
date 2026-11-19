@@ -1,0 +1,109 @@
+import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'l10n.dart';
+import 'state/app_state.dart';
+import 'ui/map_screen.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+  runApp(const BuraqApp());
+}
+
+class BuraqApp extends StatefulWidget {
+  const BuraqApp({super.key});
+  @override
+  State<BuraqApp> createState() => _BuraqAppState();
+}
+
+class _BuraqAppState extends State<BuraqApp> {
+  final AppState app = AppState();
+
+  @override
+  void initState() {
+    super.initState();
+    app.init();
+  }
+
+  @override
+  void dispose() {
+    app.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) => MaterialApp(
+        title: tr(app.lang, 'appName'),
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(colorSchemeSeed: const Color(0xFF059669), useMaterial3: true),
+        builder: (context, child) => Directionality(textDirection: isRtl(app.lang) ? TextDirection.rtl : TextDirection.ltr, child: child!),
+        home: SafetyGate(app: app, child: MapScreen(app: app)),
+      ),
+    );
+  }
+}
+
+/// First-run driving-safety notice; stays dismissed once acknowledged.
+class SafetyGate extends StatefulWidget {
+  const SafetyGate({super.key, required this.app, required this.child});
+  final AppState app;
+  final Widget child;
+  @override
+  State<SafetyGate> createState() => _SafetyGateState();
+}
+
+class _SafetyGateState extends State<SafetyGate> {
+  bool? _ack;
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((p) {
+      if (mounted) setState(() => _ack = p.getBool('safetyAck') ?? false);
+    }).catchError((_) {
+      if (mounted) setState(() => _ack = false);
+    });
+  }
+
+  Future<void> _accept() async {
+    setState(() => _ack = true);
+    try {
+      (await SharedPreferences.getInstance()).setBool('safetyAck', true);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_ack == null) return const Scaffold(body: SizedBox.shrink());
+    if (_ack == true) return widget.child;
+    final lang = widget.app.lang;
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(tr(lang, 'appName'), style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              Text(tr(lang, 'driveSafe'), style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              Wrap(alignment: WrapAlignment.center, spacing: 8, children: [
+                for (final l in supportedLangs)
+                  ChoiceChip(label: Text(l == 'en' ? 'English' : (l == 'ur' ? 'اردو' : 'پنجابی')), selected: lang == l, onSelected: (_) => widget.app.setLang(l)),
+              ]),
+              const SizedBox(height: 24),
+              FilledButton(onPressed: _accept, child: Text(tr(lang, 'ok'))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

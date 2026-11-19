@@ -1,0 +1,459 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:maplibre_gl/maplibre_gl.dart' as ml;
+import 'package:material_ui/material_ui.dart';
+import 'package:share_plus/share_plus.dart';
+
+import '../core/geo.dart';
+import '../core/navigation.dart';
+import '../core/share_trip.dart';
+import '../core/voice.dart';
+import '../l10n.dart';
+import '../services/gps_service.dart';
+import '../services/search_service.dart';
+import '../state/app_state.dart';
+
+const _style = 'https://tiles.openfreemap.org/styles/liberty';
+
+ml.LatLng _ll(LatLng p) => ml.LatLng(p.lat, p.lng);
+
+/// Point [meters] ahead of [p] along [bearing] (degrees). Used to keep the vehicle low on screen while driving.
+LatLng pointAhead(LatLng p, double bearing, double meters) {
+  final b = bearing * math.pi / 180;
+  final dLat = meters * math.cos(b) / 111195;
+  final dLng = meters * math.sin(b) / (111195 * math.cos(p.lat * math.pi / 180));
+  return LatLng(p.lat + dLat, p.lng + dLng);
+}
+
+class MapScreen extends StatefulWidget {
+  const MapScreen({super.key, required this.app});
+  final AppState app;
+  @override
+  State<MapScreen> createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  ml.MapLibreMapController? _map;
+  bool _styleReady = false;
+  ml.Line? _routeLine;
+  String? _routeLineId;
+  ml.Circle? _vehicle;
+  bool _freeLook = false;
+  Timer? _freeLookTimer;
+  Offset? _pointerStart;
+  bool _centeredOnce = false;
+  double _bearing = 0;
+
+  AppState get app => widget.app;
+
+  @override
+  void initState() {
+    super.initState();
+    app.addListener(_sync);
+  }
+
+  @override
+  void dispose() {
+    app.removeListener(_sync);
+    _freeLookTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _sync() async {
+    final map = _map;
+    final logicalHeight = mounted ? MediaQuery.of(context).size.height : 800.0;
+    if (map == null || !_styleReady || !mounted) return;
+    try {
+      // route line (re-drawn only when the route identity changes)
+      final r = app.route;
+      if (r?.id != _routeLineId) {
+        if (_routeLine != null) await map.removeLine(_routeLine!);
+        _routeLine = null;
+        _routeLineId = r?.id;
+        if (r != null) {
+          _routeLine = await map.addLine(ml.LineOptions(geometry: r.path.map(_ll).toList(), lineColor: '#059669', lineWidth: 6, lineOpacity: 0.9));
+          if (!app.navigating) await _fitRoute(r.path);
+        }
+      }
+      // vehicle dot
+      final v = app.vehicle;
+      if (v != null) {
+        final opts = ml.CircleOptions(geometry: _ll(v), circleRadius: 9, circleColor: '#2563eb', circleStrokeColor: '#ffffff', circleStrokeWidth: 3);
+        if (_vehicle == null) {
+          _vehicle = await map.addCircle(opts);
+        } else {
+          await map.updateCircle(_vehicle!, opts);
+        }
+        if (!_centeredOnce && !app.navigating && app.route == null) {
+          _centeredOnce = true;
+          await map.animateCamera(ml.CameraUpdate.newLatLngZoom(_ll(v), 15));
+        }
+      }
+      // camera follow while driving
+      if (app.navigating && !_freeLook && v != null) {
+        final h = app.fix?.heading;
+        final speed = app.fix?.speed;
+        if (h != null && (speed == null || speed >= 1)) _bearing = h; // ignore compass noise when stopped
+        const zoom = 17.0;
+        final mpp = 156543.03 * math.cos(v.lat * math.pi / 180) / math.pow(2, zoom);
+        final target = pointAhead(v, _bearing, mpp * logicalHeight * 0.22); // vehicle sits ~22% below centre
+        await map.animateCamera(
+          ml.CameraUpdate.newCameraPosition(ml.CameraPosition(target: _ll(target), zoom: zoom, bearing: _bearing, tilt: 45)),
+          duration: const Duration(milliseconds: 900),
+        );
+      }
+    } catch (_) {
+      // map calls can fail while the platform view is being torn down; the next update retries
+    }
+  }
+
+  Future<void> _fitRoute(List<LatLng> path) async {
+    if (path.isEmpty || _map == null) return;
+    var minLat = path.first.lat, maxLat = path.first.lat, minLng = path.first.lng, maxLng = path.first.lng;
+    for (final p in path) {
+      minLat = math.min(minLat, p.lat);
+      maxLat = math.max(maxLat, p.lat);
+      minLng = math.min(minLng, p.lng);
+      maxLng = math.max(maxLng, p.lng);
+    }
+    await _map!.animateCamera(ml.CameraUpdate.newLatLngBounds(
+      ml.LatLngBounds(southwest: ml.LatLng(minLat, minLng), northeast: ml.LatLng(maxLat, maxLng)),
+      left: 40, right: 40, top: 220, bottom: 260,
+    ));
+  }
+
+  void _enterFreeLook() {
+    if (!app.navigating) return;
+    setState(() => _freeLook = true);
+    _freeLookTimer?.cancel();
+    _freeLookTimer = Timer(const Duration(seconds: 10), _recenter);
+  }
+
+  void _recenter() {
+    _freeLookTimer?.cancel();
+    if (mounted) setState(() => _freeLook = false);
+    _sync();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        final lang = app.lang;
+        return Scaffold(
+          body: Stack(children: [
+            Listener(
+              onPointerDown: (e) => _pointerStart = e.position,
+              onPointerMove: (e) {
+                final s = _pointerStart;
+                if (s != null && (e.position - s).distance > 12) _enterFreeLook();
+              },
+              child: ml.MapLibreMap(
+                styleString: _style,
+                initialCameraPosition: const ml.CameraPosition(target: ml.LatLng(30.3753, 69.3451), zoom: 4.5), // whole of Pakistan, not a city
+                onMapCreated: (c) => _map = c,
+                onStyleLoadedCallback: () {
+                  _styleReady = true;
+                  _sync();
+                },
+                compassEnabled: false,
+                attributionButtonPosition: ml.AttributionButtonPosition.bottomLeft,
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: app.navigating ? NavHud(app: app) : SearchPanel(app: app),
+              ),
+            ),
+            if (_freeLook && app.navigating)
+              Positioned(
+                bottom: 24,
+                left: 0,
+                right: 0,
+                child: Center(child: FilledButton.icon(onPressed: _recenter, icon: const Icon(Icons.navigation), label: Text(tr(lang, 'recenter')))),
+              ),
+            if (!app.navigating && app.route != null) Align(alignment: Alignment.bottomCenter, child: RouteSheet(app: app)),
+            if (app.gpsProblem != GpsProblem.none && !app.navigating)
+              Positioned(left: 12, right: 12, bottom: app.route != null ? 190 : 24, child: _Notice(text: tr(lang, 'permission'))),
+          ]),
+        );
+      },
+    );
+  }
+}
+
+class _Notice extends StatelessWidget {
+  const _Notice({required this.text});
+  final String text;
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.amber.shade100,
+        elevation: 3,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(padding: const EdgeInsets.all(12), child: Text(text, style: const TextStyle(color: Colors.black87))),
+      );
+}
+
+String formatDistance(double m, String lang) =>
+    m >= 1000 ? '${(m / 1000).toStringAsFixed(1)} ${tr(lang, 'km')}' : '${(m / 10).round() * 10} ${tr(lang, 'm')}';
+String formatMinutes(int s, String lang) => '${math.max(1, (s / 60).round())} ${tr(lang, 'min')}';
+
+// ------------------------------------------------------------------ search
+class SearchPanel extends StatefulWidget {
+  const SearchPanel({super.key, required this.app});
+  final AppState app;
+  @override
+  State<SearchPanel> createState() => _SearchPanelState();
+}
+
+class _SearchPanelState extends State<SearchPanel> {
+  final _to = TextEditingController();
+  final _from = TextEditingController();
+  List<Place> _results = const [];
+  bool _forFrom = false;
+  Timer? _debounce;
+  String? _error;
+
+  AppState get app => widget.app;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _to.dispose();
+    _from.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String q, bool forFrom) {
+    _forFrom = forFrom;
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 450), () async {
+      try {
+        final r = await app.search.search(q, near: app.fix?.point);
+        if (r == null || !mounted) return;
+        setState(() {
+          _results = r;
+          _error = r.isEmpty && q.trim().length >= 2 ? 'noResults' : null;
+        });
+      } catch (_) {
+        if (mounted) setState(() => _error = 'offline');
+      }
+    });
+  }
+
+  Future<void> _pick(Place p) async {
+    FocusScope.of(context).unfocus();
+    setState(() => _results = const []);
+    if (_forFrom) {
+      _from.text = p.name;
+      await app.setOrigin(p);
+    } else {
+      _to.text = p.name;
+      await app.setDestination(p);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lang = app.lang;
+    final hasRoute = app.destination != null;
+    // keep the "from" text in step with the state (cleared route, "your location")
+    if (!hasRoute && (_to.text.isNotEmpty || _from.text.isNotEmpty)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _to.clear();
+        _from.clear();
+      });
+    }
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            if (hasRoute)
+              Row(children: [
+                const Icon(Icons.my_location, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _from,
+                    decoration: InputDecoration(hintText: app.origin == null ? tr(lang, 'yourLocation') : tr(lang, 'fromHint'), border: InputBorder.none, isDense: true),
+                    onChanged: (q) => _onChanged(q, true),
+                  ),
+                ),
+                if (app.origin != null)
+                  IconButton(
+                    tooltip: tr(lang, 'yourLocation'),
+                    icon: const Icon(Icons.gps_fixed),
+                    onPressed: () {
+                      _from.clear();
+                      app.setOrigin(null);
+                    },
+                  ),
+              ]),
+            Row(children: [
+              const Icon(Icons.place, size: 20, color: Colors.red),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _to,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(hintText: tr(lang, 'searchHint'), border: InputBorder.none, isDense: true),
+                  onChanged: (q) => _onChanged(q, false),
+                ),
+              ),
+              if (hasRoute) ...[
+                IconButton(tooltip: tr(lang, 'swap'), icon: const Icon(Icons.swap_vert), onPressed: () async {
+                  await app.swap();
+                  _to.text = app.destination?.name == 'me' ? tr(lang, 'yourLocation') : (app.destination?.name ?? '');
+                  _from.text = app.origin?.name == 'me' ? '' : (app.origin?.name ?? '');
+                }),
+                IconButton(tooltip: tr(lang, 'clear'), icon: const Icon(Icons.close), onPressed: app.clear),
+              ],
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.translate),
+                onSelected: app.setLang,
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'en', child: Text('English')),
+                  PopupMenuItem(value: 'ur', child: Text('اردو')),
+                  PopupMenuItem(value: 'pa', child: Text('پنجابی')),
+                ],
+              ),
+            ]),
+          ]),
+        ),
+      ),
+      if (_results.isNotEmpty)
+        Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(14),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 300),
+            child: ListView(shrinkWrap: true, padding: EdgeInsets.zero, children: [
+              for (final p in _results) ListTile(dense: true, leading: const Icon(Icons.place_outlined), title: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis), subtitle: Text(p.detail, maxLines: 1, overflow: TextOverflow.ellipsis), onTap: () => _pick(p)),
+            ]),
+          ),
+        ),
+      if (_error != null && _results.isEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, _error!))),
+    ]);
+  }
+}
+
+// ------------------------------------------------------------------ route sheet
+class RouteSheet extends StatelessWidget {
+  const RouteSheet({super.key, required this.app});
+  final AppState app;
+
+  @override
+  Widget build(BuildContext context) {
+    final lang = app.lang;
+    final r = app.route!;
+    final support = app.speech.support(app.voiceLang);
+    return Material(
+      elevation: 8,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (app.routes.length > 1)
+              Wrap(spacing: 8, children: [
+                for (var i = 0; i < app.routes.length; i++) ChoiceChip(label: Text('${app.routes[i].durationMinutes} ${tr(lang, 'min')}'), selected: app.selected == i, onSelected: (_) => app.selectRoute(i)),
+              ]),
+            const SizedBox(height: 6),
+            Text('${r.durationMinutes} ${tr(lang, 'min')}  ·  ${r.distanceKm} ${tr(lang, 'km')}', style: Theme.of(context).textTheme.headlineSmall),
+            Text(lang == 'en' ? r.via : r.viaUrdu, maxLines: 2, overflow: TextOverflow.ellipsis),
+            if (app.noticeKey != null) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, app.noticeKey!))),
+            if (support.status == VoiceStatus.none) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, 'noVoice'))),
+            if (support.status == VoiceStatus.approximate) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, 'approxVoice'))),
+            if (lang != 'en') Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr(lang, 'draft'), style: Theme.of(context).textTheme.bodySmall)),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: app.loadingRoutes ? null : () => app.startNavigation(),
+                icon: const Icon(Icons.navigation),
+                label: Text(tr(lang, 'start')),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+// ------------------------------------------------------------------ driving HUD
+class NavHud extends StatelessWidget {
+  const NavHud({super.key, required this.app});
+  final AppState app;
+
+  IconData _icon(String m) => switch (m) {
+        'turn-left' => Icons.turn_left,
+        'turn-right' => Icons.turn_right,
+        'u-turn' => Icons.u_turn_left,
+        'roundabout' => Icons.roundabout_left,
+        'merge' => Icons.merge,
+        'arrive' => Icons.flag,
+        _ => Icons.arrow_upward,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final lang = app.lang;
+    final s = app.session;
+    final r = app.route;
+    if (s == null || r == null) return const SizedBox.shrink();
+    final arrived = s.status == NavStatus.arrived;
+    final off = s.status == NavStatus.offRoute;
+    final step = r.steps.isEmpty ? null : r.steps[s.upcomingStepIndex.clamp(0, r.steps.length - 1)];
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Material(
+        color: const Color(0xFF065F46),
+        elevation: 6,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            Icon(arrived ? Icons.flag : _icon(step?.maneuver ?? 'straight'), color: Colors.white, size: 44),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(arrived ? tr(lang, 'arrived') : (off ? tr(lang, 'offRoute') : formatDistance(s.distanceToManeuverM, lang)), style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                if (!arrived && !off && step != null) Text(lang == 'en' ? step.instruction : step.instructionUrdu, style: const TextStyle(color: Colors.white70, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(children: [
+            Expanded(child: Text('${formatMinutes(s.remainingS, lang)}  ·  ${formatDistance(s.remainingM, lang)}', style: Theme.of(context).textTheme.titleMedium)),
+            IconButton(tooltip: tr(lang, app.muted ? 'unmute' : 'mute'), icon: Icon(app.muted ? Icons.volume_off : Icons.volume_up), onPressed: app.toggleMute),
+            IconButton(
+              tooltip: tr(lang, 'share'),
+              icon: const Icon(Icons.share),
+              onPressed: () {
+                final pos = app.vehicle;
+                if (pos == null) return;
+                final text = buildTripShareText(tr(lang, 'shareMsg'), dest: app.destination?.name ?? '', remainingS: s.remainingS, pos: pos);
+                SharePlus.instance.share(ShareParams(text: text)); // one-off snapshot, not live tracking
+              },
+            ),
+            IconButton(tooltip: tr(lang, 'clear'), icon: const Icon(Icons.close), onPressed: app.clear),
+          ]),
+        ),
+      ),
+    ]);
+  }
+}
