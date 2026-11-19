@@ -72,7 +72,11 @@ async function metroLines() {
   const items = [];
   const cities = {};
   for (const [city, bbox] of Object.entries(METRO_CITIES)) {
-    const q = `[out:json][timeout:120];(rel${TRANSIT_ROUTE}["name"~"${METRO_NAME}",i](${bbox});rel${TRANSIT_ROUTE}["network"~"${METRO_NAME}",i](${bbox});rel${TRANSIT_ROUTE}["operator"~"${METRO_OPERATOR}",i](${bbox});)->.r;(.r;node(r.r);way(r.r)["public_transport"];way(r.r)["railway"="platform"];way(r.r)["highway"="platform"];rel(br.r)["type"="route_master"];);out body center;`;
+    const sel = (k) => `rel${TRANSIT_ROUTE}["${k}"~"${METRO_NAME}",i](${bbox});`;
+    const q = `[out:json][timeout:150];(${sel('name')}${sel('network')}rel${TRANSIT_ROUTE}["operator"~"${METRO_OPERATOR}",i](${bbox});)->.r;` +
+      `.r out geom;rel(br.r)["type"="route_master"];out body;` +
+      `(node(r.r);nwr["public_transport"="station"](${bbox});nwr["public_transport"~"^(platform|stop_position)$"]["name"~"${METRO_NAME}",i](${bbox});` +
+      `nwr["public_transport"~"^(platform|stop_position)$"]["network"~"${METRO_NAME}",i](${bbox}););out center;`;
     let els;
     try {
       els = await overpass(q);
@@ -81,10 +85,13 @@ async function metroLines() {
       cities[city] = { bbox, failed: true };
       continue;
     }
-    const lines = pickLines(els, city);
+    const stations = els.filter((e) => e.tags?.public_transport || e.tags?.highway === 'bus_stop');
+    const lines = pickLines(els, city, { stations });
     // what OSM had, for review: every candidate relation name, so a missing line can be traced
     const candidates = [...new Set(els.filter((e) => e.type === 'relation' && e.tags?.type === 'route').map((e) => e.tags.name).filter(Boolean))].sort();
-    cities[city] = { bbox, lines: lines.map((l) => `${l.name} (${l.stations.length})`), candidates };
+    cities[city] = { bbox, lines: lines.map((l) => `${l.name} (${l.stations.length}, from ${l.stopsFrom})`), candidates };
+    console.log(`    stations in the box: ${stations.length}${lines.length ? '' : `: ${[...new Set(stations.map((x) => x.tags?.name).filter(Boolean))].slice(0, 60).join(' | ')}`}`);
+    for (const l of lines) console.log(`    ${l.name} [${l.stopsFrom}]: ${l.stations.map((x) => x.name).join(' > ')}`);
     for (const r of els.filter((e) => e.type === 'relation' && e.tags?.type === 'route')) console.log(`    ${describeRoute(r, els)}`);
     items.push(...lines);
     console.log(`  ${city}: ${lines.length} lines; candidates: ${candidates.join(' | ') || 'none'}`);

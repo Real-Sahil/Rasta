@@ -72,6 +72,68 @@ export const withMeta = (items, meta) => ({
   items
 });
 
+
+// --- Lines drawn as a track only (no stop members): stations are matched to the track geometry. ---
+const M_PER_DEG = 111_320;
+const toXY = (lat0) => (p) => [p.lon * M_PER_DEG * Math.cos((lat0 * Math.PI) / 180), p.lat * M_PER_DEG];
+const where = (e) => (e.type === 'way' || e.type === 'relation' ? e.center : e);
+
+/**
+ * The route's way members chained into one polyline (member order, each way flipped to connect).
+ * Returns null when the chain has more than `maxGaps` breaks over 300 m: then the order along it can't be trusted.
+ */
+export function trackOf(relation, { maxGaps = 2 } = {}) {
+  const ways = (relation.members ?? []).filter((m) => m.type === 'way' && !/platform/.test(m.role ?? '') && m.geometry?.length >= 2);
+  if (!ways.length) return null;
+  const lat0 = ways[0].geometry[0].lat;
+  const xy = toXY(lat0);
+  const d = (a, b) => Math.hypot(xy(a)[0] - xy(b)[0], xy(a)[1] - xy(b)[1]);
+  let line = [...ways[0].geometry];
+  if (ways[1]) {
+    const g = ways[1].geometry, first = line[0], last = line[line.length - 1];
+    const near = (p) => Math.min(d(p, g[0]), d(p, g[g.length - 1]));
+    if (near(first) < near(last)) line.reverse();
+  }
+  let gaps = 0;
+  for (const w of ways.slice(1)) {
+    const end = line[line.length - 1];
+    let g = w.geometry;
+    if (d(end, g[g.length - 1]) < d(end, g[0])) g = [...g].reverse();
+    if (d(end, g[0]) > 300) gaps++;
+    line = line.concat(g);
+  }
+  return gaps > maxGaps ? null : line;
+}
+
+/** Stations within `maxM` of the track, ordered by distance along it; one per name (the closest). */
+export function stationsAlong(track, candidates, { maxM = 200 } = {}) {
+  if (!track || track.length < 2) return [];
+  const xy = toXY(track[0].lat);
+  const pts = track.map(xy);
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const best = new Map();
+  for (const c of candidates) {
+    const at = where(c);
+    const name = c.tags?.name || c.tags?.['name:en'];
+    if (!name || !at || !Number.isFinite(at.lat) || !Number.isFinite(at.lon)) continue;
+    const [px, py] = xy(at);
+    let off = Infinity, along = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
+      const L2 = (bx - ax) ** 2 + (by - ay) ** 2;
+      const t = L2 ? Math.max(0, Math.min(1, ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / L2)) : 0;
+      const dd = Math.hypot(px - (ax + t * (bx - ax)), py - (ay + t * (by - ay)));
+      if (dd < off) { off = dd; along = cum[i - 1] + t * Math.sqrt(L2); }
+    }
+    if (off > maxM) continue;
+    const key = name.trim().toLowerCase();
+    const prev = best.get(key);
+    if (!prev || off < prev.off) best.set(key, { e: { ...c, lat: at.lat, lon: at.lon }, off, along });
+  }
+  return [...best.values()].sort((a, b) => a.along - b.along).map((x) => x.e);
+}
+
 /** Line name without the direction part OSM adds to each variant ("Green Line BRT: Surjani => Numaish" -> "Green Line BRT"). */
 export const baseLineName = (name) => String(name ?? '').split(/\s*(?::|=>|→|->|⇒)\s*/)[0].trim();
 
@@ -83,7 +145,7 @@ const slug = (s) => String(s).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]
  * the variant with the most named stops is kept. Feeder routes and lines with fewer than `minStops` are dropped.
  * Everything comes from OSM tags; missing values stay null.
  */
-export function pickLines(elements, city, { minStops = 5 } = {}) {
+export function pickLines(elements, city, { minStops = 5, stations = [] } = {}) {
   const routes = elements.filter((e) => e.type === 'relation' && e.tags?.type === 'route');
   const masters = elements.filter((e) => e.type === 'relation' && e.tags?.type === 'route_master');
   const masterOf = new Map();
@@ -93,13 +155,17 @@ export function pickLines(elements, city, { minStops = 5 } = {}) {
     if (/feeder/i.test(r.tags?.name ?? '')) continue;
     const m = masterOf.get(r.id);
     const key = m ? `m${m.id}` : r.tags?.ref ? `ref:${r.tags.ref}` : `n:${baseLineName(r.tags?.name).toLowerCase()}`;
-    const stops = orderedStops(r, elements);
+    let stops = orderedStops(r, elements), from = 'relation';
+    if (stops.length < minStops && stations.length) {
+      const along = stationsAlong(trackOf(r), stations);
+      if (along.length > stops.length) { stops = along; from = 'track'; }
+    }
     const g = groups.get(key);
-    if (!g || stops.length > g.stops.length) groups.set(key, { r, m, stops });
+    if (!g || stops.length > g.stops.length) groups.set(key, { r, m, stops, from });
   }
   const lines = [];
   const used = new Set();
-  for (const { r, m, stops } of groups.values()) {
+  for (const { r, m, stops, from } of groups.values()) {
     if (stops.length < minStops) continue;
     const t = { ...(r.tags ?? {}), ...(m?.tags ?? {}) }; // master tags win (they name the line, not a direction)
     const name = baseLineName(pick(t, 'name:en', 'name') ?? r.tags?.ref);
@@ -117,6 +183,7 @@ export function pickLines(elements, city, { minStops = 5 } = {}) {
       mode: r.tags?.route ?? null,
       operator: t.operator ?? null,
       relation: `relation/${r.id}`,
+      stopsFrom: from, // 'relation' = the route's own stop members; 'track' = named stations matched to the drawn track
       stations: stops.map((n, i) => ({
         id: `${id}_${String(i + 1).padStart(2, '0')}`,
         name: pick(n.tags, 'name:en', 'name'),
