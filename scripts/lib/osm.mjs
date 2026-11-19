@@ -134,6 +134,65 @@ export function stationsAlong(track, candidates, { maxM = 200 } = {}) {
   return [...best.values()].sort((a, b) => a.along - b.along).map((x) => x.e);
 }
 
+/** Every vertex of the route's road ways, unordered: enough to tell which stations sit on the line. */
+export const trackPoints = (relation) =>
+  (relation.members ?? []).filter((m) => m.type === 'way' && !/platform/.test(m.role ?? '')).flatMap((m) => m.geometry ?? []);
+
+/**
+ * Stations within `maxM` of an unordered track, ordered by a nearest-neighbour chain from one end of the line
+ * (the end of the farthest-apart pair). Used only when the ways can't be chained; good for a single line, not a loop.
+ */
+export function stationsNearTrack(points, candidates, { maxM = 200 } = {}) {
+  if (!points.length) return [];
+  const xy = toXY(points[0].lat);
+  const P = points.map(xy);
+  const best = new Map();
+  for (const c of candidates) {
+    const at = where(c);
+    const name = c.tags?.name || c.tags?.['name:en'];
+    if (!name || !at || !Number.isFinite(at.lat)) continue;
+    const [x, y] = xy(at);
+    let off = Infinity;
+    for (const [px, py] of P) off = Math.min(off, Math.hypot(px - x, py - y));
+    if (off > maxM) continue;
+    const key = name.trim().toLowerCase();
+    if (!best.has(key) || off < best.get(key).off) best.set(key, { e: { ...c, lat: at.lat, lon: at.lon }, off, p: [x, y] });
+  }
+  const left = [...best.values()];
+  if (left.length < 2) return left.map((x) => x.e);
+  const dist = (a, b) => Math.hypot(a.p[0] - b.p[0], a.p[1] - b.p[1]);
+  let start = left[0], far = 0;
+  for (const a of left) for (const b of left) if (dist(a, b) > far) { far = dist(a, b); start = a; }
+  const out = [start];
+  left.splice(left.indexOf(start), 1);
+  while (left.length) {
+    const last = out[out.length - 1];
+    let k = 0;
+    for (let i = 1; i < left.length; i++) if (dist(last, left[i]) < dist(last, left[k])) k = i;
+    out.push(left.splice(k, 1)[0]);
+  }
+  return out.map((x) => x.e);
+}
+
+// Words OSM mappers add to every station of a line ("Gulgasht Metrobus", "Metro Bus Terminal Faizabad").
+const LINE_WORDS = /\b(metro\s*bus\s*(terminal|station|stop)|metro\s*(station|stop)|metro\s*bus|metrobus|brt\s*(station|stop))\b/i;
+
+/**
+ * Keep only the stations that carry the line's own word when most of them do (drops a nearby bus stand),
+ * and show the name without that repeated word. The OSM name is kept as `osmName`.
+ */
+export function tidyLineStations(stations) {
+  const named = stations.map((e) => ({ e, name: e.tags?.['name:en'] || e.tags?.name || '' }));
+  const tagged = named.filter((x) => LINE_WORDS.test(x.name));
+  const keep = tagged.length >= Math.max(3, named.length * 0.6) ? tagged : named;
+  const cut = (n) => n.replace(LINE_WORDS, ' ').replace(/\s*[-–]\s*$|^\s*[-–]\s*/g, '').replace(/\s+/g, ' ').trim() || n;
+  return keep.map(({ e, name }) => ({
+    ...e,
+    tags: { ...e.tags, ...(e.tags?.name ? { name: cut(e.tags.name) } : {}), ...(e.tags?.['name:en'] ? { 'name:en': cut(e.tags['name:en']) } : {}) },
+    osmName: name
+  }));
+}
+
 /** Line name without the direction part OSM adds to each variant ("Green Line BRT: Surjani => Numaish" -> "Green Line BRT"). */
 export const baseLineName = (name) => String(name ?? '').split(/\s*(?::|=>|→|->|⇒)\s*/)[0].trim();
 
@@ -157,8 +216,9 @@ export function pickLines(elements, city, { minStops = 5, stations = [] } = {}) 
     const key = m ? `m${m.id}` : r.tags?.ref ? `ref:${r.tags.ref}` : `n:${baseLineName(r.tags?.name).toLowerCase()}`;
     let stops = orderedStops(r, elements), from = 'relation';
     if (stops.length < minStops && stations.length) {
-      const along = stationsAlong(trackOf(r), stations);
-      if (along.length > stops.length) { stops = along; from = 'track'; }
+      const track = trackOf(r);
+      const along = tidyLineStations(track ? stationsAlong(track, stations) : stationsNearTrack(trackPoints(r), stations));
+      if (along.length > stops.length) { stops = along; from = track ? 'track' : 'track-unordered'; }
     }
     const g = groups.get(key);
     if (!g || stops.length > g.stops.length) groups.set(key, { r, m, stops, from });
@@ -187,6 +247,7 @@ export function pickLines(elements, city, { minStops = 5, stations = [] } = {}) 
       stations: stops.map((n, i) => ({
         id: `${id}_${String(i + 1).padStart(2, '0')}`,
         name: pick(n.tags, 'name:en', 'name'),
+        ...(n.osmName ? { osmName: n.osmName } : {}),
         nameUrdu: n.tags?.['name:ur'] ?? null,
         line: id,
         lat: n.lat,
