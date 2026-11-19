@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../l10n.dart';
 import '../state/app_state.dart';
+import 'chamak.dart';
 import 'conditions_card.dart';
 import 'legal_screen.dart';
 
@@ -35,13 +36,13 @@ class InfoScreen extends StatelessWidget {
           selected: {app.themeMode},
           onSelectionChanged: (s) => app.setThemeMode(s.first),
         ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(tr(lang, 'skinLabel')),
-          subtitle: Text(tr(lang, 'skinNote')),
-          value: app.chamak,
-          onChanged: app.setChamak,
-        ),
+        const SizedBox(height: 12),
+        Text(tr(lang, 'skinLabel'), style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 4, children: [
+          for (final k in kSkins)
+            ChoiceChip(label: Text(k == 'standard' ? tr(lang, 'skinDefault') : kSkinNames[k]!), selected: app.skin == k, onSelected: (_) => app.setSkin(k)),
+        ]),
         const SizedBox(height: 8),
         ConditionsCard(app: app),
         const SizedBox(height: 8),

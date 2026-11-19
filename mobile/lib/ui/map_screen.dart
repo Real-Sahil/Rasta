@@ -519,29 +519,41 @@ class NavHud extends StatelessWidget {
     final arrived = s.status == NavStatus.arrived;
     final off = s.status == NavStatus.offRoute;
     final step = r.steps.isEmpty ? null : r.steps[s.upcomingStepIndex.clamp(0, r.steps.length - 1)];
-    final ck = app.chamak;
-    final light = Theme.of(context).brightness == Brightness.light;
+    final skinned = app.skin != 'standard';
+    final isCk = app.skin == 'chamak';
+    final pal = skinPalette(app.skin, Theme.of(context).brightness);
     // Quieter at speed: past 30 km/h the decoration shrinks so only the turn and distance stand out.
     final speedKmh = app.fix?.speed == null ? null : app.fix!.speed! * 3.6;
-    final calm = ck && speedKmh != null && speedKmh >= 30;
-    final cardBg = ck ? (light ? kChamakIvory : kChamakInk) : const Color(0xFF065F46);
-    final sub = ck ? (light ? const Color(0xFF3B3B40) : Colors.white70) : Colors.white70;
-    final dist = ck ? (light ? const Color(0xFF8A5A00) : kChamakGold) : Colors.white;
-    final icon = Icon(arrived ? Icons.flag : _icon(step?.maneuver ?? 'straight'), color: Colors.white, size: ck ? 40 : 44);
+    final calm = isCk && speedKmh != null && speedKmh >= 30;
+    final cardBg = skinned ? pal.card : const Color(0xFF065F46);
+    final sub = skinned ? pal.sub : Colors.white70;
+    final dist = skinned ? pal.accent : Colors.white;
+    final radius = app.skin == 'schematic' ? 4.0 : (app.skin == 'miniature' ? 10.0 : 16.0);
+    final icon = Icon(arrived ? Icons.flag : _icon(step?.maneuver ?? 'straight'), color: skinned ? pal.onBadge : Colors.white, size: skinned ? 40 : 44);
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Material(
         color: cardBg,
         elevation: 6,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: skinned ? null : BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
-        shape: ck ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: light ? const Color(0xFFC99400) : kChamakGold, width: 2)) : null,
+        shape: skinned ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius), side: BorderSide(color: pal.accent, width: 2)) : null,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          if (ck) ChamakStrip(height: calm ? 4 : 10, opacity: calm ? 0.5 : 1),
+          if (isCk) ChamakStrip(height: calm ? 4 : 10, opacity: calm ? 0.5 : 1),
           Padding(
             padding: const EdgeInsets.all(14),
             child: Row(children: [
-              if (ck)
-                Container(width: 56, height: 56, decoration: BoxDecoration(color: kChamakRed, borderRadius: BorderRadius.circular(16), border: Border.all(color: kChamakGold, width: 2)), child: icon)
+              if (skinned)
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: pal.badge,
+                    shape: app.skin == 'luce' ? BoxShape.circle : BoxShape.rectangle,
+                    borderRadius: app.skin == 'luce' ? null : BorderRadius.circular(app.skin == 'schematic' ? 0 : 16),
+                    border: Border.all(color: pal.accent, width: 2),
+                  ),
+                  child: icon,
+                )
               else
                 icon,
               const SizedBox(width: 12),

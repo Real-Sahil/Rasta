@@ -12,17 +12,17 @@ void main() {
   test('skin and theme default to off/system and persist', () async {
     SharedPreferences.setMockInitialValues({});
     final a = AppState();
-    expect(a.chamak, isFalse);
+    expect(a.skin, 'standard');
     expect(a.themeMode, ThemeMode.system);
-    await a.setChamak(true);
+    await a.setSkin('luce');
     await a.setThemeMode(ThemeMode.dark);
     final p = await SharedPreferences.getInstance();
-    expect(p.getBool('skinChamak'), isTrue);
+    expect(p.getString('skin'), 'luce');
     expect(p.getString('themeMode'), 'dark');
   });
 
   test('new strings exist in en/ur/pa', () {
-    for (final k in ['themeLabel', 'themeAuto', 'themeLight', 'themeDark', 'skinLabel', 'skinNote', 'diagList', 'diagDiagram', 'diagNote', 'diagBoard', 'diagAlight']) {
+    for (final k in ['themeLabel', 'themeAuto', 'themeLight', 'themeDark', 'skinLabel', 'diagList', 'diagDiagram', 'diagNote', 'diagBoard', 'diagAlight']) {
       final en = tr('en', k);
       expect(en, isNot(k));
       for (final l in ['ur', 'pa']) {
@@ -31,12 +31,20 @@ void main() {
     }
   });
 
-  test('chamak theme keeps contrast: white text on red primary', () {
-    for (final b in [Brightness.light, Brightness.dark]) {
-      final t = buildTheme(chamak: true, brightness: b);
-      expect(t.colorScheme.primary, kChamakRed);
-      expect(t.colorScheme.onPrimary, Colors.white);
-      expect(t.brightness, b);
+  test('every skin keeps readable text in light and dark', () {
+    double lum(Color c) => c.computeLuminance();
+    double ratio(Color a, Color b) {
+      final x = lum(a), y = lum(b);
+      return (x > y ? x + 0.05 : y + 0.05) / (x > y ? y + 0.05 : x + 0.05);
+    }
+    for (final k in kSkins.where((k) => k != 'standard')) {
+      for (final b in [Brightness.light, Brightness.dark]) {
+        final p = skinPalette(k, b);
+        expect(ratio(p.ink, p.paper), greaterThan(7), reason: '$k $b body text');
+        expect(ratio(p.accent, p.card), greaterThan(3), reason: '$k $b accent on card');
+        expect(ratio(p.onBadge, p.badge), greaterThan(3), reason: '$k $b icon on badge');
+        expect(buildTheme(skin: k, brightness: b).brightness, b);
+      }
     }
   });
 

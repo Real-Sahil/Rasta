@@ -41,7 +41,8 @@ class _HomeShellState extends State<HomeShell> {
           bottomNavigationBar: app.navigating
               ? null
               : Column(mainAxisSize: MainAxisSize.min, children: [
-                  if (app.chamak) const ChamakStrip(height: 8),
+                  if (app.skin == 'chamak') const ChamakStrip(height: 8)
+                  else if (app.skin != 'standard') Container(height: 2, color: skinPalette(app.skin, Theme.of(context).brightness).accent),
                   NavigationBar(
                   selectedIndex: tab,
                   onDestinationSelected: (i) => setState(() => _tab = i),

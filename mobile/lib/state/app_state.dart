@@ -28,7 +28,7 @@ class AppState extends ChangeNotifier {
   final GetFn? _get; // test hook for the HTTP client
 
   String lang = 'en';
-  bool chamak = false; // optional truck-art chrome, off by default
+  String skin = 'standard'; // optional look; see kSkins in ui/chamak.dart
   ThemeMode themeMode = ThemeMode.system;
   Fix? fix; // null until a real GPS fix
   GpsProblem gpsProblem = GpsProblem.none;
@@ -56,16 +56,17 @@ class AppState extends ChangeNotifier {
   Future<void> _loadPrefs() async {
     try {
       final p = await SharedPreferences.getInstance();
-      chamak = p.getBool('skinChamak') ?? false;
+      final saved = p.getString('skin') ?? ((p.getBool('skinChamak') ?? false) ? 'chamak' : 'standard');
+      skin = const ['standard', 'luce', 'miniature', 'schematic', 'chamak', 'nastaliq'].contains(saved) ? saved : 'standard';
       themeMode = switch (p.getString('themeMode')) { 'light' => ThemeMode.light, 'dark' => ThemeMode.dark, _ => ThemeMode.system };
     } catch (_) {}
   }
 
-  Future<void> setChamak(bool v) async {
-    chamak = v;
+  Future<void> setSkin(String v) async {
+    skin = v;
     notifyListeners();
     try {
-      (await SharedPreferences.getInstance()).setBool('skinChamak', v);
+      (await SharedPreferences.getInstance()).setString('skin', v);
     } catch (_) {}
   }
 

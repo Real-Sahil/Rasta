@@ -44,8 +44,8 @@ class _BuraqAppState extends State<BuraqApp> {
       builder: (context, _) => MaterialApp(
         title: tr(app.lang, 'appName'),
         debugShowCheckedModeBanner: false,
-        theme: buildTheme(chamak: app.chamak, brightness: Brightness.light),
-        darkTheme: buildTheme(chamak: app.chamak, brightness: Brightness.dark),
+        theme: buildTheme(skin: app.skin, brightness: Brightness.light),
+        darkTheme: buildTheme(skin: app.skin, brightness: Brightness.dark),
         themeMode: app.themeMode,
         builder: (context, child) => Directionality(textDirection: isRtl(app.lang) ? TextDirection.rtl : TextDirection.ltr, child: child!),
         home: SafetyGate(app: app, child: HomeShell(app: app, api: api)),

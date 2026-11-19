@@ -2,7 +2,7 @@
 const Map<String, Map<String, String>> moreStrings = {
   'en': {
     'themeLabel': 'Appearance', 'themeAuto': 'Auto', 'themeLight': 'Light', 'themeDark': 'Dark',
-    'skinLabel': 'Truck-art style', 'skinNote': 'Decorates the menu bar and driving screen. The map stays plain.',
+    'skinLabel': 'Theme', 'skinDefault': 'Standard', 'skinNote': 'Restyles the menu bar and driving screen. The map stays plain.',
     'diagList': 'List', 'diagDiagram': 'Diagram', 'diagNote': 'Schematic, not to scale.', 'diagBoard': 'Board', 'diagAlight': 'Get off',
     'navTransit': 'Transit', 'trTabStations': 'Stations', 'trTabFare': 'Fare', 'trTabRiders': 'Riders',
     'trMetrobus': 'Metrobus', 'trOrange': 'Orange Line', 'trStops': '{n} stops', 'trTapHint': 'Tap a station to get directions to it.',
@@ -35,7 +35,7 @@ const Map<String, Map<String, String>> moreStrings = {
   },
   'ur': {
     'themeLabel': 'ظاہری شکل', 'themeAuto': 'خودکار', 'themeLight': 'روشن', 'themeDark': 'تاریک',
-    'skinLabel': 'ٹرک آرٹ انداز', 'skinNote': 'مینو بار اور ڈرائیونگ اسکرین سجاتا ہے۔ نقشہ سادہ رہتا ہے۔',
+    'skinLabel': 'تھیم', 'skinDefault': 'معیاری', 'skinNote': 'مینو بار اور ڈرائیونگ اسکرین کی شکل بدلتا ہے۔ نقشہ سادہ رہتا ہے۔',
     'diagList': 'فہرست', 'diagDiagram': 'خاکہ', 'diagNote': 'خاکہ، پیمانے کے مطابق نہیں۔', 'diagBoard': 'سوار ہوں', 'diagAlight': 'اتریں',
     'navTransit': 'ٹرانزٹ', 'trTabStations': 'سٹیشن', 'trTabFare': 'کرایہ', 'trTabRiders': 'مسافر',
     'trMetrobus': 'میٹرو بس', 'trOrange': 'اورنج لائن', 'trStops': '{n} سٹاپ', 'trTapHint': 'کسی سٹیشن پر ٹیپ کریں، راستہ دکھایا جائے گا۔',
@@ -68,7 +68,7 @@ const Map<String, Map<String, String>> moreStrings = {
   },
   'pa': {
     'themeLabel': 'ظاہری شکل', 'themeAuto': 'خودکار', 'themeLight': 'روشن', 'themeDark': 'گہرا',
-    'skinLabel': 'ٹرک آرٹ انداز', 'skinNote': 'مینو بار تے ڈرائیونگ اسکرین سجاؤندا اے۔ نقشہ سادہ رہندا اے۔',
+    'skinLabel': 'تھیم', 'skinDefault': 'معیاری', 'skinNote': 'مینو بار تے ڈرائیونگ اسکرین دی شکل بدلدا اے۔ نقشہ سادہ رہندا اے۔',
     'diagList': 'لسٹ', 'diagDiagram': 'خاکہ', 'diagNote': 'خاکہ، پیمانے مطابق نہیں۔', 'diagBoard': 'سوار ہووو', 'diagAlight': 'اتروو',
     'navTransit': 'ٹرانزٹ', 'trTabStations': 'سٹیشن', 'trTabFare': 'کرایہ', 'trTabRiders': 'سواریاں',
     'trMetrobus': 'میٹرو بس', 'trOrange': 'اورنج لائن', 'trStops': '{n} سٹاپ', 'trTapHint': 'کسے سٹیشن تے ٹیپ کرو، راہ دسیا جاوے گا۔',
