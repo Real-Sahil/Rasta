@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { orderedStops, toStation, toPoi, withMeta, pickLines, baseLineName } from './osm.mjs';
+import { orderedStops, toStation, toPoi, withMeta, pickLines, baseLineName, stationsAlong, trackOf } from './osm.mjs';
 
 const nodes = [
   { type: 'node', id: 1, lat: 31.45, lon: 74.24, tags: { name: 'Ali Town', 'name:ur': 'علی ٹاؤن' } },
@@ -90,5 +90,33 @@ describe('orderedStops with platform ways', () => {
       { type: 'way', ref: 21, role: 'platform' }, { type: 'way', ref: 22, role: '' }
     ] };
     expect(orderedStops(r, els).map((e) => [e.tags.name, e.lat])).toEqual([['Chowk Kumharan', 30.2], ['BZU', 30.25]]);
+  });
+});
+
+describe('lines drawn as a track only', () => {
+  // A north-south track in two ways (second one drawn backwards) and three named stations, one far away.
+  const route = {
+    type: 'relation', id: 9, tags: { type: 'route', route: 'bus', name: 'Multan Metro Bus' },
+    members: [
+      { type: 'way', ref: 1, role: '', geometry: [{ lat: 30.10, lon: 71.50 }, { lat: 30.15, lon: 71.50 }] },
+      { type: 'way', ref: 2, role: '', geometry: [{ lat: 30.25, lon: 71.50 }, { lat: 30.15, lon: 71.50 }] }
+    ]
+  };
+  const st = (id, name, lat, lon) => ({ type: 'node', id, lat, lon, tags: { public_transport: 'station', name } });
+  const stations = [st(1, 'North End', 30.249, 71.5005), st(2, 'South End', 30.101, 71.4995), st(3, 'Middle', 30.17, 71.501), st(4, 'Far Away', 30.17, 71.6)];
+
+  it('chains the ways, keeps stations near the track and orders them along it', () => {
+    expect(stationsAlong(trackOf(route), stations).map((s) => s.tags.name)).toEqual(['South End', 'Middle', 'North End']);
+  });
+
+  it('pickLines falls back to the track and says so', () => {
+    const [l] = pickLines([route], 'multan', { stations, minStops: 3 });
+    expect(l.stopsFrom).toBe('track');
+    expect(l.stations.map((s) => s.name)).toEqual(['South End', 'Middle', 'North End']);
+  });
+
+  it('refuses a track with too many breaks', () => {
+    const broken = { members: [0, 1, 2, 3].map((i) => ({ type: 'way', ref: i, role: '', geometry: [{ lat: 30 + i, lon: 71 }, { lat: 30 + i + 0.01, lon: 71 }] })) };
+    expect(trackOf(broken)).toBeNull();
   });
 });
