@@ -25,6 +25,28 @@ export interface ApiDeps {
   now?: () => number;
   /** Enables the admin operations. Unset = admin disabled (404). */
   adminKey?: string;
+  /** Geoapify key for place search (`op=geocode`). Unset = geocode answers 404 and clients use Nominatim. */
+  geoapifyKey?: string;
+  fetchFn?: typeof fetch;
+}
+
+/** Pakistan bounding box, also used by the database for reports. */
+const PK_BOX = { minLat: 23.5, maxLat: 37.2, minLng: 60.8, maxLng: 77.9 };
+
+/** Geoapify result -> the small shape both clients use. Names come from OSM data; nothing is guessed. */
+export function mapGeoapify(body: any): { id: string; name: string; detail: string; lat: number; lng: number }[] {
+  const list = Array.isArray(body?.results) ? body.results : [];
+  const out: { id: string; name: string; detail: string; lat: number; lng: number }[] = [];
+  for (const r of list) {
+    const lat = Number(r?.lat), lng = Number(r?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    if (lat < PK_BOX.minLat || lat > PK_BOX.maxLat || lng < PK_BOX.minLng || lng > PK_BOX.maxLng) continue;
+    const name = String(r?.name || r?.address_line1 || '').trim();
+    if (!name) continue;
+    const detail = String(r?.address_line2 || r?.formatted || '').replace(/,?\s*Pakistan$/i, '').trim();
+    out.push({ id: `ga_${String(r?.place_id || `${lat},${lng}`).slice(0, 80)}`, name: name.slice(0, 120), detail: detail.slice(0, 200), lat, lng });
+  }
+  return out;
 }
 
 const CATEGORIES = ['accident', 'congestion', 'closure', 'construction', 'flooding', 'roadblock', 'police_naka', 'hazard'];
@@ -109,7 +131,7 @@ export function validateTransitReport(b: any): { ok: true; value: TransitReportI
 }
 
 // ------------------------------------------------------------------ handlers
-export function createApi({ db, secret, now = Date.now, adminKey }: ApiDeps) {
+export function createApi({ db, secret, now = Date.now, adminKey, geoapifyKey, fetchFn = fetch }: ApiDeps) {
   const ipHashOf = (req: Request) => {
     const ip = (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown').split(',')[0].trim();
     return createHash('sha256').update(`ip:${ip}`).update(secret).digest('hex').slice(0, 32);
@@ -295,6 +317,33 @@ export function createApi({ db, secret, now = Date.now, adminKey }: ApiDeps) {
       }
     },
 
+    /** Place search, Pakistan only. The key stays on the server and Geoapify sees our server, not the user's IP.
+     *  Queries are never logged or stored. Answers are cacheable at the edge (near is rounded to ~10 km). */
+    async geocode(req: Request): Promise<Response> {
+      if (!geoapifyKey) return fail(404, 'geocode_disabled');
+      const u = new URL(req.url);
+      const q = (u.searchParams.get('q') || '').trim();
+      if (q.length < 2 || q.length > 120) return fail(400, 'bad_query');
+      const lang = u.searchParams.get('lang') === 'ur' ? 'ur' : 'en';
+      const params = new URLSearchParams({ text: q, filter: 'countrycode:pk', lang, limit: '6', format: 'json', apiKey: geoapifyKey });
+      const near = (u.searchParams.get('near') || '').split(',').map(Number);
+      if (near.length === 2 && near.every(Number.isFinite)) {
+        const [lat, lng] = near.map((v) => Math.round(v * 10) / 10);
+        if (lat >= PK_BOX.minLat && lat <= PK_BOX.maxLat && lng >= PK_BOX.minLng && lng <= PK_BOX.maxLng) params.set('bias', `proximity:${lng},${lat}`);
+      }
+      try {
+        const r = await fetchFn(`https://api.geoapify.com/v1/geocode/search?${params}`, { signal: AbortSignal.timeout(6000) });
+        if (!r.ok) {
+          console.error('geocode upstream', r.status); // status only: never the query
+          return fail(r.status === 429 ? 429 : 502, r.status === 429 ? 'rate_limited' : 'upstream_error');
+        }
+        return json(200, { results: mapGeoapify(await r.json()) }, { 'cache-control': 'public, max-age=300, s-maxage=86400' });
+      } catch (e: any) {
+        console.error('geocode upstream', e?.name || 'error');
+        return fail(502, 'upstream_error');
+      }
+    },
+
     async handle(req: Request): Promise<Response> {
       const op = new URL(req.url).searchParams.get('op');
       if (req.method === 'POST' && op === 'session') return this.session();
@@ -304,6 +353,7 @@ export function createApi({ db, secret, now = Date.now, adminKey }: ApiDeps) {
       if (req.method === 'POST' && op === 'log') return this.log(req);
       if (req.method === 'POST' && op === 'transit_report') return this.transitReport(req);
       if (req.method === 'GET' && op === 'transit_stats') return this.transitStats(req);
+      if (req.method === 'GET' && op === 'geocode') return this.geocode(req);
       if (op?.startsWith('admin_')) {
         if (!adminKey) return fail(404, 'unknown_op');
         if (!this.isAdmin(req)) return fail(401, 'unauthorized');
@@ -326,7 +376,7 @@ async function runtime() {
   const sql = neon(url);
   // Session secret: explicit SESSION_SECRET, else derived from the database URL (itself a secret, rotates with it)
   const secret = process.env.SESSION_SECRET || createHash('sha256').update(`buraq-session-v1:${url}`).digest();
-  cached = createApi({ db: async (text, params) => (await sql.query(text, params as any[])) as any[], secret, adminKey: process.env.ADMIN_KEY || undefined });
+  cached = createApi({ db: async (text, params) => (await sql.query(text, params as any[])) as any[], secret, adminKey: process.env.ADMIN_KEY || undefined, geoapifyKey: process.env.GEOAPIFY_KEY || undefined });
   return cached;
 }
 

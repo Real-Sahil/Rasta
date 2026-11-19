@@ -29,8 +29,10 @@ interface SearchInputProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-// Set VITE_GEOCODE_URL to a Nominatim-compatible /search endpoint to replace the public server.
-const GEOCODE_URL: string = (import.meta as any).env?.VITE_GEOCODE_URL || 'https://nominatim.openstreetmap.org/search';
+// Search order: our /api?op=geocode (Geoapify, key on the server), then public Nominatim.
+// Set VITE_GEOCODE_URL to a Nominatim-compatible /search endpoint to use only that instead.
+const CUSTOM_GEOCODER: string | undefined = (import.meta as any).env?.VITE_GEOCODE_URL;
+const GEOCODE_URL: string = CUSTOM_GEOCODER || 'https://nominatim.openstreetmap.org/search';
 const geocodeCache = new Map<string, LocationPoint[]>();
 
 export const SearchInput: React.FC<SearchInputProps> = ({
@@ -168,6 +170,9 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         );
       }).slice(0, 6);
 
+  // Rounded to ~10 km so GPS jitter doesn't re-run the search; only biases results, never filters them.
+  const nearKey = currentCoords ? `${currentCoords.lat.toFixed(1)},${currentCoords.lng.toFixed(1)}` : '';
+
   // Online geocoding lookup
   useEffect(() => {
     if (!query || query.trim().length < 3) {
@@ -184,30 +189,53 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         const cacheKey = `${isInputUrdu ? 'ur' : 'en'}|${query.trim().toLowerCase()}`;
         const cached = geocodeCache.get(cacheKey);
         if (cached) { setOnlineResults(cached); return; }
-        const res = await fetch(
-          `${GEOCODE_URL}?q=${encoded}&countrycodes=pk&format=json&addressdetails=1&limit=4`,
-          {
-            headers: { 'Accept-Language': isInputUrdu ? 'ur,en;q=0.8' : 'en,ur;q=0.8' },
-            signal: AbortSignal.any([ctrl.signal, AbortSignal.timeout(6000)])
+        const signal = AbortSignal.any([ctrl.signal, AbortSignal.timeout(6000)]);
+        let mapped: LocationPoint[] | null = null;
+        // 1) Our own /api (Geoapify, key kept on the server). 404 = not configured, or no function in plain dev.
+        if (!CUSTOM_GEOCODER) {
+          try {
+            const near = nearKey ? `&near=${nearKey}` : '';
+            const r = await fetch(`/api?op=geocode&q=${encoded}&lang=${isInputUrdu ? 'ur' : 'en'}${near}`, { signal });
+            if (r.ok) {
+              const data = await r.json();
+              if (Array.isArray(data?.results)) {
+                mapped = data.results.map((item: any) => ({
+                  id: String(item.id), name: item.name, nameUrdu: item.name,
+                  lat: item.lat, lng: item.lng,
+                  address: item.detail, addressUrdu: item.detail, category: 'hub'
+                }));
+              }
+            }
+          } catch (e) {
+            if (ctrl.signal.aborted) throw e;
           }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            const mapped: LocationPoint[] = data.map((item: any, idx: number) => ({
-              id: `geo_${item.place_id || idx}`,
-              name: item.display_name.split(',')[0],
-              nameUrdu: item.namedetails?.name_ur || item.display_name.split(',')[0],
-              lat: parseFloat(item.lat),
-              lng: parseFloat(item.lon),
-              address: item.display_name,
-              addressUrdu: item.display_name,
-              category: 'hub'
-            }));
-            if (geocodeCache.size > 50) geocodeCache.clear();
-            geocodeCache.set(cacheKey, mapped);
-            setOnlineResults(mapped);
+        }
+        // 2) Fallback: Nominatim (or the geocoder set with VITE_GEOCODE_URL).
+        if (!mapped) {
+          const res = await fetch(
+            `${GEOCODE_URL}?q=${encoded}&countrycodes=pk&format=json&addressdetails=1&limit=4`,
+            { headers: { 'Accept-Language': isInputUrdu ? 'ur,en;q=0.8' : 'en,ur;q=0.8' }, signal }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              mapped = data.map((item: any, idx: number) => ({
+                id: `geo_${item.place_id || idx}`,
+                name: item.display_name.split(',')[0],
+                nameUrdu: item.namedetails?.name_ur || item.display_name.split(',')[0],
+                lat: parseFloat(item.lat),
+                lng: parseFloat(item.lon),
+                address: item.display_name,
+                addressUrdu: item.display_name,
+                category: 'hub'
+              }));
+            }
           }
+        }
+        if (mapped) {
+          if (geocodeCache.size > 50) geocodeCache.clear();
+          geocodeCache.set(cacheKey, mapped);
+          setOnlineResults(mapped);
         }
       } catch (err) {
         if (!ctrl.signal.aborted) console.warn('Geocoding search failed:', err);
@@ -217,7 +245,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     }, 450);
 
     return () => { clearTimeout(timer); ctrl.abort(); };
-  }, [query, isInputUrdu]);
+  }, [query, isInputUrdu, nearKey]);
 
   const handleSelect = (loc: LocationPoint) => {
     setQuery(isUrdu ? loc.nameUrdu : loc.name);

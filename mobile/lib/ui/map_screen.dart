@@ -383,7 +383,7 @@ class _SearchPanelState extends State<SearchPanel> {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 450), () async {
       try {
-        final r = await app.search.search(q, near: app.fix?.point);
+        final r = await app.search.search(q, near: app.fix?.point, lang: app.lang);
         if (r == null || !mounted) return;
         setState(() {
           _results = r;

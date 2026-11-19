@@ -52,6 +52,11 @@ Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI 
 - Add every new UI string to all four locales and provide Urdu text for RTL.
 - Third-party calls (Nominatim, OSRM, Open-Meteo, OpenFreeMap tiles, and OpenStreetMap tiles in the no-WebGL fallback) send coordinates/queries off-device; don't claim otherwise in the privacy copy.
 
+## Place search (Geoapify via our API)
+- `GET /api?op=geocode&q=&lang=en|ur&near=lat,lng` proxies Geoapify with `GEOAPIFY_KEY` (Vercel env, encrypted; never in the repo or the app). Pakistan filter, results outside the box dropped, `near` rounded to 0.1° (bias only), edge-cached 24 h, the query is never logged. No key = 404.
+- Web `SearchInput` and Flutter `SearchService` try it first and fall back to public Nominatim on 404/error/offline. `VITE_GEOCODE_URL` still overrides both on web. Privacy paragraph 2 names Geoapify (through our server, so it doesn't see the user's IP) and Nominatim as the fallback.
+- Geoapify free tier: 3,000 requests/day. Edge caching helps; watch usage in the Geoapify dashboard and restrict the key there.
+
 ## Hardening (moderation, monitoring, limits)
 - **Admin**: `/admin.html` (noindex, not in the service-worker fallback) talks to `?op=admin_list|admin_set|admin_purge` with `Authorization: Bearer $ADMIN_KEY`. Without `ADMIN_KEY` those ops answer 404. The page keeps the key in `sessionStorage` and builds the DOM with `textContent` only. Never render report text as HTML.
 - **Daily clean-up**: `vercel.json` cron calls `GET /api?op=admin_purge` at 03:17 UTC (expired reports > 7 days, error logs > 14 days). Vercel sends `Authorization: Bearer $CRON_SECRET`, so `CRON_SECRET` must equal `ADMIN_KEY`.

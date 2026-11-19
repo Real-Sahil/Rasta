@@ -245,3 +245,48 @@ describe('transit reports', () => {
     expect((await call('GET', 'transit_stats&city=atlantis')).status).toBe(400);
   });
 });
+
+describe('geocode (Geoapify proxy)', () => {
+  const sample = { results: [
+    { lat: 31.511, lon: 74.343, name: 'Liberty Market', address_line2: 'Gulberg III, Lahore, Pakistan', place_id: 'abc' },
+    { lat: 51.5, lon: -0.1, name: 'London Liberty' }, // outside Pakistan: dropped
+    { lat: 31.4, lon: 74.2, address_line1: 'Main Boulevard', formatted: 'Main Boulevard, Lahore, Pakistan' },
+    { lat: 'x', lon: 74, name: 'Broken' }
+  ] };
+  const make = (status: number, body: unknown, seen: string[] = []) => createApi({
+    db: async () => [], secret: SECRET, geoapifyKey: 'k-test',
+    fetchFn: (async (url: string) => { seen.push(String(url)); return new Response(JSON.stringify(body), { status }); }) as any
+  });
+  const get = (a: ReturnType<typeof createApi>, qs: string) => a.handle(new Request(`https://x.test/api?op=geocode&${qs}`));
+
+  it('is off (404) without a key, so clients fall back to Nominatim', async () => {
+    expect((await get(api, 'q=liberty')).status).toBe(404);
+  });
+  it('maps results, keeps Pakistan only, biases near a rounded point and is cacheable', async () => {
+    const seen: string[] = [];
+    const r = await get(make(200, sample, seen), 'q=liberty%20market&near=31.5204,74.3587&lang=ur');
+    expect(r.status).toBe(200);
+    expect(r.headers.get('cache-control')).toContain('s-maxage');
+    const body: any = await r.json();
+    expect(body.results).toEqual([
+      { id: 'ga_abc', name: 'Liberty Market', detail: 'Gulberg III, Lahore', lat: 31.511, lng: 74.343 },
+      { id: 'ga_31.4,74.2', name: 'Main Boulevard', detail: 'Main Boulevard, Lahore', lat: 31.4, lng: 74.2 }
+    ]);
+    const u = new URL(seen[0]);
+    expect(u.searchParams.get('filter')).toBe('countrycode:pk');
+    expect(u.searchParams.get('bias')).toBe('proximity:74.4,31.5');
+    expect(u.searchParams.get('lang')).toBe('ur');
+  });
+  it('ignores a bias point outside Pakistan and rejects bad queries', async () => {
+    const seen: string[] = [];
+    await get(make(200, sample, seen), 'q=derby&near=52.9,-1.47');
+    expect(new URL(seen[0]).searchParams.get('bias')).toBeNull();
+    expect((await get(make(200, sample), 'q=a')).status).toBe(400);
+  });
+  it('reports upstream failures without leaking the key', async () => {
+    const r = await get(make(500, {}), 'q=liberty');
+    expect(r.status).toBe(502);
+    expect(await r.text()).not.toContain('k-test');
+    expect((await get(make(429, {}), 'q=liberty')).status).toBe(429);
+  });
+});
