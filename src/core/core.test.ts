@@ -81,6 +81,17 @@ describe('navigation session', () => {
     expect(s.stepIndex).toBe(1);
     expect(s.upcomingStepIndex).toBe(2);
   });
+  it('snaps the vehicle onto the route and drops the snap when off route', () => {
+    let s = createSession(route);
+    expect(s.snapped).toBeNull();
+    s = updateSession(s, route, at(300, 12)); // 12 m east of the road: GPS noise
+    expect(s.snapped).not.toBeNull();
+    expect(s.snapped!.lng).toBeCloseTo(74.35, 5); // drawn on the road line
+    expect(s.snapped!.lat).toBeCloseTo(at(300).lat, 4);
+    for (let i = 0; i < 3; i++) s = updateSession(s, route, at(400, 300)); // 300 m off
+    expect(s.status).toBe('off_route');
+    expect(s.snapped).toBeNull();
+  });
   it('never moves progress backwards', () => {
     let s = createSession(route);
     s = updateSession(s, route, at(800));

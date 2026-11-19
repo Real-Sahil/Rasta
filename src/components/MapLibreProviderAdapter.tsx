@@ -55,6 +55,7 @@ export interface MapLibreProviderAdapterProps {
   className?: string;
   /** Translated strings for the past-flooding layer (the layer is hidden when omitted). */
   floodLabels?: FloodLabels;
+  recenterLabel?: string;
 }
 
 export interface FloodLabels {
@@ -89,7 +90,8 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
   onMapClick,
   onMarkerClick,
   className = '',
-  floodLabels
+  floodLabels,
+  recenterLabel = 'Re-centre'
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -98,6 +100,9 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
   const [mapLoaded, setMapLoaded] = useState(false);
   const [styleVersion, setStyleVersion] = useState(0);
   const [mapSlow, setMapSlow] = useState(false);
+  // Free-look: while driving, a drag/zoom by the user pauses camera-follow until they tap Re-centre (or 10 s pass)
+  const [freeLook, setFreeLook] = useState(false);
+  const freeLookTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fittedRouteRef = useRef<string | null>(null);
   const [webGlSupported, setWebGlSupported] = useState(true);
 
@@ -177,6 +182,15 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
       }
     });
 
+    const onUserMove = (e: { originalEvent?: unknown }) => {
+      if (!e.originalEvent) return; // programmatic camera moves don't count
+      setFreeLook(true);
+      if (freeLookTimer.current) clearTimeout(freeLookTimer.current);
+      freeLookTimer.current = setTimeout(() => setFreeLook(false), 10_000);
+    };
+    map.on('dragstart', onUserMove);
+    map.on('zoomstart', onUserMove);
+
     map.on('click', (e) => {
       if (onMapClick) {
         onMapClick({ lat: e.lngLat.lat, lng: e.lngLat.lng });
@@ -215,6 +229,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
     const map = mapRef.current;
     if (!map) return;
 
+    if (isNavigatingLive && freeLook) return; // the user is looking around; don't fight them
     if (isNavigatingLive) {
       // 3D Cockpit / Driver POV Navigation Mode
       map.easeTo({
@@ -238,7 +253,11 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         duration: 700
       });
     }
-  }, [center.lat, center.lng, zoom, isNavigatingLive, heading]);
+  }, [center.lat, center.lng, zoom, isNavigatingLive, heading, freeLook]);
+
+  // Leaving navigation ends free-look; clear the timer on unmount
+  useEffect(() => { if (!isNavigatingLive) setFreeLook(false); }, [isNavigatingLive]);
+  useEffect(() => () => { if (freeLookTimer.current) clearTimeout(freeLookTimer.current); }, []);
 
   // Update Markers
   useEffect(() => {
@@ -535,6 +554,16 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         <div className={`absolute bottom-2 ${isRtl ? 'right-2' : 'left-2'} z-10 rounded bg-white/90 dark:bg-slate-900/90 px-1.5 py-0.5 text-[10px] text-slate-600 dark:text-slate-300`}>
           {floodLabels.credit}
         </div>
+      )}
+
+      {isNavigatingLive && freeLook && (
+        <button
+          type="button"
+          onClick={() => { if (freeLookTimer.current) clearTimeout(freeLookTimer.current); setFreeLook(false); }}
+          className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-xl cursor-pointer"
+        >
+          ➤ {recenterLabel}
+        </button>
       )}
 
       {/* Floating Map Controls */}

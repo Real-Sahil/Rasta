@@ -90,10 +90,15 @@ rec(/Canal Road/.test(t1) || /Arrive|arriv/i.test(t1) ? 'PASS' : 'FAIL', 'HUD ad
 
 // ---- free pan while navigating: does the camera fight the user / is there a recentre control?
 await page.mouse.move(200, 400); await page.mouse.down(); await page.mouse.move(200, 650, { steps: 8 }); await page.mouse.up();
-const before = await marker(); await page.waitForTimeout(2500); const after = await marker();
-rec(before && after && Math.abs(before.y - after.y) > 60 ? 'WARN' : 'INFO', 'camera snaps back after user drags the map while driving (no free-look)', `marker y ${before?.y} -> ${after?.y}`);
-const hasRecenter = await page.locator('button[title*="enter" i], button[aria-label*="enter" i], button[title*="ocation" i], button[aria-label*="ocation" i]').count();
-rec(hasRecenter ? 'PASS' : 'WARN', 'a "re-centre / resume" control exists', `${hasRecenter} found`);
+const pill = page.getByRole('button', { name: /Recenter Map/ });
+await page.waitForTimeout(800);
+rec(await pill.count() ? 'PASS' : 'FAIL', 'dragging the map while driving shows a Recenter pill');
+const panned = await marker(); await move(lerp(B, C, 0.5)); await page.waitForTimeout(2500); const still = await marker();
+rec(panned && still && Math.abs(panned.y - still.y) > 80 ? 'PASS' : 'FAIL', 'camera stays where the user put it while the car keeps driving', `marker y ${panned?.y} -> ${still?.y}`);
+await pill.click().catch(() => {}); await page.waitForTimeout(1800);
+const back = await marker();
+rec(back && back.y > back.vh * 0.55 && back.y < back.vh * 0.8 ? 'PASS' : 'FAIL', 'tapping Recenter brings the vehicle back to the driving position', `y=${back?.y}`);
+rec(await pill.count() === 0 ? 'PASS' : 'FAIL', 'pill disappears after re-centring');
 
 // ---- arrival
 for (let i = 0; i < 4; i++) { await move(C); await page.waitForTimeout(1500); }

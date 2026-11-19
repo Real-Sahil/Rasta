@@ -109,7 +109,8 @@ function MainApp() {
   useEffect(() => {
     if (!fix) return;
     if (session) {
-      setCenter({ lat: fix.lat, lng: fix.lng });
+      const p = session.snapped ?? fix;
+      setCenter({ lat: p.lat, lng: p.lng });
       setZoom(17);
     } else if (!centredOnFix.current && fix.lat >= 23 && fix.lat <= 37 && fix.lng >= 60 && fix.lng <= 78) {
       centredOnFix.current = true;
@@ -253,10 +254,12 @@ function MainApp() {
     [activeRoute]
   );
 
+  // While on the route the vehicle is drawn on the road line, not at the raw (noisy) GPS point
+  const vehiclePos = fix ? (session?.snapped ?? fix) : null;
   const markers = useMemo<MapLibreMarkerData[]>(
     () => [
-      ...(fix
-        ? [{ id: 'user_loc', lat: fix.lat, lng: fix.lng, title: session ? 'Vehicle' : 'My Position', titleUrdu: session ? 'گاڑی' : 'میرا مقام', heading, type: 'user' as const }]
+      ...(vehiclePos
+        ? [{ id: 'user_loc', lat: vehiclePos.lat, lng: vehiclePos.lng, title: session ? 'Vehicle' : 'My Position', titleUrdu: session ? 'گاڑی' : 'میرا مقام', heading, type: 'user' as const }]
         : []),
       ...(destination
         ? [{ id: 'dest_loc', lat: destination.lat, lng: destination.lng, title: destination.name, titleUrdu: destination.nameUrdu, type: 'destination' as const }]
@@ -266,7 +269,7 @@ function MainApp() {
         type: 'incident' as const, category: inc.category, incidentData: inc
       }))
     ],
-    [fix, heading, session, destination, incidents]
+    [vehiclePos?.lat, vehiclePos?.lng, heading, session !== null, destination, incidents]
   );
 
   const handleAddIncident = (newInc: CommunityIncident) => {
@@ -412,6 +415,7 @@ function MainApp() {
             markers={markers}
             route={mapRoute}
             floodLabels={floodLabels}
+            recenterLabel={t.recenter}
             onMapClick={(coords: { lat: number; lng: number }) => {
               const n = `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
               store().setDestination({

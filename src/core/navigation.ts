@@ -27,6 +27,8 @@ export interface NavSession {
   upcomingStepIndex: number;
   distanceToManeuverM: number;
   distFromRouteM: number;
+  /** The fix projected onto the route (where the vehicle is drawn). null before the first match and while off route. */
+  snapped: LatLng | null;
   offRouteCount: number;
   cum: number[]; // route vertex distances (internal)
   stepEndsM: number[]; // cumulative end distance of every step, scaled to route length
@@ -55,6 +57,7 @@ export function createSession(route: RouteOption): NavSession {
     upcomingStepIndex: Math.min(1, Math.max(0, route.steps.length - 1)),
     distanceToManeuverM: stepEndsM[0] ?? totalM,
     distFromRouteM: 0,
+    snapped: null,
     offRouteCount: 0,
     cum,
     stepEndsM
@@ -69,7 +72,7 @@ export function updateSession(session: NavSession, route: RouteOption, fix: Fix)
   const dest = path[path.length - 1];
 
   if (dest && haversineM(fix, dest) <= ARRIVAL_RADIUS_M) {
-    return { ...session, status: 'arrived', alongM: session.totalM, remainingM: 0, remainingS: 0, distanceToManeuverM: 0 };
+    return { ...session, status: 'arrived', snapped: dest, alongM: session.totalM, remainingM: 0, remainingS: 0, distanceToManeuverM: 0 };
   }
 
   const match = matchToRoute(path, session.cum, fix, session.alongM);
@@ -83,6 +86,7 @@ export function updateSession(session: NavSession, route: RouteOption, fix: Fix)
       ...session,
       distFromRouteM: match.distFromRouteM,
       offRouteCount,
+      snapped: offRouteCount >= OFF_ROUTE_FIXES ? null : session.snapped,
       status: offRouteCount >= OFF_ROUTE_FIXES ? 'off_route' : session.status
     };
   }
@@ -105,6 +109,7 @@ export function updateSession(session: NavSession, route: RouteOption, fix: Fix)
     upcomingStepIndex,
     distanceToManeuverM: Math.max(0, Math.round((session.stepEndsM[stepIndex] ?? session.totalM) - alongM)),
     distFromRouteM: match.distFromRouteM,
+    snapped: match.point,
     offRouteCount: 0
   };
 }
