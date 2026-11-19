@@ -68,3 +68,11 @@ describe('pickLines (metro / BRT outside Lahore)', () => {
     expect(baseLineName('Zu Route 1')).toBe('Zu Route 1');
   });
 });
+
+describe('fetch-osm queries', () => {
+  it('never writes ";->" (Overpass rejects it: the set name follows the closing bracket directly)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(new URL('../fetch-osm.mjs', import.meta.url), 'utf8');
+    expect(src).not.toMatch(/;\s*->/);
+  });
+});
