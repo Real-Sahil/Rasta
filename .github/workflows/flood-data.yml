@@ -17,7 +17,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq gdal-bin
+      - name: Install GDAL (retry: the Ubuntu mirrors are occasionally flaky)
+        timeout-minutes: 8
+        run: |
+          for i in 1 2 3; do
+            sudo apt-get update -qq && sudo apt-get install -y -qq -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 gdal-bin && exit 0
+            echo "apt attempt $i failed"; sleep 10
+          done
+          exit 1
       - name: Fetch UNOSAT flood extents and clip to Lahore
         timeout-minutes: 20
         run: npm run data:flood
