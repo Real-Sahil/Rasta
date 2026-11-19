@@ -102,17 +102,17 @@ describe('lines drawn as a track only', () => {
       { type: 'way', ref: 2, role: '', geometry: [{ lat: 30.25, lon: 71.50 }, { lat: 30.15, lon: 71.50 }] }
     ]
   };
-  const st = (id, name, lat, lon) => ({ type: 'node', id, lat, lon, tags: { public_transport: 'station', name } });
+  const st = (id: number, name: string, lat: number, lon: number): any => ({ type: 'node', id, lat, lon, tags: { public_transport: 'station', name } });
   const stations = [st(1, 'North End', 30.249, 71.5005), st(2, 'South End', 30.101, 71.4995), st(3, 'Middle', 30.17, 71.501), st(4, 'Far Away', 30.17, 71.6)];
 
   it('chains the ways, keeps stations near the track and orders them along it', () => {
-    expect(stationsAlong(trackOf(route), stations).map((s) => s.tags.name)).toEqual(['South End', 'Middle', 'North End']);
+    expect(stationsAlong(trackOf(route), stations).map((s: any) => s.tags.name)).toEqual(['South End', 'Middle', 'North End']);
   });
 
   it('pickLines falls back to the track and says so', () => {
-    const [l] = pickLines([route], 'multan', { stations, minStops: 3 });
+    const [l] = (pickLines as any)([route], 'multan', { stations, minStops: 3 }) as any[];
     expect(l.stopsFrom).toBe('track');
-    expect(l.stations.map((s) => s.name)).toEqual(['South End', 'Middle', 'North End']);
+    expect(l.stations.map((s: any) => s.name)).toEqual(['South End', 'Middle', 'North End']);
   });
 
   it('refuses a track with too many breaks', () => {
@@ -122,7 +122,7 @@ describe('lines drawn as a track only', () => {
 });
 
 describe('unordered tracks and line-word tidying', () => {
-  const st = (id, name, lat, lon) => ({ type: 'node', id, lat, lon, tags: { public_transport: 'station', name } });
+  const st = (id: number, name: string, lat: number, lon: number): any => ({ type: 'node', id, lat, lon, tags: { public_transport: 'station', name } });
 
   it('orders stations near an unordered track by a nearest-neighbour chain from one end', () => {
     // an L-shaped line: south->north, then east; ways listed out of order
@@ -130,16 +130,16 @@ describe('unordered tracks and line-word tidying', () => {
       { type: 'way', role: '', geometry: [{ lat: 33.70, lon: 73.00 }, { lat: 33.70, lon: 73.10 }] },
       { type: 'way', role: '', geometry: [{ lat: 33.60, lon: 73.00 }, { lat: 33.70, lon: 73.00 }] }
     ] };
-    const pts = trackPoints(r).flatMap((p, i, a) => (i ? [{ lat: (p.lat + a[i - 1].lat) / 2, lon: (p.lon + a[i - 1].lon) / 2 }, p] : [p]));
+    const pts = trackPoints(r).flatMap((p: any, i: number, a: any[]) => (i ? [{ lat: (p.lat + a[i - 1].lat) / 2, lon: (p.lon + a[i - 1].lon) / 2 }, p] : [p]));
     const out = stationsNearTrack(pts, [st(1, 'Corner', 33.70, 73.0), st(2, 'East', 33.70, 73.10), st(3, 'South', 33.60, 73.0), st(4, 'Mid', 33.65, 73.0), st(5, 'Off', 33.5, 72.5)]);
-    const names = out.map((s) => s.tags.name);
+    const names = out.map((s: any) => s.tags.name);
     expect(names.length).toBe(4);
     expect([names, [...names].reverse()]).toContainEqual(['South', 'Mid', 'Corner', 'East']);
   });
 
   it('drops a nearby bus stand when most stations carry the line word, and trims that word', () => {
     const out = tidyLineStations([st(1, 'Gulgasht Metrobus', 0, 0), st(2, 'General Bus Stand', 0, 0), st(3, 'Metro Bus Terminal Faizabad', 0, 0), st(4, 'NUST Metro Bus Station', 0, 0), st(5, 'G10 Metro Station', 0, 0)]);
-    expect(out.map((s) => s.tags.name)).toEqual(['Gulgasht', 'Faizabad', 'NUST', 'G10']);
+    expect(out.map((s: any) => s.tags.name)).toEqual(['Gulgasht', 'Faizabad', 'NUST', 'G10']);
     expect(out[1].osmName).toBe('Metro Bus Terminal Faizabad');
   });
 
