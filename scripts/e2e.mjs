@@ -85,6 +85,7 @@ check('privacy tab explains what leaves the device', /Nominatim/.test(await text
 await page.getByRole('button', { name: 'Close' }).last().click();
 await page.locator('select[title="Select Language"]').selectOption('ur');
 await page.getByRole('button', { name: 'حفاظت، رازداری اور شرائط' }).click();
+await page.waitForFunction(() => /گاڑی چلاتے ہوئے فون ہرگز استعمال نہ کریں/.test(document.querySelector('[role=dialog]')?.innerText || ''), null, { timeout: 5000 }).catch(() => {}); // body renders after the header; don't read too early
 const urText = await page.locator('[role=dialog]').innerText();
 check('legal screen is available in Urdu (RTL)', /گاڑی چلاتے ہوئے فون ہرگز استعمال نہ کریں/.test(urText) && (await page.locator('[role=dialog]').getAttribute('dir')) === 'rtl', urText.slice(0, 80));
 await page.getByRole('button', { name: 'بند کریں' }).last().click();
