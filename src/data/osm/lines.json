@@ -1,21 +1,18 @@
 {
  "meta": {
   "source": "OpenStreetMap contributors, ODbL 1.0 (https://www.openstreetmap.org/copyright)",
-  "fetchedAt": "2026-11-19T21:26:15.477Z",
+  "fetchedAt": "2026-11-19T21:35:55.909Z",
   "bbox": null,
   "query": "per city: rel[\"type\"=\"route\"][\"route\"~\"^(bus|trolleybus|light_rail|subway|train|tram|monorail)$\"][name|network ~ metro|brt|bus rapid|green line|red line|blue line|orange line|zu peshawar|zu bus]",
   "cities": {
    "islamabad_rawalpindi": {
     "bbox": "33.45,72.80,33.85,73.30",
-    "lines": [],
-    "candidates": [
-     "ریڈ میٹرو بس ٹریک"
-    ]
+    "failed": true
    },
    "multan": {
     "bbox": "30.05,71.35,30.35,71.62",
     "lines": [
-     "Multan Metro Bus (23, from track)"
+     "Multan Metro Bus (21, from track)"
     ],
     "candidates": [
      "Multan Metro Bus"
@@ -49,7 +46,8 @@
    "stations": [
     {
      "id": "multan_multan-metro-bus_01",
-     "name": "Bahauddin Zakariya University Metrobus",
+     "name": "Bahauddin Zakariya University",
+     "osmName": "Bahauddin Zakariya University Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.2693967,
@@ -58,7 +56,8 @@
     },
     {
      "id": "multan_multan-metro-bus_02",
-     "name": "Bahadar Pur Metrobus",
+     "name": "Bahadar Pur",
+     "osmName": "Bahadar Pur Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.2620999,
@@ -67,7 +66,8 @@
     },
     {
      "id": "multan_multan-metro-bus_03",
-     "name": "Mehmood Kot Metrobus",
+     "name": "Mehmood Kot",
+     "osmName": "Mehmood Kot Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.2555874,
@@ -76,7 +76,8 @@
     },
     {
      "id": "multan_multan-metro-bus_04",
-     "name": "Northern Bypass Metrobus",
+     "name": "Northern Bypass",
+     "osmName": "Northern Bypass Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.2464502,
@@ -85,7 +86,8 @@
     },
     {
      "id": "multan_multan-metro-bus_05",
-     "name": "Shalimar Colony Metrobus",
+     "name": "Shalimar Colony",
+     "osmName": "Shalimar Colony Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.2403796,
@@ -94,7 +96,8 @@
     },
     {
      "id": "multan_multan-metro-bus_06",
-     "name": "Sabzazar Metrobus",
+     "name": "Sabzazar",
+     "osmName": "Sabzazar Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.234809,
@@ -103,7 +106,8 @@
     },
     {
      "id": "multan_multan-metro-bus_07",
-     "name": "Chungi No. 06 Metrobus",
+     "name": "Chungi No. 06",
+     "osmName": "Chungi No. 06 Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.2277213,
@@ -112,7 +116,8 @@
     },
     {
      "id": "multan_multan-metro-bus_08",
-     "name": "Gulgasht Metrobus",
+     "name": "Gulgasht",
+     "osmName": "Gulgasht Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.217112,
@@ -121,7 +126,8 @@
     },
     {
      "id": "multan_multan-metro-bus_09",
-     "name": "Chungi No. 9 Chowk Metrobus",
+     "name": "Chungi No. 9 Chowk",
+     "osmName": "Chungi No. 9 Chowk Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.2087545,
@@ -130,7 +136,8 @@
     },
     {
      "id": "multan_multan-metro-bus_10",
-     "name": "Qasim Bagh Metrobus",
+     "name": "Qasim Bagh",
+     "osmName": "Qasim Bagh Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.2034588,
@@ -139,7 +146,8 @@
     },
     {
      "id": "multan_multan-metro-bus_11",
-     "name": "Daulat Gate Metrobus",
+     "name": "Daulat Gate",
+     "osmName": "Daulat Gate Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.1988003,
@@ -148,7 +156,8 @@
     },
     {
      "id": "multan_multan-metro-bus_12",
-     "name": "Shah Jamal Metrobus",
+     "name": "Shah Jamal",
+     "osmName": "Shah Jamal Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.1947615,
@@ -157,7 +166,8 @@
     },
     {
      "id": "multan_multan-metro-bus_13",
-     "name": "Manzoorabad Metrobus",
+     "name": "Manzoorabad",
+     "osmName": "Manzoorabad Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.1899007,
@@ -166,7 +176,8 @@
     },
     {
      "id": "multan_multan-metro-bus_14",
-     "name": "Ahmad Abad Metrobus",
+     "name": "Ahmad Abad",
+     "osmName": "Ahmad Abad Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.1837015,
@@ -175,7 +186,8 @@
     },
     {
      "id": "multan_multan-metro-bus_15",
-     "name": "BCG Chowk Metrobus",
+     "name": "BCG Chowk",
+     "osmName": "BCG Chowk Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.1729533,
@@ -184,7 +196,8 @@
     },
     {
      "id": "multan_multan-metro-bus_16",
-     "name": "Peoples Colony Metrobus",
+     "name": "Peoples Colony",
+     "osmName": "Peoples Colony Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.1727309,
@@ -193,7 +206,8 @@
     },
     {
      "id": "multan_multan-metro-bus_17",
-     "name": "Vehari Chowk Metrobus",
+     "name": "Vehari Chowk",
+     "osmName": "Vehari Chowk Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.1751322,
@@ -203,24 +217,7 @@
     {
      "id": "multan_multan-metro-bus_18",
      "name": "General Bus Stand",
-     "nameUrdu": null,
-     "line": "multan_multan-metro-bus",
-     "lat": 30.1770565,
-     "lng": 71.5087102,
-     "osmId": "way/182024703"
-    },
-    {
-     "id": "multan_multan-metro-bus_19",
-     "name": "AC Bus Stand",
-     "nameUrdu": null,
-     "line": "multan_multan-metro-bus",
-     "lat": 30.1799829,
-     "lng": 71.5093694,
-     "osmId": "way/182024656"
-    },
-    {
-     "id": "multan_multan-metro-bus_20",
-     "name": "General Bus Stand Metrobus",
+     "osmName": "General Bus Stand Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.1810917,
@@ -228,8 +225,9 @@
      "osmId": "node/8365794869"
     },
     {
-     "id": "multan_multan-metro-bus_21",
-     "name": "Jinnah Park Metrobus",
+     "id": "multan_multan-metro-bus_19",
+     "name": "Jinnah Park",
+     "osmName": "Jinnah Park Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.1903553,
@@ -237,8 +235,9 @@
      "osmId": "node/8365794870"
     },
     {
-     "id": "multan_multan-metro-bus_22",
-     "name": "Shah Rukne Alam Metrobus",
+     "id": "multan_multan-metro-bus_20",
+     "name": "Shah Rukne Alam",
+     "osmName": "Shah Rukne Alam Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.1968224,
@@ -246,8 +245,9 @@
      "osmId": "node/8365794871"
     },
     {
-     "id": "multan_multan-metro-bus_23",
-     "name": "Kumharanwala Chowk Metrobus",
+     "id": "multan_multan-metro-bus_21",
+     "name": "Kumharanwala Chowk",
+     "osmName": "Kumharanwala Chowk Metrobus",
      "nameUrdu": null,
      "line": "multan_multan-metro-bus",
      "lat": 30.208501,
