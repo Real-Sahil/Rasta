@@ -129,6 +129,11 @@ function MainApp() {
     }
   }, [session?.status]);
 
+  const floodLabels = useMemo(
+    () => ({ layer: t.floodLayer, event1: t.floodEvent1, event2: t.floodEvent2, note: t.floodNote, credit: t.floodCredit }),
+    [t.floodLayer, t.floodEvent1, t.floodEvent2, t.floodNote, t.floodCredit]
+  );
+
   const nearbyHotspot = useMemo(() => {
     if (!fix) return null;
     for (const inc of incidents) {
@@ -406,6 +411,7 @@ function MainApp() {
             isNavigatingLive={session !== null}
             markers={markers}
             route={mapRoute}
+            floodLabels={floodLabels}
             onMapClick={(coords: { lat: number; lng: number }) => {
               const n = `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
               store().setDestination({

@@ -39,6 +39,9 @@ Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI 
 ## Data from OpenStreetMap
 `npm run data:osm` (or the "Refresh OSM data" workflow) writes `src/data/osm/*.json` from Overpass with source/licence/date metadata. Unknown values are `null`, never guessed (e.g. no machine-made Urdu names). ODbL: keep the OpenStreetMap attribution in the app. The hand-typed station lists in `src/data/pakistanLocations.ts` are known to be partly wrong; replace them with the OSM output once generated.
 
+## Past-flooding layer (UNOSAT via HDX)
+`npm run data:flood` (or the "Refresh flood data" workflow, which installs GDAL) writes `src/data/flood/lahore.json`: UNOSAT satellite-detected flood extents clipped to the Lahore district area, simplified (~55 m). It is **historical only**, not live or a forecast, and the UI says so. CC BY-SA: the credit shows on the map and the derived layer stays share-alike. The map loads it as a separate lazy chunk only when "Past flooding (satellite)" is switched on (off by default). `ogr2ogr -simplify` stalls on these polygons, so don't re-add it. `scripts/probe-sources.mjs` is a read-only catalogue probe (Mobility Database has no Pakistan feeds; OpenAQ/Transitland need keys).
+
 ## Rules learned the hard way
 - **Never fabricate data.** No `Math.random()` for AQI/weather/votes, no invented phone numbers, ratings, "verified/official" labels, or fake progress. If real data is unavailable, show nothing or say so.
 - `userLocation` is `null` until a real GPS fix. Never default to a Lahore coordinate for the user, SOS, or incident reports.

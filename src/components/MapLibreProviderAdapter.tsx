@@ -53,7 +53,20 @@ export interface MapLibreProviderAdapterProps {
   onMapClick?: (coords: { lat: number; lng: number }) => void;
   onMarkerClick?: (marker: MapLibreMarkerData) => void;
   className?: string;
+  /** Translated strings for the past-flooding layer (the layer is hidden when omitted). */
+  floodLabels?: FloodLabels;
 }
+
+export interface FloodLabels {
+  layer: string;
+  event1: string;
+  event2: string;
+  note: string;
+  credit: string;
+}
+
+interface FloodEvent { id: string; title: string; datasetDate: string | null; polygons: number[][][][] }
+const FLOOD_COLOURS = ['#2563eb', '#7c3aed'];
 
 // 100% Free ArcGIS World Street Map (Raster MapLibre Style Specification, 0 keys, 0 watermarks)
 const FREE_ARCGIS_STREETS_STYLE: maplibregl.StyleSpecification = {
@@ -143,7 +156,8 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
   heading = 0,
   onMapClick,
   onMarkerClick,
-  className = ''
+  className = '',
+  floodLabels
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -161,6 +175,8 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
   const [showRouteLayer, setShowRouteLayer] = useState(true);
   const [showHeatmapLayer, setShowHeatmapLayer] = useState(true);
   const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
+  const [showFloodLayer, setShowFloodLayer] = useState(false);
+  const [floodEvents, setFloodEvents] = useState<FloodEvent[] | null>(null);
 
   const filteredMarkers = markers.filter((m) => {
     if (m.type === 'incident' && !showIncidentsLayer) return false;
@@ -404,6 +420,42 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
     });
   }, [filteredMarkers, isRtl, onMarkerClick, showHeatmapLayer]);
 
+  // Past-flooding layer: the data is a separate chunk, fetched only the first time the layer is switched on
+  useEffect(() => {
+    if (!showFloodLayer || floodEvents) return;
+    let cancelled = false;
+    import('../data/flood/lahore.json')
+      .then((m) => { if (!cancelled) setFloodEvents((m.default as unknown as { events: FloodEvent[] }).events); })
+      .catch((err) => console.warn('Flood layer data failed to load:', err));
+    return () => { cancelled = true; };
+  }, [showFloodLayer, floodEvents]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    const ids = (floodEvents ?? []).map((_, i) => `rasta-flood-${i}`);
+    const clear = () => {
+      for (const id of ids) {
+        if (map.getLayer(`${id}-line`)) map.removeLayer(`${id}-line`);
+        if (map.getLayer(`${id}-fill`)) map.removeLayer(`${id}-fill`);
+        if (map.getSource(id)) map.removeSource(id);
+      }
+    };
+    clear();
+    if (!showFloodLayer || !floodEvents) return;
+    floodEvents.forEach((ev, i) => {
+      const id = ids[i];
+      const colour = FLOOD_COLOURS[i % FLOOD_COLOURS.length];
+      map.addSource(id, {
+        type: 'geojson',
+        data: { type: 'Feature', properties: {}, geometry: { type: 'MultiPolygon', coordinates: ev.polygons } }
+      });
+      map.addLayer({ id: `${id}-fill`, type: 'fill', source: id, paint: { 'fill-color': colour, 'fill-opacity': 0.4 } });
+      map.addLayer({ id: `${id}-line`, type: 'line', source: id, paint: { 'line-color': colour, 'line-width': 1 } });
+    });
+    return clear;
+  }, [showFloodLayer, floodEvents, mapLoaded, styleVersion]);
+
   // Update Route Polyline Layer
   useEffect(() => {
     const map = mapRef.current;
@@ -551,9 +603,15 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         </div>
       )}
 
+      {showFloodLayer && floodLabels && (
+        <div className={`absolute bottom-2 ${isRtl ? 'right-2' : 'left-2'} z-10 rounded bg-white/90 dark:bg-slate-900/90 px-1.5 py-0.5 text-[10px] text-slate-600 dark:text-slate-300`}>
+          {floodLabels.credit}
+        </div>
+      )}
+
       {/* Floating Map Controls */}
       <div
-        className={`absolute top-4 ${
+        className={`absolute top-[4.5rem] ${
           isRtl ? 'right-4' : 'left-4'
         } z-10 flex flex-col gap-2 items-center`}
       >
@@ -604,6 +662,30 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
                   className="rounded accent-emerald-600 w-4 h-4"
                 />
               </label>
+              {floodLabels && (
+                <div className="p-1.5 space-y-1.5">
+                  <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <span className="flex items-center gap-2">🌊 {floodLabels.layer}</span>
+                    <input
+                      type="checkbox"
+                      checked={showFloodLayer}
+                      onChange={(e) => setShowFloodLayer(e.target.checked)}
+                      className="rounded accent-emerald-600 w-4 h-4"
+                    />
+                  </label>
+                  {showFloodLayer && (
+                    <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-400">
+                      {(floodEvents ?? []).map((ev, i) => (
+                        <div key={ev.id} className="flex items-center gap-1.5">
+                          <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ background: FLOOD_COLOURS[i % FLOOD_COLOURS.length], opacity: 0.6 }} />
+                          <span>{i === 0 ? floodLabels.event1 : i === 1 ? floodLabels.event2 : ev.title}</span>
+                        </div>
+                      ))}
+                      <p className="leading-snug">{floodLabels.note}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

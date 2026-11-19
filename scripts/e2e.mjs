@@ -96,6 +96,16 @@ await page.waitForSelector('canvas.maplibregl-canvas', { timeout: 15000 }).then(
   () => check('map canvas renders (lazy chunk loaded)', false, 'no canvas: WebGL unavailable?')
 );
 
+// 4b. past-flooding layer: off by default, loads its data on demand, credits UNOSAT, localised
+check('flood layer is off until chosen', !/UNOSAT via HDX/.test(await text()));
+await page.locator('button[title="Toggle Map Data Layers"]').click();
+await page.getByLabel('Past flooding (satellite)').check();
+await page.waitForTimeout(1500);
+const ft = await text();
+check('flood layer shows its legend, historical-only note and UNOSAT credit', /July 2025 flood, Punjab/.test(ft) && /Not live and not a forecast/.test(ft) && /UNOSAT via HDX, CC BY-SA/.test(ft));
+await page.getByLabel('Past flooding (satellite)').uncheck();
+check('flood layer can be switched off again', !/UNOSAT via HDX/.test(await text()));
+
 // 4. search -> route (mocked OSRM)
 await page.locator('input[type=text]').first().fill('Badshahi');
 await page.waitForTimeout(800);
