@@ -195,12 +195,12 @@ export function tidyLineStations(stations) {
 
 /**
  * One entry per real station: OSM often maps a station twice (node + platform, or two spellings a few metres apart).
- * In line order, a station with a name already seen, or within `maxM` of the previous kept one, is merged into it;
+ * In line order, a station with a name already seen, or within `maxM` (250 m; stations are normally 500 m+ apart) of the previous kept one, is merged into it;
  * the shorter name wins ("Saddar station" + "Saddar" -> "Saddar"). Nothing is renamed beyond picking an OSM name.
  */
 const metres = (a, b) => { const xy = toXY(a.lat); const [x1, y1] = xy(a), [x2, y2] = xy(b); return Math.hypot(x1 - x2, y1 - y2); };
 
-export function mergeDuplicateStations(stations, { maxM = 150 } = {}) {
+export function mergeDuplicateStations(stations, { maxM = 250 } = {}) {
   const nm = (e) => (e.tags?.['name:en'] || e.tags?.name || '').trim();
   const pos = (e) => ({ lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon });
   const out = [], seen = new Set();

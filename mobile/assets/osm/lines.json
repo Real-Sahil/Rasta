@@ -60,26 +60,6 @@
     },
     {
      "id": "islamabad_rawalpindi_red-metro-bus-track_02",
-     "name": "Saddar station",
-     "osmName": "Metro Bus Saddar station",
-     "nameUrdu": null,
-     "line": "islamabad_rawalpindi_red-metro-bus-track",
-     "lat": 33.593782,
-     "lng": 73.0561506,
-     "osmId": "way/707559496"
-    },
-    {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_03",
-     "name": "Mareer Chowk station",
-     "osmName": "Metro bus Mareer Chowk station",
-     "nameUrdu": null,
-     "line": "islamabad_rawalpindi_red-metro-bus-track",
-     "lat": 33.5995232,
-     "lng": 73.0626625,
-     "osmId": "way/707559495"
-    },
-    {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_04",
      "name": "Marir Chowk",
      "osmName": "Metro Bus Terminal Marir Chowk",
      "nameUrdu": null,
@@ -89,7 +69,7 @@
      "osmId": "node/2640862163"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_05",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_03",
      "name": "Liaquat Bagh",
      "osmName": "Metro Bus Terminal Liaquat Bagh",
      "nameUrdu": null,
@@ -99,7 +79,7 @@
      "osmId": "node/4945457425"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_06",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_04",
      "name": "Committee Chowk",
      "osmName": "Metro Bus Terminal Committee Chowk",
      "nameUrdu": null,
@@ -109,7 +89,7 @@
      "osmId": "node/4273484291"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_07",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_05",
      "name": "Chandni Chowk",
      "osmName": "Chandni Chowk Metro Bus Stop",
      "nameUrdu": null,
@@ -119,17 +99,7 @@
      "osmId": "node/9160141497"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_08",
-     "name": "Chandni Chowk",
-     "osmName": "Chandni Chowk Metro Bus Stop",
-     "nameUrdu": null,
-     "line": "islamabad_rawalpindi_red-metro-bus-track",
-     "lat": 33.629977,
-     "lng": 73.0719525,
-     "osmId": "node/4996274621"
-    },
-    {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_09",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_06",
      "name": "Rehmanabad",
      "osmName": "Metro Bus Terminal Rehmanabad",
      "nameUrdu": null,
@@ -139,7 +109,7 @@
      "osmId": "node/4774740068"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_10",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_07",
      "name": "Sixth Road",
      "osmName": "Metro Bus Terminal Sixth Road",
      "nameUrdu": null,
@@ -149,7 +119,7 @@
      "osmId": "node/4774740070"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_11",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_08",
      "name": "Shamsabad",
      "osmName": "Metro Bus Terminal Shamsabad",
      "nameUrdu": null,
@@ -159,7 +129,7 @@
      "osmId": "node/2027815167"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_12",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_09",
      "name": "IJP",
      "osmName": "Metro Bus Terminal IJP",
      "nameUrdu": null,
@@ -169,7 +139,7 @@
      "osmId": "way/707559487"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_13",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_10",
      "name": "Photohar",
      "osmName": "Metro Bus Terminal Photohar",
      "nameUrdu": null,
@@ -179,17 +149,7 @@
      "osmId": "way/707559486"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_14",
-     "name": "Photohar",
-     "osmName": "Metro Bus Station Photohar",
-     "nameUrdu": null,
-     "line": "islamabad_rawalpindi_red-metro-bus-track",
-     "lat": 33.6609635,
-     "lng": 73.0654448,
-     "osmId": "node/5325452224"
-    },
-    {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_15",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_11",
      "name": "Khyban-e-Johar",
      "osmName": "Metro Bus Terminal Khyban-e-Johar",
      "nameUrdu": null,
@@ -199,7 +159,7 @@
      "osmId": "way/707559485"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_16",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_12",
      "name": "Faiz Ahmed Faiz",
      "osmName": "Metro Bus Terminal Faiz Ahmed Faiz",
      "nameUrdu": null,
@@ -209,7 +169,7 @@
      "osmId": "way/707559484"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_17",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_13",
      "name": "Peshawar Mor",
      "osmName": "Metro Bus Terminal Peshawar Mor",
      "nameUrdu": null,
@@ -219,17 +179,7 @@
      "osmId": "node/9182481570"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_18",
-     "name": "stand Islamabad",
-     "osmName": "Metro bus stand Islamabad",
-     "nameUrdu": null,
-     "line": "islamabad_rawalpindi_red-metro-bus-track",
-     "lat": 33.6898123,
-     "lng": 73.0430386,
-     "osmId": "way/707559482"
-    },
-    {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_19",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_14",
      "name": "Chaman",
      "osmName": "Metro Bus Terminal Chaman",
      "nameUrdu": null,
@@ -239,17 +189,7 @@
      "osmId": "node/9182481571"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_20",
-     "name": "Chamman",
-     "osmName": "Chamman Metro Station",
-     "nameUrdu": null,
-     "line": "islamabad_rawalpindi_red-metro-bus-track",
-     "lat": 33.6917382,
-     "lng": 73.0434825,
-     "osmId": "node/12476007292"
-    },
-    {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_21",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_15",
      "name": "Ibn-e-Sina",
      "osmName": "Metro Bus Terminal Ibn-e-Sina",
      "nameUrdu": null,
@@ -259,17 +199,7 @@
      "osmId": "way/707559481"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_22",
-     "name": "Ibn-e-Sina",
-     "osmName": "Metro Bus Station Ibn-e-Sina",
-     "nameUrdu": null,
-     "line": "islamabad_rawalpindi_red-metro-bus-track",
-     "lat": 33.6960418,
-     "lng": 73.0383718,
-     "osmId": "node/5681049024"
-    },
-    {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_23",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_16",
      "name": "Katchery",
      "osmName": "Metro Bus Terminal Katchery",
      "nameUrdu": null,
@@ -279,27 +209,7 @@
      "osmId": "way/707559480"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_24",
-     "name": "PIMS North",
-     "osmName": "PIMS Metro Bus Station North",
-     "nameUrdu": null,
-     "line": "islamabad_rawalpindi_red-metro-bus-track",
-     "lat": 33.7058724,
-     "lng": 73.0479031,
-     "osmId": "node/12732941788"
-    },
-    {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_25",
-     "name": "PIMS South",
-     "osmName": "PIMS Metro Bus Station South",
-     "nameUrdu": null,
-     "line": "islamabad_rawalpindi_red-metro-bus-track",
-     "lat": 33.7055997,
-     "lng": 73.0481491,
-     "osmId": "node/12690963703"
-    },
-    {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_26",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_17",
      "name": "PIMS",
      "osmName": "PIMS Metro Bus Station",
      "nameUrdu": null,
@@ -309,7 +219,7 @@
      "osmId": "node/5220455039"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_27",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_18",
      "name": "Stock Exchange",
      "osmName": "Metro Bus Terminal Stock Exchange",
      "nameUrdu": null,
@@ -319,7 +229,7 @@
      "osmId": "way/707559477"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_28",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_19",
      "name": "7th Avenue",
      "osmName": "Metro Bus Terminal 7th Avenue",
      "nameUrdu": null,
@@ -329,7 +239,7 @@
      "osmId": "node/5681054721"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_29",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_20",
      "name": "Shaheed-E-Millat",
      "osmName": "Metro Bus Terminal Shaheed-E-Millat",
      "nameUrdu": null,
@@ -339,7 +249,7 @@
      "osmId": "way/707559475"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_30",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_21",
      "name": "Parade Ground",
      "osmName": "Metro Bus Terminal Parade Ground",
      "nameUrdu": null,
@@ -349,7 +259,7 @@
      "osmId": "way/707559471"
     },
     {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_31",
+     "id": "islamabad_rawalpindi_red-metro-bus-track_22",
      "name": "Pak Secretariat",
      "osmName": "Metro Bus Terminal Pak Secretariat",
      "nameUrdu": null,
@@ -357,16 +267,6 @@
      "lat": 33.7346737,
      "lng": 73.092561,
      "osmId": "way/707559472"
-    },
-    {
-     "id": "islamabad_rawalpindi_red-metro-bus-track_32",
-     "name": "IJP",
-     "osmName": "Metro Bus Terminal IJP",
-     "nameUrdu": "فیض آباد میٹرواسٹیشن",
-     "line": "islamabad_rawalpindi_red-metro-bus-track",
-     "lat": 33.6613382,
-     "lng": 73.0829465,
-     "osmId": "node/9160142166"
     }
    ]
   },
