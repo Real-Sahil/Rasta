@@ -94,10 +94,20 @@ const jobs = {
 const MIN = { orangeline: 10, metrobus: 10, hospitals: 10, fuel: 10, lines: 1 };
 
 await mkdir(OUT, { recursive: true });
+// OSM_ONLY=lines,metrobus fetches just those; a dataset that fails keeps its previous file and the run fails at the end.
+const only = (process.env.OSM_ONLY ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+const failed = [];
 for (const [name, job] of Object.entries(jobs)) {
-  const { items, query, ...extra } = await job();
-  if (items.length < MIN[name]) throw new Error(`${name}: only ${items.length} items (expected at least ${MIN[name]}); not writing`);
-  await writeFile(new URL(`${name}.json`, OUT), JSON.stringify(withMeta(items, { fetchedAt, bbox: extra.cities ? null : BBOX, query, ...extra }), null, 1) + '\n');
-  console.log(`${name}: ${items.length} items${extra.relationName ? ` (${extra.relationName})` : ''}`);
+  if (only.length && !only.includes(name)) continue;
+  try {
+    const { items, query, ...extra } = await job();
+    if (items.length < MIN[name]) throw new Error(`only ${items.length} items (expected at least ${MIN[name]}); not writing`);
+    await writeFile(new URL(`${name}.json`, OUT), JSON.stringify(withMeta(items, { fetchedAt, bbox: extra.cities ? null : BBOX, query, ...extra }), null, 1) + '\n');
+    console.log(`${name}: ${items.length} items${extra.relationName ? ` (${extra.relationName})` : ''}`);
+  } catch (e) {
+    console.error(`${name}: FAILED, previous file kept (${e.message})`);
+    failed.push(name);
+  }
   await new Promise((r) => setTimeout(r, 2000)); // be polite to the public server
 }
+if (failed.length) console.error(`::warning::OSM datasets not refreshed: ${failed.join(', ')}`);
