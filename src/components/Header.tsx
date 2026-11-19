@@ -7,8 +7,8 @@ import React from 'react';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
 import { Language } from '../types';
 import { SyncStatusInfo } from '../services/incidentSyncService';
-import { useSkin, setSkin } from './chamakSkin';
-import { Moon, Sun, Flower2, ShieldAlert, CloudRain, Zap, Wind, Info } from 'lucide-react';
+import { SkinPicker } from './SkinPicker';
+import { Moon, Sun, ShieldAlert, CloudRain, Zap, Wind, Info } from 'lucide-react';
 import { fetchCityAqi, CityAqiData } from '../services/aqiService';
 
 interface HeaderProps {
@@ -35,7 +35,6 @@ export const Header: React.FC<HeaderProps> = ({
   onLegalClick
 }) => {
   const { language, setLanguage, theme, toggleTheme, isRtl, t } = useMobilityTheme();
-  const skin = useSkin();
   const [aqiData, setAqiData] = React.useState<CityAqiData | null>(null);
 
   React.useEffect(() => {
@@ -151,16 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => setSkin(skin === 'chamak' ? 'default' : 'chamak')}
-            aria-pressed={skin === 'chamak'}
-            aria-label={t.skinLabel}
-            title={t.skinLabel}
-            className={`p-1.5 sm:p-2 rounded-xl border transition-colors shrink-0 cursor-pointer ${skin === 'chamak' ? 'bg-[#D7263D] text-white border-[#F5B700]' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'}`}
-          >
-            <Flower2 className="w-4 h-4" />
-          </button>
+          <SkinPicker label={t.skinLabel} defaultLabel={t.skinDefault} isRtl={isRtl} />
 
           {/* Theme Mode Toggle */}
           <button

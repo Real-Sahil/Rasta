@@ -24,6 +24,8 @@ interface SearchInputProps {
   compact?: boolean;
   leadingIcon?: React.ReactNode;
   currentLocationLabel?: string;
+  /** Reports when the suggestions list opens/closes so the screen can get out of its way. */
+  onOpenChange?: (open: boolean) => void;
 }
 
 // Set VITE_GEOCODE_URL to a Nominatim-compatible /search endpoint to replace the public server.
@@ -38,6 +40,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   currentCoords,
   initialValue = '',
   externalLabel,
+  onOpenChange,
   compact = false,
   leadingIcon,
   currentLocationLabel
@@ -45,6 +48,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   const [query, setQuery] = useState(externalLabel ?? initialValue);
   useEffect(() => { if (externalLabel !== undefined) setQuery(externalLabel); }, [externalLabel]);
   const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => { onOpenChange?.(isOpen); return () => onOpenChange?.(false); }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   const [isSearchingOnline, setIsSearchingOnline] = useState(false);
   const [onlineResults, setOnlineResults] = useState<LocationPoint[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);

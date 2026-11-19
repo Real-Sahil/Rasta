@@ -127,3 +127,52 @@ html[data-skin="chamak"] .skin-handle { background: var(--ck-gold); }
 
 html[data-skin="chamak"] .skin-primary:not(:disabled) { background: var(--ck-red); color: #fff; box-shadow: inset 0 0 0 2px var(--ck-gold); }
 html[data-skin="chamak"] .skin-primary:not(:disabled):hover { background: #B01E31; }
+
+/* ---------- Other skins: Luce, Miniature, Schematic, Nastaliq. Chrome only, same hook classes as Chamak. ---------- */
+/* Shared: sheet/header/nav pick up --sk-* tokens. Light values here, dark overrides below. */
+html[data-skin="luce"] { --sk-accent: #8A6A2F; --sk-paper: #FAF8F3; --sk-ink: #1A1814; --sk-rule: #D9CFB8; }
+html.dark[data-skin="luce"] { --sk-accent: #C9A24B; --sk-paper: #0B0B0C; --sk-ink: #EDE6D6; --sk-rule: #3A3224; }
+html[data-skin="miniature"] { --sk-accent: #B8892B; --sk-paper: #FBF3DF; --sk-ink: #1F2F5C; --sk-rule: #1F3A6E; }
+html.dark[data-skin="miniature"] { --sk-accent: #E3B341; --sk-paper: #101A33; --sk-ink: #F3E7C6; --sk-rule: #E3B341; }
+html[data-skin="schematic"] { --sk-accent: #0019A8; --sk-paper: #FFFFFF; --sk-ink: #0B1020; --sk-rule: #0B1020; }
+html.dark[data-skin="schematic"] { --sk-accent: #7C8CFF; --sk-paper: #0B1020; --sk-ink: #F2F4FF; --sk-rule: #7C8CFF; }
+html[data-skin="nastaliq"] { --sk-accent: #0F6B4F; --sk-paper: #FBF6E9; --sk-ink: #16241E; --sk-rule: #C9BC93; }
+html.dark[data-skin="nastaliq"] { --sk-accent: #4FC79C; --sk-paper: #0E1613; --sk-ink: #EDE9D8; --sk-rule: #2E4A3D; }
+
+html[data-skin="luce"] .skin-header, html[data-skin="luce"] .skin-nav, html[data-skin="luce"] .skin-sheet, html[data-skin="miniature"] .skin-header, html[data-skin="miniature"] .skin-nav, html[data-skin="miniature"] .skin-sheet, html[data-skin="schematic"] .skin-header, html[data-skin="schematic"] .skin-nav, html[data-skin="schematic"] .skin-sheet, html[data-skin="nastaliq"] .skin-header, html[data-skin="nastaliq"] .skin-nav, html[data-skin="nastaliq"] .skin-sheet { background: color-mix(in srgb, var(--sk-paper) 96%, transparent); color: var(--sk-ink); }
+html[data-skin="luce"] .skin-header, html[data-skin="miniature"] .skin-header, html[data-skin="schematic"] .skin-header, html[data-skin="nastaliq"] .skin-header { border-bottom: 1px solid var(--sk-rule); }
+html[data-skin="luce"] .skin-nav, html[data-skin="miniature"] .skin-nav, html[data-skin="schematic"] .skin-nav, html[data-skin="nastaliq"] .skin-nav { border-top: 1px solid var(--sk-rule); }
+html[data-skin="luce"] .skin-sheet, html[data-skin="miniature"] .skin-sheet, html[data-skin="schematic"] .skin-sheet, html[data-skin="nastaliq"] .skin-sheet { border-top: 1px solid var(--sk-rule); }
+html[data-skin="luce"] .skin-handle, html[data-skin="miniature"] .skin-handle, html[data-skin="schematic"] .skin-handle, html[data-skin="nastaliq"] .skin-handle { background: var(--sk-accent); }
+html[data-skin="luce"] .skin-nav [aria-current="page"], html[data-skin="miniature"] .skin-nav [aria-current="page"], html[data-skin="schematic"] .skin-nav [aria-current="page"], html[data-skin="nastaliq"] .skin-nav [aria-current="page"] { color: var(--sk-accent); }
+html[data-skin="luce"] .skin-display, html[data-skin="miniature"] .skin-display, html[data-skin="schematic"] .skin-display, html[data-skin="nastaliq"] .skin-display { color: var(--sk-ink); }
+html[data-skin="luce"] .skin-primary:not(:disabled), html[data-skin="miniature"] .skin-primary:not(:disabled), html[data-skin="schematic"] .skin-primary:not(:disabled), html[data-skin="nastaliq"] .skin-primary:not(:disabled) { background: var(--sk-accent); color: var(--sk-paper); }
+
+/* Luce: restrained, brass hairlines, tighter radii, light weight */
+html[data-skin="luce"] .skin-display { font-weight: 500; letter-spacing: .08em; text-transform: uppercase; font-size: .8em; }
+html[data-skin="luce"] .skin-sheet { border-radius: 14px 14px 0 0; }
+html[data-skin="luce"] .skin-primary:not(:disabled) { border-radius: 999px; letter-spacing: .06em; }
+
+/* Miniature: manuscript folio, double gold rule */
+html[data-skin="miniature"] [dir="ltr"] .skin-display { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 1.1em; }
+html[data-skin="miniature"] .skin-header { border-bottom: 3px double var(--sk-accent); }
+html[data-skin="miniature"] .skin-sheet { border-top: 3px double var(--sk-accent); }
+html[data-skin="miniature"] .skin-nav { border-top: 3px double var(--sk-accent); }
+html[data-skin="miniature"] .skin-primary:not(:disabled) { background: #1F3A6E; color: #FBF3DF; box-shadow: inset 0 0 0 2px #E3B341; }
+
+/* Schematic: Beck-style, square corners, heavy rules */
+html[data-skin="schematic"] .skin-header { border-bottom: 3px solid var(--sk-accent); }
+html[data-skin="schematic"] .skin-sheet { border-radius: 0; border-top: 3px solid var(--sk-accent); }
+html[data-skin="schematic"] .skin-nav { border-top: 3px solid var(--sk-accent); }
+html[data-skin="schematic"] .skin-display { font-weight: 800; letter-spacing: -.01em; }
+html[data-skin="schematic"] .skin-primary:not(:disabled) { border-radius: 0; }
+
+/* Nastaliq: paper and ink, Urdu headings in Noto Nastaliq (it has Arabic-script glyphs, so it works in RTL too) */
+html[data-skin="nastaliq"] .skin-display { font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', serif; font-weight: 700; line-height: 1.8; }
+html[data-skin="nastaliq"] .skin-header { border-bottom: 2px solid var(--sk-accent); }
+html[data-skin="nastaliq"] .skin-sheet { border-top: 2px solid var(--sk-accent); }
+html[data-skin="luce"] .skin-nav [aria-current="page"] > span:first-child,
+html[data-skin="miniature"] .skin-nav [aria-current="page"] > span:first-child,
+html[data-skin="schematic"] .skin-nav [aria-current="page"] > span:first-child,
+html[data-skin="nastaliq"] .skin-nav [aria-current="page"] > span:first-child { background: color-mix(in srgb, var(--sk-accent) 16%, transparent); }
+html[data-skin="schematic"] .skin-nav [aria-current="page"] > span:first-child { border-radius: 0; }

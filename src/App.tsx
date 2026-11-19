@@ -80,6 +80,7 @@ function MainApp() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('navigate');
   const [sheetSnap, setSheetSnap] = useState<SheetSnap>('peek');
+  const [searching, setSearching] = useState(false); // suggestions open: the sheet steps aside so the map and list are visible
   const [center, setCenter] = useState<{ lat: number; lng: number }>(CITY_CENTERS.lahore);
   const [zoom, setZoom] = useState(13);
   const [isMonsoonMode, setIsMonsoonMode] = useState(false);
@@ -388,6 +389,7 @@ function MainApp() {
                 }}
                 onUseCurrentLocation={handleRecenter}
                 currentCoords={fix}
+                onOpenChange={setSearching}
               />
             ) : (
               <div className="flex items-stretch gap-1.5">
@@ -403,6 +405,7 @@ function MainApp() {
                       onUseCurrentLocation={() => store().setOrigin(null)}
                       onSelectLocation={(loc) => { store().setOrigin(loc); setCenter({ lat: loc.lat, lng: loc.lng }); }}
                       currentCoords={fix}
+                      onOpenChange={setSearching}
                     />
                   </div>
                   <div className="relative z-40">
@@ -414,6 +417,7 @@ function MainApp() {
                       leadingIcon={<MapPin className="w-4 h-4 text-rose-600" />}
                       onSelectLocation={(loc) => { store().setDestination(loc); setCenter({ lat: loc.lat, lng: loc.lng }); setZoom(15); }}
                       currentCoords={fix}
+                      onOpenChange={setSearching}
                     />
                   </div>
                 </div>
@@ -588,6 +592,7 @@ function MainApp() {
           snap={sheetSnap}
           onSnapChange={setSheetSnap}
           hidden={session !== null}
+          tucked={searching}
           isRtl={isRtl}
           floating={
             <FloatingControls

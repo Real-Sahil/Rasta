@@ -19,6 +19,8 @@ interface BottomSheetProps {
   onSnapChange: (snap: SheetSnap) => void;
   /** Hide the sheet entirely (e.g. during turn-by-turn navigation) */
   hidden?: boolean;
+  /** Fully out of the way while the user is typing an address (so it never covers the map or the suggestions). */
+  tucked?: boolean;
   /** Controls that float just above the sheet and move with it */
   floating?: React.ReactNode;
   /** Sticky primary action, always visible above the nav bar */
@@ -32,7 +34,7 @@ const heightFor = (snap: SheetSnap, vh: number) => {
   return snap === 'peek' ? Math.max(MIN_PEEK_PX, px) : px;
 };
 
-export const BottomSheet: React.FC<BottomSheetProps> = ({ title, snap, onSnapChange, hidden = false, floating, footer, isRtl = false, children }) => {
+export const BottomSheet: React.FC<BottomSheetProps> = ({ title, snap, onSnapChange, hidden = false, tucked = false, floating, footer, isRtl = false, children }) => {
   const [vh, setVh] = useState(() => (typeof window === 'undefined' ? 800 : window.innerHeight));
   const [dragH, setDragH] = useState<number | null>(null);
   const drag = useRef<{ startY: number; startH: number; moved: boolean } | null>(null);
@@ -72,6 +74,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ title, snap, onSnapCha
   };
 
   const side = isRtl ? 'left-3' : 'right-3';
+
+  if (tucked) return null;
 
   if (hidden) {
     return floating ? <div className={`absolute ${side} bottom-6 z-30 flex flex-col gap-3 items-center`}>{floating}</div> : null;
