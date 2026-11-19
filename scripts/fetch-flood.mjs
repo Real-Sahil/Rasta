@@ -3,7 +3,8 @@
 // Needs network + `unzip` + GDAL's `ogr2ogr` (apt gdal-bin; the workflow installs it). Run: npm run data:flood
 // Licence: CC BY-SA (UNOSAT). Credit is shown in the app; share-alike applies to the derived layer.
 import { mkdir, writeFile, readFile, readdir } from 'node:fs/promises';
-import { createWriteStream } from 'node:fs';
+import { createWriteStream, createReadStream } from 'node:fs';
+import { createInterface } from 'node:readline';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { execFileSync } from 'node:child_process';
@@ -43,11 +44,17 @@ for (const id of DATASETS) {
   const polygons = [];
   for (const [i, shp] of shps.entries()) {
     // ogr2ogr filters to the region with the spatial index and reprojects to WGS84, so we never parse the full national file in JS.
-    const geo = join(work, `${id.slice(0, 20)}-${i}.geojson`);
-    execFileSync('ogr2ogr', ['-f', 'GeoJSON', '-t_srs', 'EPSG:4326', '-spat', ...BBOX.map(String), '-spat_srs', 'EPSG:4326', geo, shp], { stdio: 'inherit', maxBuffer: 1 << 28 });
-    const feats = JSON.parse(await readFile(geo, 'utf8')).features;
-    const clipped = clipAndSimplify(feats, { bbox: BBOX });
-    console.log(`  ${shp.split('/').pop()}: ${feats.length} features in region -> ${clipped.length} polygons kept`);
+    // Newline-delimited output, simplified and attribute-free by GDAL, read line by line: the raw regional layer is hundreds of MB.
+    const geo = join(work, `${id.slice(0, 20)}-${i}.geojsonl`);
+    execFileSync('ogr2ogr', ['-f', 'GeoJSONSeq', '-t_srs', 'EPSG:4326', '-spat', ...BBOX.map(String), '-spat_srs', 'EPSG:4326', '-select', '', '-simplify', '0.0003', '-lco', 'COORDINATE_PRECISION=5', geo, shp], { stdio: 'inherit' });
+    let seen = 0;
+    const clipped = [];
+    for await (const line of createInterface({ input: createReadStream(geo), crlfDelay: Infinity })) {
+      if (!line.trim()) continue;
+      seen++;
+      clipped.push(...clipAndSimplify([JSON.parse(line)], { bbox: BBOX }));
+    }
+    console.log(`  ${shp.split('/').pop()}: ${seen} features in region -> ${clipped.length} polygons kept`);
     polygons.push(...clipped);
   }
   const range = /\[(\d{4}-\d{2}-\d{2})/.exec(meta.dataset_date ?? '');
