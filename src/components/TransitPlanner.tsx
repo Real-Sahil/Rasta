@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { METROBUS_STATIONS, ORANGELINE_STATIONS, OSM_CREDIT, OSM_UPDATED, stationName } from '../data/osmData';
 import { TransitStation } from '../types';
+import { LineDiagram } from './LineDiagram';
 import { TransitReports } from './TransitReports';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
 import { Train, Bus, MapPin, Calculator, Check, ArrowRight, ShieldCheck, Ticket } from 'lucide-react';
@@ -18,6 +19,20 @@ interface TransitPlannerProps {
 export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation, city = 'lahore' }) => {
   const { isRtl, t } = useMobilityTheme();
   const [activeTab, setActiveTab] = useState<'metrobus' | 'orangeline' | 'calculator'>('metrobus');
+  const [view, setView] = useState<'list' | 'diagram'>('list');
+  const diagram = (list: typeof METROBUS_STATIONS, color: string) => (
+    <LineDiagram stations={list} color={color} isRtl={isRtl} onPick={onSelectStation} boardLabel={t.diagramBoard} alightLabel={t.diagramAlight} note={t.diagramNote} />
+  );
+  const viewToggle = (
+    <div role="group" className="flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-bold">
+      {(['list', 'diagram'] as const).map(v => (
+        <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}
+          className={`px-2.5 py-1 rounded-md cursor-pointer ${view === v ? 'bg-white dark:bg-slate-700 shadow-xs text-slate-900 dark:text-white' : 'text-slate-500'}`}>
+          {v === 'list' ? t.viewList : t.viewDiagram}
+        </button>
+      ))}
+    </div>
+  );
 
   // Fare calculator state
   const [calcLine, setCalcLine] = useState<'metrobus' | 'orangeline'>('orangeline');
@@ -102,6 +117,8 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
             <span className="font-bold text-rose-600">Flat Rs. 30</span>
           </div>
 
+          <div className="flex justify-end">{viewToggle}</div>
+          {view === 'diagram' ? diagram(METROBUS_STATIONS, '#E11D48') : (
           <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
             {METROBUS_STATIONS.map((station, idx) => (
               <div
@@ -129,6 +146,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
               </div>
             ))}
           </div>
+          )}
         </div>
       )}
 
@@ -140,6 +158,8 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
             <span className="font-bold text-amber-600">Distance: Rs. 20 - 40</span>
           </div>
 
+          <div className="flex justify-end">{viewToggle}</div>
+          {view === 'diagram' ? diagram(ORANGELINE_STATIONS, '#F26A21') : (
           <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
             {ORANGELINE_STATIONS.map((station, idx) => (
               <div
@@ -167,6 +187,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
               </div>
             ))}
           </div>
+          )}
         </div>
       )}
 
@@ -251,6 +272,8 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
               />
             </div>
           </div>
+
+          <LineDiagram stations={stations} color={calcLine === 'metrobus' ? '#E11D48' : '#F26A21'} isRtl={isRtl} fromId={originId} toId={destId} boardLabel={t.diagramBoard} alightLabel={t.diagramAlight} note={t.diagramNote} />
 
           {/* Result Card */}
           <div className="p-3 bg-gradient-to-tr from-emerald-600 to-teal-600 text-white rounded-xl shadow-lg flex items-center justify-between">
