@@ -1,0 +1,61 @@
+name: Create Android upload key
+
+# Run ONCE, by hand. Generates the Play upload key on GitHub's runner, so the key and its password never pass
+# through a laptop, a chat or the logs. Before running: create the repository secret ANDROID_KEYSTORE_PASSWORD
+# (a long random password you have ALSO saved in your password manager: GitHub secrets cannot be read back).
+# Output: mobile/android/upload-key.p12.gpg, the PKCS12 keystore encrypted (AES-256) with that password, committed
+# to the branch this runs on. Without the password the file is useless; with it, it is the backup of the key.
+# The workflow refuses to run if the file already exists, so it can never replace a key Play already knows.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Check preconditions
+        env:
+          PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -e mobile/android/upload-key.p12.gpg ]; then
+            echo "::error::mobile/android/upload-key.p12.gpg already exists. Refusing to create a second upload key."; exit 1
+          fi
+          if [ "${#PW}" -lt 20 ]; then
+            echo "::error::Secret ANDROID_KEYSTORE_PASSWORD is missing or shorter than 20 characters."; exit 1
+          fi
+      - name: Generate and encrypt the key
+        env:
+          PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          ks="$RUNNER_TEMP/upload-key.p12"
+          keytool -genkeypair -v -storetype PKCS12 -keystore "$ks" -alias upload \
+            -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=Buraq Pakistan" \
+            -storepass:env PW -keypass:env PW
+          printf '%s' "$PW" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 -o mobile/android/upload-key.p12.gpg "$ks"
+          {
+            echo "## Android upload key created"
+            echo "Alias: \`upload\`. Fingerprints (public, safe to share; Play Console shows the same SHA-256):"
+            echo '```'
+            keytool -list -v -keystore "$ks" -alias upload -storepass:env PW | grep -E 'SHA1:|SHA256:'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          shred -u "$ks"
+      - name: Commit the encrypted keystore
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mobile/android/upload-key.p12.gpg
+          git commit -m "Add encrypted Android upload key (generated in CI)"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
