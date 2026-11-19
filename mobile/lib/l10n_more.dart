@@ -1,6 +1,11 @@
 // Stage 3 strings: emergency, conditions, fares. Urdu/Punjabi wording is a DRAFT pending native-speaker review.
 const Map<String, Map<String, String>> moreStrings = {
   'en': {
+    'outsidePk': 'Buraq covers Pakistan only. Search and routes won\'t work where you are now.',
+    'placeHome': 'Home', 'placeWork': 'Work', 'setHome': 'Set as Home', 'setWork': 'Set as Work', 'recentTitle': 'Recent',
+    'removePlace': 'Remove', 'savedTitle': 'Saved places', 'clearHistory': 'Clear recent destinations', 'historyCleared': 'Recent destinations cleared.',
+    'savedNote': 'Kept on this phone only. Long-press a place to remove it.',
+    'legalPrivacy4': 'This app does not send crash reports or analytics. Settings, Home, Work and your recent destinations are kept on your phone only and are never uploaded. Clear them in Info, or clear the app\'s storage or uninstall it to remove everything.',
     'searchBusy': 'Search is busy right now. Try again in a moment.',
     'themeLabel': 'Appearance', 'themeAuto': 'Auto', 'themeLight': 'Light', 'themeDark': 'Dark',
     'skinLabel': 'Theme', 'skinDefault': 'Standard', 'skinNote': 'Restyles the menu bar and driving screen. The map stays plain.',
@@ -35,6 +40,11 @@ const Map<String, Map<String, String>> moreStrings = {
     'legalPrivacy2': 'Your GPS position stays on your phone, except when you ask for a route or place search: then the start and end points or your search words are sent to the free map services we use (OSRM / OpenStreetMap servers and Nominatim). Weather and air quality come from Open-Meteo, which receives the coordinates of the city you pick, and map tiles from OpenFreeMap, which learns the area you are viewing and your IP address. Each of those services has its own privacy policy. While you navigate, the app keeps using your location with the screen off and shows a notification; speech uses your phone\'s own voice engine.',
   },
   'ur': {
+    'outsidePk': 'براق صرف پاکستان کے لیے ہے۔ آپ کی موجودہ جگہ پر تلاش اور راستے کام نہیں کریں گے۔',
+    'placeHome': 'گھر', 'placeWork': 'دفتر', 'setHome': 'گھر کے طور پر محفوظ کریں', 'setWork': 'دفتر کے طور پر محفوظ کریں', 'recentTitle': 'حالیہ',
+    'removePlace': 'ہٹائیں', 'savedTitle': 'محفوظ جگہیں', 'clearHistory': 'حالیہ منزلیں صاف کریں', 'historyCleared': 'حالیہ منزلیں صاف ہو گئیں۔',
+    'savedNote': 'صرف اس فون پر محفوظ۔ ہٹانے کے لیے جگہ کو دیر تک دبائیں۔',
+    'legalPrivacy4': 'یہ ایپ کریش رپورٹس یا اینالیٹکس نہیں بھیجتی۔ سیٹنگز، گھر، دفتر اور حالیہ منزلیں صرف آپ کے فون پر رہتی ہیں اور کبھی اپ لوڈ نہیں ہوتیں۔ انہیں معلومات والے حصے میں صاف کریں، یا سب کچھ ہٹانے کے لیے ایپ کا اسٹوریج صاف کریں یا اسے ان انسٹال کریں۔',
     'searchBusy': 'تلاش کی سروس اس وقت مصروف ہے۔ تھوڑی دیر بعد کوشش کریں۔',
     'themeLabel': 'ظاہری شکل', 'themeAuto': 'خودکار', 'themeLight': 'روشن', 'themeDark': 'تاریک',
     'skinLabel': 'تھیم', 'skinDefault': 'معیاری', 'skinNote': 'مینو بار اور ڈرائیونگ اسکرین کی شکل بدلتا ہے۔ نقشہ سادہ رہتا ہے۔',
@@ -69,6 +79,11 @@ const Map<String, Map<String, String>> moreStrings = {
     'legalPrivacy2': 'آپ کی جی پی ایس لوکیشن آپ کے فون پر رہتی ہے، سوائے اس کے کہ آپ راستہ یا مقام تلاش کریں: تب آغاز اور منزل کے نقطے یا آپ کے الفاظ ہماری استعمال کردہ مفت نقشہ سروسز (OSRM / اوپن اسٹریٹ میپ سرورز اور Nominatim) کو بھیجے جاتے ہیں۔ موسم اور ہوا کا معیار Open-Meteo سے آتا ہے، جسے آپ کے منتخب شہر کے کوآرڈینیٹس ملتے ہیں، اور نقشے کی ٹائلز OpenFreeMap سے، جسے آپ کا دیکھا ہوا علاقہ اور آئی پی ایڈریس معلوم ہوتا ہے۔ ہر سروس کی اپنی رازداری پالیسی ہے۔ نیویگیشن کے دوران ایپ اسکرین بند ہونے پر بھی آپ کا مقام استعمال کرتی ہے اور ایک نوٹیفکیشن دکھاتی ہے؛ آواز آپ کے فون کا اپنا انجن بولتا ہے۔',
   },
   'pa': {
+    'outsidePk': 'براق صرف پاکستان لئی اے۔ جتھے تسیں ہُن او، اوتھے لبھنا تے راہ کم نہیں کرن گے۔',
+    'placeHome': 'گھر', 'placeWork': 'دفتر', 'setHome': 'گھر وجوں سانبھو', 'setWork': 'دفتر وجوں سانبھو', 'recentTitle': 'حالیہ',
+    'removePlace': 'ہٹاؤ', 'savedTitle': 'سانبھیاں تھاواں', 'clearHistory': 'حالیہ منزلاں صاف کرو', 'historyCleared': 'حالیہ منزلاں صاف ہو گئیاں۔',
+    'savedNote': 'صرف ایس فون تے سانبھیاں۔ ہٹاؤن لئی تھاں نوں دیر تک دباؤ۔',
+    'legalPrivacy4': 'ایہ ایپ کریش رپورٹاں یا اینالیٹکس نہیں گھلدی۔ سیٹنگاں، گھر، دفتر تے حالیہ منزلاں صرف تہاڈے فون تے رہندیاں نیں تے کدی اپ لوڈ نہیں ہوندیاں۔ اوہناں نوں معلومات والے حصے وچ صاف کرو، یا سب کجھ ہٹاؤن لئی ایپ دا اسٹوریج صاف کرو یا اینوں ان انسٹال کرو۔',
     'searchBusy': 'لبھن والی سروس ہُن رُجھی ہوئی اے۔ ذرا چر پِچھوں کوشش کرو۔',
     'themeLabel': 'ظاہری شکل', 'themeAuto': 'خودکار', 'themeLight': 'روشن', 'themeDark': 'گہرا',
     'skinLabel': 'تھیم', 'skinDefault': 'معیاری', 'skinNote': 'مینو بار تے ڈرائیونگ اسکرین دی شکل بدلدا اے۔ نقشہ سادہ رہندا اے۔',

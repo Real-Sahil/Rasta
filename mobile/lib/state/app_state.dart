@@ -10,6 +10,7 @@ import '../core/navigation.dart';
 import '../core/phrases.dart';
 import '../core/route.dart';
 import '../core/routing.dart';
+import '../core/saved_places.dart';
 import '../core/voice.dart';
 import '../services/gps_service.dart';
 import '../services/search_service.dart';
@@ -41,6 +42,7 @@ class AppState extends ChangeNotifier {
   NavSession? session;
   bool navigating = false;
   String? noticeKey;
+  SavedPlaces places = const SavedPlaces(); // home / work / recent, on this phone only
   final Set<String> _announced = {};
   int _routeSeq = 0;
   DateTime _lastReroute = DateTime.fromMillisecondsSinceEpoch(0);
@@ -53,12 +55,17 @@ class AppState extends ChangeNotifier {
 
   bool get muted => speech.muted;
 
-  Future<void> _loadPrefs() async {
+  @visibleForTesting
+  Future<void> loadPrefs() async {
     try {
       final p = await SharedPreferences.getInstance();
       final saved = p.getString('skin') ?? ((p.getBool('skinChamak') ?? false) ? 'chamak' : 'standard');
       skin = const ['standard', 'luce', 'miniature', 'schematic', 'chamak', 'nastaliq'].contains(saved) ? saved : 'standard';
       themeMode = switch (p.getString('themeMode')) { 'light' => ThemeMode.light, 'dark' => ThemeMode.dark, _ => ThemeMode.system };
+      final l = p.getString('lang');
+      if (l == 'en' || l == 'ur' || l == 'pa') lang = l!;
+      speech.muted = p.getBool('muted') ?? false;
+      places = SavedPlaces.decode(p.getString('places'));
     } catch (_) {}
   }
 
@@ -79,7 +86,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> init() async {
-    await _loadPrefs();
+    await loadPrefs();
     await speech.init();
     gpsProblem = await gps.ensurePermission();
     if (gpsProblem == GpsProblem.none) _startGps(background: false);
@@ -99,20 +106,41 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  Future<void> _save(void Function(SharedPreferences p) write) async {
+    try {
+      write(await SharedPreferences.getInstance());
+    } catch (_) {}
+  }
+
   void setLang(String l) {
     lang = l;
     notifyListeners();
+    _save((p) => p.setString('lang', l)); // was lost on every restart
   }
 
   void toggleMute() {
     speech.muted = !speech.muted;
     if (speech.muted) speech.stop();
     notifyListeners();
+    _save((p) => p.setBool('muted', speech.muted));
   }
+
+  // ---------------------------------------------------------------- saved places (device only)
+  void _setPlaces(SavedPlaces v) {
+    places = v;
+    notifyListeners();
+    _save((p) => p.setString('places', v.encode()));
+  }
+
+  void setHome(Place? p) => _setPlaces(places.withHome(p));
+  void setWork(Place? p) => _setPlaces(places.withWork(p));
+  void forgetRecent(Place p) => _setPlaces(places.forget(p));
+  void clearHistory() => _setPlaces(places.clearHistory());
 
   // ---------------------------------------------------------------- routes
   Future<void> setDestination(Place p) async {
     destination = p;
+    _setPlaces(places.remember(p));
     await loadRoutes();
   }
 

@@ -47,6 +47,17 @@ class InfoScreen extends StatelessWidget {
         ConditionsCard(app: app),
         const SizedBox(height: 8),
         ListTile(
+          leading: const Icon(Icons.history),
+          title: Text(tr(lang, 'clearHistory')),
+          subtitle: Text(tr(lang, 'savedNote')),
+          enabled: app.places.recent.isNotEmpty,
+          onTap: () {
+            app.clearHistory();
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(lang, 'historyCleared'))));
+          },
+        ),
+        const SizedBox(height: 8),
+        ListTile(
           leading: const Icon(Icons.shield_outlined),
           title: Text(tr(lang, 'infoLegal')),
           trailing: const Icon(Icons.chevron_right),

@@ -6,7 +6,9 @@ import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:material_ui/material_ui.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../core/coverage.dart';
 import '../core/flood.dart';
+import '../core/saved_places.dart';
 import '../core/geo.dart';
 import '../core/navigation.dart';
 import '../core/routing.dart' show RouteSource;
@@ -338,6 +340,8 @@ class SearchPanel extends StatefulWidget {
 class _SearchPanelState extends State<SearchPanel> {
   final _to = TextEditingController();
   final _from = TextEditingController();
+  final _toFocus = FocusNode();
+  bool _toFocused = false;
   List<Place> _results = const [];
   bool _forFrom = false;
   bool _hadRoute = false;
@@ -348,8 +352,17 @@ class _SearchPanelState extends State<SearchPanel> {
   AppState get app => widget.app;
 
   @override
+  void initState() {
+    super.initState();
+    _toFocus.addListener(() {
+      if (mounted) setState(() => _toFocused = _toFocus.hasFocus);
+    });
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
+    _toFocus.dispose();
     _to.dispose();
     _from.dispose();
     super.dispose();
@@ -357,6 +370,15 @@ class _SearchPanelState extends State<SearchPanel> {
 
   void _onChanged(String q, bool forFrom) {
     _forFrom = forFrom;
+    if (q.trim().isEmpty) {
+      // back to an empty box: drop stale results/errors so the saved places show again
+      _debounce?.cancel();
+      setState(() {
+        _results = const [];
+        _error = null;
+      });
+      return;
+    }
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 450), () async {
       try {
@@ -434,6 +456,7 @@ class _SearchPanelState extends State<SearchPanel> {
               Expanded(
                 child: TextField(
                   controller: _to,
+                  focusNode: _toFocus,
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(hintText: tr(lang, 'searchHint'), border: InputBorder.none, isDense: true),
                   onChanged: (q) => _onChanged(q, false),
@@ -471,8 +494,66 @@ class _SearchPanelState extends State<SearchPanel> {
             ]),
           ),
         ),
+      if (_results.isEmpty && _toFocused && _to.text.trim().isEmpty && !app.places.isEmpty)
+        _SavedList(app: app, onPick: (p) {
+          _forFrom = false;
+          _pick(p);
+        }),
+      if (outsidePakistan(app.fix?.point)) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, 'outsidePk'))),
       if (_error != null && _results.isEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: _errorDetail.isEmpty ? tr(lang, _error!) : '${tr(lang, _error!)}\n($_errorDetail)')),
     ]);
+  }
+}
+
+/// Home, Work and recent destinations, shown when the destination box is focused and empty. Device-only data.
+class _SavedList extends StatelessWidget {
+  const _SavedList({required this.app, required this.onPick});
+  final AppState app;
+  final ValueChanged<Place> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final lang = app.lang;
+    final pl = app.places;
+    Widget tile(Place p, IconData icon, String? label, VoidCallback onRemove) => ListTile(
+          key: ValueKey('saved-${label ?? 'recent'}-${p.id}'),
+          dense: true,
+          leading: Icon(icon),
+          title: Text(label ?? p.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text(label == null ? p.detail : p.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+          onTap: () => onPick(p),
+          onLongPress: () async {
+            final ok = await showDialog<bool>(
+              context: context,
+              builder: (c) => AlertDialog(
+                content: Text(label ?? p.name),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr(lang, 'cancel'))),
+                  FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr(lang, 'removePlace'))),
+                ],
+              ),
+            );
+            if (ok == true) onRemove();
+          },
+        );
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(14),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 320),
+          child: ListView(shrinkWrap: true, padding: const EdgeInsets.symmetric(vertical: 4), children: [
+            if (pl.home != null) tile(pl.home!, Icons.home_outlined, tr(lang, 'placeHome'), () => app.setHome(null)),
+            if (pl.work != null) tile(pl.work!, Icons.work_outline, tr(lang, 'placeWork'), () => app.setWork(null)),
+            if (pl.recent.isNotEmpty)
+              Padding(padding: const EdgeInsets.fromLTRB(16, 6, 16, 0), child: Text(tr(lang, 'recentTitle'), style: Theme.of(context).textTheme.labelMedium)),
+            for (final p in pl.recent) tile(p, Icons.history, null, () => app.forgetRecent(p)),
+            Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 8), child: Text(tr(lang, 'savedNote'), style: Theme.of(context).textTheme.bodySmall)),
+          ]),
+        ),
+      ),
+    );
   }
 }
 
@@ -501,6 +582,19 @@ class RouteSheet extends StatelessWidget {
             const SizedBox(height: 6),
             Text('${r.durationMinutes} ${tr(lang, 'min')}  ·  ${r.distanceKm} ${tr(lang, 'km')}', style: Theme.of(context).textTheme.headlineSmall),
             Text(lang == 'en' ? r.via : r.viaUrdu, maxLines: 2, overflow: TextOverflow.ellipsis),
+            if (app.destination != null && app.destination!.id != 'me')
+              Wrap(spacing: 4, children: [
+                TextButton.icon(
+                  icon: const Icon(Icons.home_outlined, size: 18),
+                  label: Text(tr(lang, 'setHome')),
+                  onPressed: app.places.home != null && SavedPlaces.same(app.places.home!, app.destination!) ? null : () => app.setHome(app.destination),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.work_outline, size: 18),
+                  label: Text(tr(lang, 'setWork')),
+                  onPressed: app.places.work != null && SavedPlaces.same(app.places.work!, app.destination!) ? null : () => app.setWork(app.destination),
+                ),
+              ]),
             if (app.noticeKey != null) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, app.noticeKey!))),
             if (support.status == VoiceStatus.none) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, 'noVoice'))),
             if (support.status == VoiceStatus.approximate) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, 'approxVoice'))),
