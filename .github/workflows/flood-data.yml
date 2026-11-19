@@ -1,0 +1,31 @@
+name: Refresh flood data
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save shapefile
+      - name: Fetch UNOSAT flood extents and clip to Lahore
+        run: npm run data:flood
+      - name: Commit refreshed data to main
+        run: |
+          if [ -z "$(git status --porcelain -- src/data/flood)" ]; then echo "No changes"; exit 0; fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/flood
+          git commit -m "data: refresh UNOSAT flood extents"
+          git pull --rebase origin main
+          git push origin HEAD:main
