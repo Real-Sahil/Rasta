@@ -12,6 +12,7 @@
  * 9. Signal loss & recovery handling
  * 10. Android Chrome & iOS Safari compatibility (secure context & lifecycle)
  */
+import { BackgroundGeolocation, NativeLocation, isNative } from './native';
 
 export interface GpsCoordinates {
   lat: number;
@@ -107,8 +108,19 @@ export function snapToRoutePolyline(
   return { ...point, snapped: false };
 }
 
+/** Adapt a plugin fix to the shape the browser gives, so the filtering/smoothing below is shared. */
+export function fromNative(l: NativeLocation): GeolocationPosition {
+  return {
+    coords: { latitude: l.latitude, longitude: l.longitude, accuracy: l.accuracy, altitude: l.altitude, altitudeAccuracy: null, heading: l.bearing, speed: l.speed, toJSON: () => ({}) },
+    timestamp: l.time ?? Date.now(),
+    toJSON: () => ({})
+  } as GeolocationPosition;
+}
+
 export class RobustGpsManager {
   private watchId: number | null = null;
+  private nativeWatcherId: string | null = null;
+  private stopped = false;
   private staleTimer: any = null;
   private lastValidPosition: GpsCoordinates | null = null;
   private lastSmoothed: GpsCoordinates | null = null;
@@ -136,6 +148,27 @@ export class RobustGpsManager {
 
   public startWatching() {
     if (this.state.isWatching) return;
+    this.stopped = false;
+
+    // Android app: a foreground-service watcher keeps fixes coming with the screen locked.
+    if (isNative()) {
+      this.updateState({ isWatching: true, error: null, errorMessage: '' });
+      this.resetStaleTimer();
+      void BackgroundGeolocation.addWatcher(
+        { backgroundTitle: 'Buraq navigation', backgroundMessage: 'Using your location for turn-by-turn directions.', requestPermissions: true, stale: false, distanceFilter: 0 },
+        (loc, err) => {
+          if (err) {
+            this.handlePositionError({ code: err.code === 'NOT_AUTHORIZED' ? 1 : 2, message: err.message ?? '' } as GeolocationPositionError);
+            return;
+          }
+          if (loc) this.handlePositionUpdate(fromNative(loc));
+        }
+      ).then((id) => {
+        if (this.stopped) void BackgroundGeolocation.removeWatcher({ id }).catch(() => {});
+        else this.nativeWatcherId = id;
+      }).catch((e) => this.handlePositionError({ code: 2, message: String(e?.message ?? e) } as GeolocationPositionError));
+      return;
+    }
 
     if (typeof window === 'undefined' || !navigator.geolocation) {
       this.updateState({
@@ -175,6 +208,11 @@ export class RobustGpsManager {
   }
 
   public stopWatching() {
+    this.stopped = true;
+    if (this.nativeWatcherId !== null) {
+      void BackgroundGeolocation.removeWatcher({ id: this.nativeWatcherId }).catch(() => {});
+      this.nativeWatcherId = null;
+    }
     if (this.watchId !== null && navigator.geolocation) {
       navigator.geolocation.clearWatch(this.watchId);
       this.watchId = null;
@@ -298,10 +336,10 @@ export class RobustGpsManager {
     let errorCode: GpsErrorCode = 'POSITION_UNAVAILABLE';
     let msg = 'Position unavailable. Please check GPS signal.';
 
-    if (err.code === err.PERMISSION_DENIED) {
+    if (err.code === 1 /* PERMISSION_DENIED */) {
       errorCode = 'PERMISSION_DENIED';
       msg = 'Location permission denied. Please allow location access in browser settings.';
-    } else if (err.code === err.TIMEOUT) {
+    } else if (err.code === 3 /* TIMEOUT */) {
       errorCode = 'TIMEOUT';
       msg = 'Location request timed out. Retrying GPS fix...';
     }

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Buraq Pakistan</string>
+    <string name="title_activity_main">Buraq Pakistan</string>
+    <string name="package_name">pk.buraq.app</string>
+    <string name="custom_url_scheme">pk.buraq.app</string>
+</resources>

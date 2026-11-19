@@ -75,3 +75,9 @@ Transit station list is incomplete and fares are estimates; no transit routing; 
 ## Hooks
 `.claude/settings.json` installs deps on remote session start (`.claude/hooks/session-start.sh`, skips when package files are unchanged) and runs a typecheck after edits to `src/**/*.ts(x)`.
 - Urdu clips (13) in `public/audio/ur/` come from the open tiny-urdu model, not a cloud service: see `docs/urdu-clips.md` (spellings, status, licence caveat). Unreviewed by ear or by a native speaker.
+
+## Android prototype (Capacitor)
+- `capacitor.config.ts` + `android/`: a thin Capacitor shell that loads the **production site** (`server.url`), so web fixes reach the phone without a new APK. For a store build, remove `server`, bundle `dist/`, make API calls absolute and add CORS.
+- `src/services/native.ts` is the only place that touches Capacitor. `isNative()` is false in a browser, so the web app is unchanged. Inside the app: `RobustGpsManager` uses `@capacitor-community/background-geolocation` (foreground service, fixes continue with the screen locked; `useLegacyBridge` stops the 5-minute cutoff), and `SpeechNavigationService` uses the phone's native TTS (`@capacitor-community/text-to-speech`) instead of recorded clips, because the WebView pauses audio elements when the screen locks.
+- Build: the "Android APK" workflow (`android-apk.yml`, run it manually) uploads `app-debug.apk` as an artifact; there is no Android SDK in the cloud sandbox. Test on a real phone first with the screen locked mid-route; budget Android (Xiaomi/Oppo/Samsung) may kill the service, so check battery-optimisation settings.
+- Known gaps: Android 13+ needs the POST_NOTIFICATIONS permission granted for the tracking notification to show (the service still runs); default Capacitor launcher icons; no iOS; unsigned debug build only.

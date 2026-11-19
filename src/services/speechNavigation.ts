@@ -4,8 +4,9 @@
  */
 import { Language } from '../types';
 import { Announcement, textFor } from '../core/announcer';
-import { ClipManifest, VoiceSupport, chooseVoice, clipUrl, planClips, toVoiceLang } from '../core/voice';
+import { ClipManifest, VoiceInfo, VoiceSupport, chooseVoice, clipUrl, planClips, toVoiceLang } from '../core/voice';
 import { VoiceLang } from '../core/phrases';
+import { NativeTts, isNative } from './native';
 
 /**
  * Spoken directions in English, Urdu and Punjabi.
@@ -17,6 +18,8 @@ import { VoiceLang } from '../core/phrases';
 export class SpeechNavigationService {
   private synth: SpeechSynthesis | null = null;
   private voices: SpeechSynthesisVoice[] = [];
+  /** Android app: languages the phone's own TTS engine offers (the WebView often lists none). */
+  private nativeVoices: VoiceInfo[] = [];
   private uiLang: Language = 'en';
   private muted = false;
   private manifest: ClipManifest | null = null;
@@ -32,6 +35,19 @@ export class SpeechNavigationService {
       this.loadVoices();
       if (this.synth.onvoiceschanged !== undefined) this.synth.onvoiceschanged = () => this.loadVoices();
     }
+    if (isNative()) {
+      NativeTts.getSupportedLanguages()
+        .then((r) => {
+          this.nativeVoices = (r.languages ?? []).map((l) => ({ lang: l, name: l }));
+          this.listeners.forEach((l) => l());
+        })
+        .catch(() => { /* no native engine: the WebView voices (if any) are used */ });
+    }
+  }
+
+  private voiceInfos(): VoiceInfo[] {
+    if (isNative() && this.nativeVoices.length) return this.nativeVoices;
+    return this.voices.map((x) => ({ lang: x.lang, name: x.name, default: x.default }));
   }
 
   private loadVoices() {
@@ -68,7 +84,7 @@ export class SpeechNavigationService {
   /** What the current language will sound like on this device: ok / approximate (Punjabi via Urdu voice) / none. */
   getSupport(lang: Language = this.uiLang): VoiceSupport & { hasRecordings: boolean } {
     const v = toVoiceLang(lang);
-    const tts = chooseVoice(v, this.voices.map((x) => ({ lang: x.lang, name: x.name, default: x.default })));
+    const tts = chooseVoice(v, this.voiceInfos());
     const hasRecordings = (this.manifest?.[v]?.length ?? 0) > 0;
     // Recordings cover the whole vocabulary or nothing (planClips), so they upgrade the status only when complete.
     return { ...tts, hasRecordings };
@@ -89,7 +105,8 @@ export class SpeechNavigationService {
     this.lastAt = now;
     this.stop(false);
 
-    const clips = planClips(lang, a.phrase, a.distanceM, this.manifest);
+    // In the Android app the WebView pauses audio elements when the screen locks, so the phone's native TTS is used instead.
+    const clips = isNative() ? null : planClips(lang, a.phrase, a.distanceM, this.manifest);
     if (clips && typeof Audio !== 'undefined') {
       this.playClips(lang, clips, () => this.speakText(a, lang));
       return;
@@ -114,9 +131,15 @@ export class SpeechNavigationService {
   }
 
   private speakText(a: Announcement, lang: VoiceLang) {
-    if (!this.synth) return;
-    const support = chooseVoice(lang, this.voices.map((x) => ({ lang: x.lang, name: x.name, default: x.default })));
+    const native = isNative() && this.nativeVoices.length > 0;
+    if (!native && !this.synth) return;
+    const support = chooseVoice(lang, this.voiceInfos());
     if (support.status === 'none') return; // the UI shows "no voice on this device"; nothing to say it with
+    if (native) {
+      NativeTts.speak({ text: textFor(a, lang), lang: support.langTag, rate: 0.9, pitch: 1, volume: 1, queueStrategy: 1 /* flush: newest prompt replaces an older one */ })
+        .catch((err) => console.warn('Native TTS failed', err));
+      return;
+    }
     try {
       const u = new SpeechSynthesisUtterance(textFor(a, lang));
       const voice = this.voices.find((v) => v.name === support.voice?.name && v.lang === support.voice?.lang);
@@ -126,7 +149,7 @@ export class SpeechNavigationService {
       u.pitch = 1;
       u.volume = 1;
       u.onerror = (e) => console.warn('TTS utterance error', e);
-      this.synth.speak(u);
+      this.synth?.speak(u);
     } catch (err) {
       console.warn('TTS failed', err);
     }
@@ -140,6 +163,7 @@ export class SpeechNavigationService {
       this.current = null;
     }
     try { this.synth?.cancel(); } catch { /* ignore */ }
+    if (isNative()) void NativeTts.stop().catch(() => {});
     if (resetDedupe) {
       this.lastKey = '';
       this.lastAt = 0;
