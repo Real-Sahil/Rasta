@@ -178,7 +178,10 @@ if (reachable) {
     await shot('06_report_form');
     await step('report', 'report form opens', async () => (await page.locator('form').count()) > 0);
     await step('report', 'submit a report through the UI and see it in the list', async () => {
-      await page.locator('form input[type=text]').first().fill('[live-test] UI report ' + Date.now().toString().slice(-5));
+      const marker = '[live-test] UI report ' + Date.now().toString().slice(-5);
+      const fields = page.locator('form input[type=text]'); // location, then headline (both required)
+      await fields.nth(0).fill('Live test chowk');
+      await fields.nth(1).fill(marker);
       await page.locator('form button[type=submit]').first().click();
       await page.waitForTimeout(4000);
       return /\[live-test\] UI report/.test(await text());
