@@ -232,11 +232,13 @@ export function createApi({ db, secret, now = Date.now, adminKey }: ApiDeps) {
       if (!b || typeof b !== 'object') return fail(400, 'invalid_body');
       const cut = (v: unknown, n: number) => (typeof v === 'string' && v ? v.slice(0, n) : null);
       const message = cut(b.message, 500);
-      if (!message || !['error', 'unhandledrejection', 'react'].includes(b.kind)) return fail(400, 'invalid_body');
+      if (!message || !['error', 'unhandledrejection', 'react', 'flutter', 'caught'].includes(b.kind)) return fail(400, 'invalid_body');
+      const platform = b.platform === undefined ? 'web' : b.platform;
+      if (!['web', 'android', 'ios'].includes(platform)) return fail(400, 'invalid_body');
       try {
         await db(
-          `insert into client_errors (ip_hash, kind, message, stack, url, user_agent, release) values ($1,$2,$3,$4,$5,$6,$7)`,
-          [ipHashOf(req), b.kind, message, cut(b.stack, 2000), cut(b.url, 300), cut(req.headers.get('user-agent'), 300), cut(b.release, 40)]
+          `insert into client_errors (ip_hash, kind, message, stack, url, user_agent, release, platform) values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [ipHashOf(req), b.kind, message, cut(b.stack, 2000), cut(b.url, 300), cut(req.headers.get('user-agent'), 300), cut(b.release, 40), platform]
         );
         return json(202, { ok: true });
       } catch (e) {
@@ -260,7 +262,7 @@ export function createApi({ db, secret, now = Date.now, adminKey }: ApiDeps) {
                   left(created_by::text, 8) as device
              from incidents where created_at > now() - interval '7 days' order by created_at desc limit 300`
         );
-        const errors = await db(`select id, created_at, kind, message, stack, url, user_agent, release from client_errors order by created_at desc limit 100`);
+        const errors = await db(`select id, created_at, kind, platform, message, stack, url, user_agent, release from client_errors order by created_at desc limit 100`);
         return json(200, { incidents, errors });
       } catch (e) {
         return dbError(e);

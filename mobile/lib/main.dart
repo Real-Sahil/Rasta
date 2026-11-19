@@ -1,3 +1,6 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,12 +8,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n.dart';
 import 'state/app_state.dart';
 import 'services/api_client.dart';
+import 'services/error_reporter.dart';
 import 'services/reports_api.dart';
 import 'ui/chamak.dart';
 import 'ui/home_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Crash and error reports go to our own API only (no third party). Debug builds don't report.
+  if (kReleaseMode) errorReporter = ErrorReporter();
+  final previous = FlutterError.onError;
+  FlutterError.onError = (details) {
+    previous?.call(details);
+    errorReporter.report('flutter', details.exception, details.stack);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    errorReporter.report('flutter', error, stack);
+    return false; // keep the default handling (log) as well
+  };
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   runApp(const BuraqApp());
 }

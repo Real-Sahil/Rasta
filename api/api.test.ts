@@ -186,9 +186,14 @@ describe('moderation and monitoring', () => {
     expect(ok.status).toBe(202);
     expect((await call('POST', 'log', { body: { kind: 'bogus', message: 'm' } })).status).toBe(400);
     expect((await call('POST', 'log', { body: { kind: 'error' } })).status).toBe(400);
+    expect((await call('POST', 'log', { ip: '7.7.7.9', body: { kind: 'flutter', platform: 'android', message: 'StateError', release: '1.0.0+1' } })).status).toBe(202);
+    expect((await call('POST', 'log', { body: { kind: 'caught', platform: 'windows', message: 'm' } })).status).toBe(400);
     const errs = ((await (await adminCall('GET', 'admin_list', 'admin-key-for-tests')).json()) as any).errors;
-    expect(errs[0].message).toHaveLength(500);
-    expect(errs[0].stack).toHaveLength(2000);
+    expect(errs.find((e: any) => e.platform === 'android')?.kind).toBe('flutter');
+    expect(errs.find((e: any) => e.release === 'abc')?.platform).toBe('web');
+    const web = errs.find((e: any) => e.release === 'abc');
+    expect(web.message).toHaveLength(500);
+    expect(web.stack).toHaveLength(2000);
     let last = 0;
     for (let i = 0; i < 61; i++) last = (await call('POST', 'log', { ip: '7.7.7.8', body: { kind: 'error', message: 'spam' } })).status;
     expect(last).toBe(429);

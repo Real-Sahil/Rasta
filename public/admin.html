@@ -71,7 +71,7 @@
     d.errors.forEach(function (e) {
       var r = el('div', 'row');
       r.appendChild(el('strong', null, '[' + e.kind + '] ' + e.message));
-      r.appendChild(el('div', 'meta', e.created_at + ' · ' + (e.url || '') + ' · release ' + (e.release || '?')));
+      r.appendChild(el('div', 'meta', e.created_at + ' · ' + (e.platform || 'web') + ' · ' + (e.url || '') + ' · release ' + (e.release || '?')));
       if (e.stack) r.appendChild(el('pre', null, e.stack));
       eb.appendChild(r);
     });

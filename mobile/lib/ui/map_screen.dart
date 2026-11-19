@@ -20,6 +20,7 @@ import '../l10n.dart';
 import 'chamak.dart';
 import 'fare_compare.dart';
 import '../services/gps_service.dart';
+import '../services/error_reporter.dart';
 import '../services/search_service.dart';
 import '../state/app_state.dart';
 
@@ -390,8 +391,11 @@ class _SearchPanelState extends State<SearchPanel> {
           _errorDetail = '';
         });
       } on SearchException catch (e) {
+        // the query itself is never reported, only the kind of failure
+        errorReporter.report('caught', '${e.busy ? 'busy' : 'offline'}: ${e.detail}', null, 'search');
         if (mounted) setState(() { _results = const []; _error = e.busy ? 'searchBusy' : 'offline'; _errorDetail = e.detail; });
-      } catch (e) {
+      } catch (e, st) {
+        errorReporter.report('caught', e, st, 'search');
         if (mounted) setState(() { _results = const []; _error = 'searchBusy'; _errorDetail = '${e.runtimeType}'; });
       }
     });

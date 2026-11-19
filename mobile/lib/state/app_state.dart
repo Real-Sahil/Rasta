@@ -12,6 +12,7 @@ import '../core/route.dart';
 import '../core/routing.dart';
 import '../core/saved_places.dart';
 import '../core/voice.dart';
+import '../services/error_reporter.dart';
 import '../services/gps_service.dart';
 import '../services/search_service.dart';
 import '../services/speech_service.dart';
@@ -204,6 +205,7 @@ class AppState extends ChangeNotifier {
       routeSource = r.source;
       selected = 0;
       noticeKey = r.source == RouteSource.estimate ? 'estimate' : null;
+      if (r.source == RouteSource.estimate) errorReporter.report('caught', 'route servers unreachable, offline estimate used', null, 'routing');
     } on RouteCancelled {
       return;
     } finally {
