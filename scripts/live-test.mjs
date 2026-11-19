@@ -52,6 +52,11 @@ if (reachable) {
   let j = await jsonOf(r);
   rec('api', 'GET list returns JSON { incidents: [] }', r.status === 200 && Array.isArray(j?.incidents) ? 'PASS' : 'FAIL', `HTTP ${r.status}`);
   rec('api', 'responses are not cacheable (no-store)', (r.headers.get('cache-control') || '').includes('no-store') ? 'PASS' : 'WARN', r.headers.get('cache-control') || 'none');
+  r = await api('transit_stats&city=lahore');
+  j = await jsonOf(r);
+  rec('api', 'transit_stats answers (migration 004 applied)', r.status === 200 && Array.isArray(j?.stats) ? 'PASS' : 'FAIL', `HTTP ${r.status}`);
+  r = await api('transit_report', { method: 'POST', body: { city: 'lahore', kind: 'fare', mode: 'rickshaw', value: 300 } });
+  rec('api', 'transit_report without token is rejected (401)', r.status === 401 ? 'PASS' : 'FAIL', `HTTP ${r.status}`);
   r = await api('create', { method: 'POST', body: { category: 'hazard', title: 'no token', lat: 31.5, lng: 74.3 } });
   rec('api', 'create without token is rejected (401)', r.status === 401 ? 'PASS' : 'FAIL', `HTTP ${r.status}`);
   r = await api('create', { method: 'POST', token: 'garbage', body: { category: 'hazard', title: 'bad token', lat: 31.5, lng: 74.3 } });
