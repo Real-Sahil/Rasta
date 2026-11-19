@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:material_ui/material_ui.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../core/flood.dart';
 import '../core/geo.dart';
 import '../core/navigation.dart';
 import '../core/routing.dart' show RouteSource;
@@ -47,6 +49,10 @@ class _MapScreenState extends State<MapScreen> {
   Offset? _pointerStart;
   bool _centeredOnce = false;
   double _bearing = 0;
+  bool _flood = false;
+  bool _floodFailed = false;
+  List<FloodEvent>? _floodEvents; // loaded the first time the layer is switched on
+  final List<String> _floodIds = [];
 
   AppState get app => widget.app;
 
@@ -111,6 +117,52 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  /// Past-flooding layer (UNOSAT, historical only). The data is bundled but parsed only when first switched on.
+  Future<void> _toggleFlood(bool on) async {
+    setState(() {
+      _flood = on;
+      _floodFailed = false;
+    });
+    if (on && _floodEvents == null) {
+      try {
+        final ev = parseFlood(await rootBundle.loadString('assets/flood/lahore.json'));
+        if (ev.isEmpty) throw StateError('no flood events');
+        _floodEvents = ev;
+      } catch (_) {
+        if (mounted) {
+          setState(() {
+            _flood = false;
+            _floodFailed = true;
+          });
+        }
+        return;
+      }
+    }
+    await _applyFlood();
+  }
+
+  Future<void> _applyFlood() async {
+    final map = _map;
+    if (map == null || !_styleReady) return;
+    try {
+      for (final id in _floodIds) {
+        await map.removeLayer('$id-fill');
+        await map.removeSource(id);
+      }
+      _floodIds.clear();
+      final ev = _floodEvents;
+      if (!_flood || ev == null) return;
+      for (var i = 0; i < ev.length; i++) {
+        final id = 'buraq-flood-$i';
+        await map.addGeoJsonSource(id, floodGeoJson(ev[i]));
+        await map.addFillLayer(id, '$id-fill', ml.FillLayerProperties(fillColor: floodColours[i % floodColours.length], fillOpacity: 0.4));
+        _floodIds.add(id);
+      }
+    } catch (_) {
+      // style not ready or being torn down; toggling again retries
+    }
+  }
+
   Future<void> _fitRoute(List<LatLng> path) async {
     if (path.isEmpty || _map == null) return;
     var minLat = path.first.lat, maxLat = path.first.lat, minLng = path.first.lng, maxLng = path.first.lng;
@@ -159,6 +211,8 @@ class _MapScreenState extends State<MapScreen> {
                 onMapCreated: (c) => _map = c,
                 onStyleLoadedCallback: () {
                   _styleReady = true;
+                  _floodIds.clear(); // a (re)loaded style has none of our layers
+                  _applyFlood();
                   _sync();
                 },
                 compassEnabled: false,
@@ -171,6 +225,12 @@ class _MapScreenState extends State<MapScreen> {
                 child: app.navigating ? NavHud(app: app) : SearchPanel(app: app),
               ),
             ),
+            if (!app.navigating)
+              Positioned(
+                right: 12,
+                bottom: app.route != null ? 200 : 24,
+                child: _FloodPanel(lang: lang, on: _flood, failed: _floodFailed, events: _floodEvents, onChanged: _toggleFlood),
+              ),
             if (_freeLook && app.navigating)
               Positioned(
                 bottom: 24,
@@ -184,6 +244,47 @@ class _MapScreenState extends State<MapScreen> {
           ]),
         );
       },
+    );
+  }
+}
+
+class _FloodPanel extends StatelessWidget {
+  const _FloodPanel({required this.lang, required this.on, required this.failed, required this.events, required this.onChanged});
+  final String lang;
+  final bool on, failed;
+  final List<FloodEvent>? events;
+  final ValueChanged<bool> onChanged;
+  @override
+  Widget build(BuildContext context) {
+    final ev = events ?? const <FloodEvent>[];
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 300),
+      child: Material(
+        elevation: 3,
+        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).colorScheme.surface,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Flexible(child: Text(tr(lang, 'floodLayer'))),
+              Switch(value: on, onChanged: onChanged),
+            ]),
+            if (failed) Text(tr(lang, 'floodFail'), style: const TextStyle(color: Colors.red)),
+            if (on) ...[
+              for (var i = 0; i < ev.length && i < 2; i++)
+                Row(children: [
+                  Container(width: 14, height: 14, color: Color(int.parse('ff${floodColours[i % floodColours.length].substring(1)}', radix: 16)).withValues(alpha: 0.6)),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(tr(lang, 'floodEvent${i + 1}'), style: Theme.of(context).textTheme.bodySmall)),
+                ]),
+              const SizedBox(height: 4),
+              Text(tr(lang, 'floodNote'), style: Theme.of(context).textTheme.bodySmall),
+              Text(tr(lang, 'floodCredit'), style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ]),
+        ),
+      ),
     );
   }
 }

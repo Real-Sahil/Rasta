@@ -23,10 +23,11 @@ String statLine(String lang, TransitStat s) => tr(lang, s.kind == 'fare' ? 'repT
 /// Riders report what they paid or how late a service was. Typical values show only when the server has enough
 /// independent reports; otherwise we say so (never invented).
 class RidersScreen extends StatefulWidget {
-  const RidersScreen({super.key, required this.app, required this.api, required this.active});
+  const RidersScreen({super.key, required this.app, required this.api, required this.active, this.embedded = false});
   final AppState app;
   final ReportsApi api;
   final bool active;
+  final bool embedded; // inside the Transit tab, which supplies the app bar
   @override
   State<RidersScreen> createState() => _RidersScreenState();
 }
@@ -87,7 +88,7 @@ class _RidersScreenState extends State<RidersScreen> {
     final lang = widget.app.lang;
     final n = int.tryParse(_value.text.trim());
     return Scaffold(
-      appBar: AppBar(title: Text(tr(lang, 'repTitle'))),
+      appBar: widget.embedded ? null : AppBar(title: Text(tr(lang, 'repTitle'))),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         DropdownButtonFormField<String>(
           initialValue: _city,

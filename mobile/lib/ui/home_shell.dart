@@ -7,7 +7,7 @@ import 'emergency_screen.dart';
 import 'incidents_screen.dart';
 import 'info_screen.dart';
 import 'map_screen.dart';
-import 'riders_screen.dart';
+import 'transit_screen.dart';
 
 /// Four tabs. The bar hides while navigating so the HUD keeps the whole screen. IndexedStack keeps the map alive.
 class HomeShell extends StatefulWidget {
@@ -33,7 +33,7 @@ class _HomeShellState extends State<HomeShell> {
           body: IndexedStack(index: tab, children: [
             MapScreen(app: app),
             IncidentsScreen(app: app, api: widget.api, active: tab == 1),
-            RidersScreen(app: app, api: widget.api, active: tab == 2),
+            TransitScreen(app: app, api: widget.api, active: tab == 2, onRouteTo: () => setState(() => _tab = 0)),
             EmergencyScreen(app: app),
             InfoScreen(app: app),
           ]),
@@ -45,7 +45,7 @@ class _HomeShellState extends State<HomeShell> {
                   destinations: [
                     NavigationDestination(icon: const Icon(Icons.map_outlined), label: tr(lang, 'navMap')),
                     NavigationDestination(icon: const Icon(Icons.warning_amber), label: tr(lang, 'navRoad')),
-                    NavigationDestination(icon: const Icon(Icons.directions_bus_outlined), label: tr(lang, 'navRiders')),
+                    NavigationDestination(icon: const Icon(Icons.directions_bus_outlined), label: tr(lang, 'navTransit')),
                     NavigationDestination(icon: const Icon(Icons.local_hospital_outlined), label: tr(lang, 'navSos')),
                     NavigationDestination(icon: const Icon(Icons.info_outline), label: tr(lang, 'navInfo')),
                   ],
