@@ -7,6 +7,7 @@ import { RouteOption } from '../types';
 import { NavSession } from '../core/navigation';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
 import { useSkin, CHAMAK_STRIP } from './chamakSkin';
+import { LuceHud, NastaliqHud } from './SkinHuds';
 import { CornerUpLeft, CornerUpRight, ArrowUp, CheckCircle, Volume2, VolumeX, RotateCcw, Gauge, Loader2, Share2 } from 'lucide-react';
 
 interface NavHudProps {
@@ -60,11 +61,15 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
   const isCk = skin === 'chamak';
   const fontFor: Record<string, string> = { chamak: "'Yatra One', 'Plus Jakarta Sans', serif", miniature: "'Cormorant Garamond', Georgia, serif", nastaliq: "'Noto Nastaliq Urdu', 'Plus Jakarta Sans', serif" };
   const yatra = skinned && fontFor[skin] && (skin === 'nastaliq' || !isRtl) ? { fontFamily: fontFor[skin] } : undefined;
-  const { theme } = useMobilityTheme();
+  const { theme, language } = useMobilityTheme();
   const light = skinned && theme === 'light';
   // Quieter at speed: past 30 km/h the decoration shrinks so only the turn and distance stand out.
   const calm = skinned && speedKmh != null && speedKmh >= 30;
   const k = { ...(HUD[skin] ?? HUD.chamak)[light ? 'light' : 'dark'], warn: light ? 'text-amber-800' : 'text-amber-300', speed: light ? 'text-emerald-700' : 'text-emerald-400' };
+  if (skin === 'luce' || skin === 'nastaliq') {
+    const H = skin === 'luce' ? LuceHud : NastaliqHud;
+    return <H route={route} session={session} speedKmh={speedKmh} muted={muted} rerouting={rerouting} voiceNotice={voiceNotice} isRtl={isRtl} language={language} light={light} onRepeat={onRepeat} onToggleMute={onToggleMute} onExit={onExit} onShare={onShare} />;
+  }
   const Icon = step.maneuver === 'turn-left' ? CornerUpLeft : step.maneuver === 'turn-right' ? CornerUpRight : step.maneuver === 'arrive' ? CheckCircle : ArrowUp;
 
   return (
@@ -83,7 +88,7 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
         <div className={`flex items-center justify-between gap-2 border-b pb-2.5 ${chamak ? k.rule : 'border-slate-800'}`}>
           <div className="flex items-center gap-2.5 min-w-0">
             <div className={chamak
-              ? `relative w-14 h-14 ${skin === 'luce' ? '' : k.radius} ${k.badge} flex items-center justify-center shrink-0`
+              ? `relative w-14 h-14 ${k.radius} ${k.badge} flex items-center justify-center shrink-0`
               : 'w-11 h-11 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0'}>
               <Icon className={chamak ? 'w-8 h-8 stroke-[2.5]' : 'w-6 h-6 stroke-[2.5]'} />
               {isCk && !calm && (
@@ -95,7 +100,7 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
             </div>
             <div className="min-w-0">
               <div className={chamak ? `text-2xl leading-none ${k.dist}` : 'text-lg font-black leading-none'} style={yatra}>{fmtDistance(session.distanceToManeuverM)}</div>
-              <p className={`${skin === 'nastaliq' && isRtl ? 'text-base leading-loose' : 'text-xs sm:text-sm'} font-bold line-clamp-2 mt-1 ${chamak ? k.text : 'text-slate-200'}`} style={skin === 'nastaliq' && isRtl ? yatra : undefined}>{isRtl ? step.instructionUrdu : step.instruction}</p>
+              <p className={`text-xs sm:text-sm font-bold line-clamp-2 mt-1 ${chamak ? k.text : 'text-slate-200'}`}>{isRtl ? step.instructionUrdu : step.instruction}</p>
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
