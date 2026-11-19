@@ -7,9 +7,9 @@ on:
         description: Deployed site to test
         default: https://rasta-sahilx.vercel.app
       write:
-        description: Create test reports through the API/UI (they expire within 2 h)
+        description: Create test reports (API ones expire in 10 min, the UI one in 2 h and is visible to real users meanwhile)
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: read

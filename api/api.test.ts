@@ -52,6 +52,14 @@ describe('validation', () => {
 });
 
 describe('incident API', () => {
+  it('honours a shorter ttl_minutes, rejects bad values, and never exceeds the 6 h cap', async () => {
+    const a = await newToken();
+    expect((await call('POST', 'create', { token: a, body: report({ title: 'Short lived report', ttl_minutes: 10 }) })).status).toBe(201);
+    for (const bad of [0, 361, 1.5, 'x']) expect((await call('POST', 'create', { token: a, body: report({ ttl_minutes: bad }) })).status).toBe(400);
+    const rows = await pg.query("select extract(epoch from (expires_at - created_at))/60 as m from incidents where title = 'Short lived report'");
+    expect(Math.round(Number((rows.rows[0] as any).m))).toBe(10);
+  });
+
   it('requires a token to write but not to read', async () => {
     expect((await call('POST', 'create', { body: report() })).status).toBe(401);
     expect((await call('POST', 'create', { token: 'bad', body: report() })).status).toBe(401);

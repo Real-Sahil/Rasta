@@ -72,7 +72,7 @@ if (reachable) {
 
   if (WRITE && tokenA && tokenB) {
     const title = `[live-test] ${new Date().toISOString().slice(11, 19)} <img src=x onerror=alert(1)>`;
-    r = await api('create', { method: 'POST', token: tokenA, body: { category: 'hazard', title, description: 'automated live test, expires automatically', lat: 31.5204, lng: 74.3587 } });
+    r = await api('create', { method: 'POST', token: tokenA, body: { category: 'hazard', title, description: 'automated live test, expires automatically', lat: 31.5204, lng: 74.3587, ttl_minutes: 10 } });
     j = await jsonOf(r);
     createdId = j?.id ?? null;
     rec('api', 'create a report (201)', r.status === 201 && createdId ? 'PASS' : 'FAIL', `HTTP ${r.status}${j?.error ? ' ' + j.error : ''}`);

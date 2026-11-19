@@ -41,26 +41,23 @@ export const MobilityAlertsHub: React.FC<MobilityAlertsHubProps> = ({
   if (totalActiveAlerts === 0) return null;
 
   return (
-    <div className="absolute top-20 left-3 lg:left-4 z-25 pointer-events-auto">
+    <div className="absolute top-24 right-3 lg:right-4 z-25 pointer-events-auto">
       {/* Compact Pill Button */}
       <div className="relative">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-full shadow-xl flex items-center gap-2 text-xs font-bold transition-all cursor-pointer border-2 border-white/80"
-          title="Active Alerts & Advisories"
+          className="bg-amber-500 hover:bg-amber-600 text-white pl-2.5 pr-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer border-2 border-white/80"
+          title={isRtl ? `${totalActiveAlerts} الرٹس` : `${totalActiveAlerts} active alerts`}
+          aria-label={isRtl ? `${totalActiveAlerts} الرٹس` : `${totalActiveAlerts} active alerts`}
         >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-          </span>
           <Bell className="w-3.5 h-3.5 fill-white" />
-          <span>{isRtl ? `${totalActiveAlerts} الرٹس` : `${totalActiveAlerts} Alerts`}</span>
+          <span>{totalActiveAlerts}</span>
         </button>
 
         {/* Expanded Popup Drawer */}
         {isOpen && (
-          <div className="absolute top-full mt-2 left-0 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3.5 z-50 space-y-2.5 animate-in fade-in duration-200">
+          <div className="absolute top-full mt-2 right-0 w-72 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3.5 z-50 space-y-2.5 animate-in fade-in duration-200">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100">
                 {isRtl ? 'فعال الرٹس اور ایڈوائزری' : 'Active Mobility Advisories'}

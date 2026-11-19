@@ -62,6 +62,8 @@ const str = (v: unknown, max: number): string | null | undefined => {
 export type NewIncidentInput = {
   category: string; title: string; title_ur: string | null; description: string | null; description_ur: string | null;
   location_name: string | null; advice: string | null; lat: number; lng: number;
+  /** Optional shorter lifetime (1-360 min, default 120). The database still caps expiry at 6 h. */
+  ttl_minutes: number | null;
 };
 
 export function validateNewIncident(b: any): { ok: true; value: NewIncidentInput } | { ok: false; error: string } {
@@ -75,7 +77,12 @@ export function validateNewIncident(b: any): { ok: true; value: NewIncidentInput
   if (typeof lat !== 'number' || typeof lng !== 'number' || !(lat >= 23 && lat <= 37.5) || !(lng >= 60 && lng <= 77.9)) {
     return { ok: false, error: 'invalid_location' };
   }
-  return { ok: true, value: { category: b.category, title, ...(fields as Omit<NewIncidentInput, 'category' | 'title' | 'lat' | 'lng'>), lat, lng } };
+  let ttl_minutes: number | null = null;
+  if (b.ttl_minutes !== undefined && b.ttl_minutes !== null) {
+    if (!Number.isInteger(b.ttl_minutes) || b.ttl_minutes < 1 || b.ttl_minutes > 360) return { ok: false, error: 'invalid_ttl' };
+    ttl_minutes = b.ttl_minutes;
+  }
+  return { ok: true, value: { category: b.category, title, ...(fields as Omit<NewIncidentInput, 'category' | 'title' | 'lat' | 'lng' | 'ttl_minutes'>), lat, lng, ttl_minutes } };
 }
 
 // ------------------------------------------------------------------ handlers
@@ -135,9 +142,9 @@ export function createApi({ db, secret, now = Date.now }: ApiDeps) {
       const x = v.value;
       try {
         const rows = await db(
-          `insert into incidents (created_by, ip_hash, category, title, title_ur, description, description_ur, location_name, advice, lat, lng)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
-          [device, ipHashOf(req), x.category, x.title, x.title_ur, x.description, x.description_ur, x.location_name, x.advice, x.lat, x.lng]
+          `insert into incidents (created_by, ip_hash, category, title, title_ur, description, description_ur, location_name, advice, lat, lng, expires_at)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, now() + make_interval(mins => coalesce($12::int, 120))) returning id`,
+          [device, ipHashOf(req), x.category, x.title, x.title_ur, x.description, x.description_ur, x.location_name, x.advice, x.lat, x.lng, x.ttl_minutes]
         );
         return json(201, { id: rows[0].id });
       } catch (e) {
