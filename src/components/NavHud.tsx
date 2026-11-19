@@ -5,7 +5,7 @@
 import React from 'react';
 import { RouteOption } from '../types';
 import { NavSession } from '../core/navigation';
-import { CornerUpLeft, CornerUpRight, ArrowUp, CheckCircle, Volume2, VolumeX, RotateCcw, Gauge, Loader2 } from 'lucide-react';
+import { CornerUpLeft, CornerUpRight, ArrowUp, CheckCircle, Volume2, VolumeX, RotateCcw, Gauge, Loader2, Share2 } from 'lucide-react';
 
 interface NavHudProps {
   route: RouteOption;
@@ -19,11 +19,12 @@ interface NavHudProps {
   onRepeat: () => void;
   onToggleMute: () => void;
   onExit: () => void;
+  onShare?: () => void;
 }
 
 const fmtDistance = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m / 10) * 10} m`);
 
-export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted, rerouting, voiceNotice = null, isRtl, onRepeat, onToggleMute, onExit }) => {
+export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted, rerouting, voiceNotice = null, isRtl, onRepeat, onToggleMute, onExit, onShare }) => {
   const step = route.steps[session.upcomingStepIndex] ?? route.steps[route.steps.length - 1];
   const eta = new Date(Date.now() + session.remainingS * 1000);
   const etaClock = eta.toLocaleTimeString(isRtl ? 'ur-PK' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -49,6 +50,11 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
+            {onShare && (
+              <button type="button" onClick={onShare} aria-label="Share trip" className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 cursor-pointer">
+                <Share2 className="w-3.5 h-3.5" />
+              </button>
+            )}
             <button type="button" onClick={onRepeat} aria-label="Repeat instruction" className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 cursor-pointer">
               <RotateCcw className="w-3.5 h-3.5" />
             </button>

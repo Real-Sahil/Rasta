@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { haversineM, bearingDeg, projectOnSegment, cumulativeLengths } from './geo';
 import { matchToRoute } from './routeMatcher';
 import { createSession, updateSession } from './navigation';
+import { buildTripShareText, osmLink } from './shareTrip';
 import { nextAnnouncement } from './announcer';
 import { parseOsrmRoutes, estimateRoute, fetchRoutes, buildOsrmUrl, clearRouteCache, endpoints } from './routing';
 import { RouteOption } from '../types';
@@ -224,5 +225,14 @@ describe('routing', () => {
     ac.abort();
     const f = vi.fn().mockRejectedValue(new DOMException('x', 'AbortError'));
     await expect(fetchRoutes(req, { fetchImpl: f as any, signal: ac.signal })).rejects.toBeTruthy();
+  });
+});
+
+describe('trip sharing', () => {
+  it('fills destination, ETA and a map link from the template', () => {
+    const now = new Date(2026, 0, 1, 10, 0, 0).getTime();
+    const txt = buildTripShareText('To {dest}, arriving {eta}. {link}', { dest: 'Badshahi Mosque', remainingS: 15 * 60, pos: { lat: 31.5, lng: 74.35 }, now });
+    expect(txt).toBe(`To Badshahi Mosque, arriving 10:15. ${osmLink({ lat: 31.5, lng: 74.35 })}`);
+    expect(osmLink({ lat: 31.5, lng: 74.35 })).toContain('mlat=31.50000&mlon=74.35000');
   });
 });

@@ -35,6 +35,7 @@ import { useAppStore, activeRouteOf } from './core/store';
 import { useGpsTracking } from './hooks/useGpsTracking';
 import { useRoutePlanner } from './hooks/useRoutePlanner';
 import { useVoiceAnnouncer } from './hooks/useVoiceAnnouncer';
+import { buildTripShareText } from './core/shareTrip';
 import { Navigation, ArrowUpDown, X, MapPin } from 'lucide-react';
 
 // Heavy, tab-specific UI is split out of the first load (the map engine alone is ~1 MB)
@@ -229,6 +230,19 @@ function MainApp() {
       setZoom(session ? 17 : 15);
     } else {
       handleCalibrateGps();
+    }
+  };
+
+  const handleShareTrip = async () => {
+    const st = store();
+    const pos = st.session?.snapped ?? st.fix;
+    if (!pos || !st.destination) return;
+    const text = buildTripShareText(t.shareTripMsg, { dest: isRtl ? st.destination.nameUrdu : st.destination.name, remainingS: st.session?.remainingS ?? 0, pos });
+    try {
+      if (navigator.share) await navigator.share({ text });
+      else { await navigator.clipboard.writeText(text); flash(t.shareCopied); }
+    } catch (e) {
+      if ((e as DOMException)?.name !== 'AbortError') { try { await navigator.clipboard.writeText(text); flash(t.shareCopied); } catch { /* nothing more to try */ } }
     }
   };
 
@@ -462,6 +476,7 @@ function MainApp() {
               }}
               onToggleMute={() => store().toggleMute()}
               onExit={() => store().stopNavigation()}
+              onShare={() => void handleShareTrip()}
             />
           )}
 

@@ -68,6 +68,10 @@ Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI 
 ## Known gaps (not yet fixed)
 Transit station list is incomplete and fares are estimates; no transit routing; PWA icons are 1376×768 images declared as 192/512; offline map packs and offline routing don't exist; the public OSRM/Nominatim/OpenFreeMap/OpenStreetMap-tile services have no SLA or commercial licence; Urdu/Punjabi wording and voice clips are unreviewed by native speakers; the legal text is not lawyer-reviewed.
 
+## Routing UI: From / To and trip sharing
+- `origin` in the store (null = my location). A custom start gives a **preview only**: `startNavigation` returns `custom_origin` and the UI explains it. Route ids include the origin (`fromId`) so a stale route can't survive a start change. The vehicle is drawn on the route line (`session.snapped`), and a drag/zoom while driving pauses camera-follow until "Recenter" or 10 s.
+- Trip sharing (`src/core/shareTrip.ts`): the HUD share button builds destination + ETA + an OpenStreetMap link to the current position on the device and hands it to the Web Share sheet (or the clipboard). It is a one-off snapshot, not live tracking; live tracking would need a server and a privacy design.
+
 ## Hooks
 `.claude/settings.json` installs deps on remote session start (`.claude/hooks/session-start.sh`, skips when package files are unchanged) and runs a typecheck after edits to `src/**/*.ts(x)`.
 - Urdu clips (13) in `public/audio/ur/` come from the open tiny-urdu model, not a cloud service: see `docs/urdu-clips.md` (spellings, status, licence caveat). Unreviewed by ear or by a native speaker.
