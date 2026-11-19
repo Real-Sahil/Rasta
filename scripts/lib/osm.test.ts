@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { orderedStops, toStation, toPoi, withMeta, pickLines, baseLineName, stationsAlong, trackOf, stationsNearTrack, tidyLineStations, trackPoints } from './osm.mjs';
+import { orderedStops, toStation, toPoi, withMeta, pickLines, baseLineName, stationsAlong, trackOf, stationsNearTrack, tidyLineStations, trackPoints, mergeDuplicateStations } from './osm.mjs';
 
 const nodes = [
   { type: 'node', id: 1, lat: 31.45, lon: 74.24, tags: { name: 'Ali Town', 'name:ur': 'علی ٹاؤن' } },
@@ -145,5 +145,19 @@ describe('unordered tracks and line-word tidying', () => {
 
   it('keeps every station when the line word is not the norm', () => {
     expect(tidyLineStations([st(1, 'A', 0, 0), st(2, 'B', 0, 0), st(3, 'C Metro Station', 0, 0)]).length).toBe(3);
+  });
+});
+
+describe('duplicate stations', () => {
+  const st = (id: number, name: string, lat: number, lon: number): any => ({ type: 'node', id, lat, lon, tags: { public_transport: 'station', name } });
+  it('merges same-name and very close stations, keeping the shorter OSM name and the line order', () => {
+    const out = mergeDuplicateStations([
+      st(1, 'Saddar station', 33.5970, 73.0480), st(2, 'Saddar', 33.5975, 73.0482), st(3, 'Liaquat Bagh', 33.62, 73.06),
+      st(4, 'Chaman', 33.70, 73.06), st(5, 'Chamman', 33.7005, 73.0603), st(6, 'PIMS', 33.71, 73.05), st(7, 'Liaquat Bagh', 33.72, 73.04)
+    ]);
+    expect(out.map((s: any) => s.tags.name)).toEqual(['Saddar', 'Liaquat Bagh', 'Chaman', 'PIMS']);
+  });
+  it('tidy trims a trailing "station" word', () => {
+    expect(tidyLineStations([st(1, 'Saddar station', 0, 0)])[0].tags.name).toBe('Saddar');
   });
 });

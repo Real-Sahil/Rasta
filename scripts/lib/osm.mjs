@@ -185,12 +185,35 @@ export function tidyLineStations(stations) {
   const named = stations.map((e) => ({ e, name: e.tags?.['name:en'] || e.tags?.name || '' }));
   const tagged = named.filter((x) => LINE_WORDS.test(x.name));
   const keep = tagged.length >= Math.max(3, named.length * 0.6) ? tagged : named;
-  const cut = (n) => n.replace(LINE_WORDS, ' ').replace(/\s*[-–]\s*$|^\s*[-–]\s*/g, '').replace(/\s+/g, ' ').trim() || n;
+  const cut = (n) => n.replace(LINE_WORDS, ' ').replace(/^\s*station\s+|\s+station\s*$/i, ' ').replace(/\s*[-–]\s*$|^\s*[-–]\s*/g, '').replace(/\s+/g, ' ').trim() || n;
   return keep.map(({ e, name }) => ({
     ...e,
     tags: { ...e.tags, ...(e.tags?.name ? { name: cut(e.tags.name) } : {}), ...(e.tags?.['name:en'] ? { 'name:en': cut(e.tags['name:en']) } : {}) },
     osmName: name
   }));
+}
+
+/**
+ * One entry per real station: OSM often maps a station twice (node + platform, or two spellings a few metres apart).
+ * In line order, a station with a name already seen, or within `maxM` of the previous kept one, is merged into it;
+ * the shorter name wins ("Saddar station" + "Saddar" -> "Saddar"). Nothing is renamed beyond picking an OSM name.
+ */
+const metres = (a, b) => { const xy = toXY(a.lat); const [x1, y1] = xy(a), [x2, y2] = xy(b); return Math.hypot(x1 - x2, y1 - y2); };
+
+export function mergeDuplicateStations(stations, { maxM = 150 } = {}) {
+  const nm = (e) => (e.tags?.['name:en'] || e.tags?.name || '').trim();
+  const pos = (e) => ({ lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon });
+  const out = [], seen = new Set();
+  for (const e of stations) {
+    const key = nm(e).toLowerCase();
+    if (!key || seen.has(key)) continue;
+    const prev = out[out.length - 1];
+    if (prev && metres(pos(prev), pos(e)) < maxM) {
+      if (nm(e).length < nm(prev).length) out[out.length - 1] = e;
+    } else out.push(e);
+    seen.add(key);
+  }
+  return out;
 }
 
 /** Line name without the direction part OSM adds to each variant ("Green Line BRT: Surjani => Numaish" -> "Green Line BRT"). */
@@ -217,7 +240,7 @@ export function pickLines(elements, city, { minStops = 5, stations = [] } = {}) 
     let stops = orderedStops(r, elements), from = 'relation';
     if (stops.length < minStops && stations.length) {
       const track = trackOf(r);
-      const along = tidyLineStations(track ? stationsAlong(track, stations) : stationsNearTrack(trackPoints(r), stations));
+      const along = mergeDuplicateStations(tidyLineStations(track ? stationsAlong(track, stations) : stationsNearTrack(trackPoints(r), stations)));
       if (along.length > stops.length) { stops = along; from = track ? 'track' : 'track-unordered'; }
     }
     const g = groups.get(key);
