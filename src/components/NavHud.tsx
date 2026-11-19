@@ -5,6 +5,7 @@
 import React from 'react';
 import { RouteOption } from '../types';
 import { NavSession } from '../core/navigation';
+import { isChamakSkin, CHAMAK_STRIP, ensureChamakFont } from './chamakSkin';
 import { CornerUpLeft, CornerUpRight, ArrowUp, CheckCircle, Volume2, VolumeX, RotateCcw, Gauge, Loader2, Share2 } from 'lucide-react';
 
 interface NavHudProps {
@@ -28,11 +29,18 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
   const step = route.steps[session.upcomingStepIndex] ?? route.steps[route.steps.length - 1];
   const eta = new Date(Date.now() + session.remainingS * 1000);
   const etaClock = eta.toLocaleTimeString(isRtl ? 'ur-PK' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+  const chamak = React.useMemo(() => isChamakSkin(), []);
+  React.useEffect(() => { if (chamak && !isRtl) ensureChamakFont(); }, [chamak, isRtl]);
+  const yatra = chamak && !isRtl ? { fontFamily: "'Yatra One', 'Plus Jakarta Sans', serif" } : undefined;
   const Icon = step.maneuver === 'turn-left' ? CornerUpLeft : step.maneuver === 'turn-right' ? CornerUpRight : step.maneuver === 'arrive' ? CheckCircle : ArrowUp;
 
   return (
     <div className="absolute top-3 left-3 right-3 lg:left-4 lg:w-[440px] z-30">
-      <div className="bg-slate-900/95 backdrop-blur-md text-white rounded-2xl p-3.5 shadow-2xl border border-emerald-500/50 space-y-2.5">
+      <div className={chamak
+        ? 'bg-[#14161A]/95 backdrop-blur-md text-white rounded-2xl overflow-hidden shadow-2xl border-2 border-[#F5B700]'
+        : 'bg-slate-900/95 backdrop-blur-md text-white rounded-2xl p-3.5 shadow-2xl border border-emerald-500/50 space-y-2.5'}>
+        {chamak && <div aria-hidden="true" className="h-2.5 border-b-2 border-[#F5B700]" style={{ backgroundImage: CHAMAK_STRIP, backgroundSize: '20px 10px' }} />}
+        <div className={chamak ? 'p-3.5 space-y-2.5' : 'space-y-2.5'}>
         {(session.status === 'off_route' || rerouting) && (
           <div className="flex items-center gap-2 text-[11px] font-bold text-amber-300">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -41,11 +49,13 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
         )}
         <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-11 h-11 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0">
-              <Icon className="w-6 h-6 stroke-[2.5]" />
+            <div className={chamak
+              ? 'w-14 h-14 rounded-2xl bg-[#D7263D] text-white ring-2 ring-[#F5B700] flex items-center justify-center shrink-0'
+              : 'w-11 h-11 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0'}>
+              <Icon className={chamak ? 'w-8 h-8 stroke-[2.5]' : 'w-6 h-6 stroke-[2.5]'} />
             </div>
             <div className="min-w-0">
-              <div className="text-lg font-black leading-none">{fmtDistance(session.distanceToManeuverM)}</div>
+              <div className={chamak ? 'text-2xl leading-none text-[#F5B700]' : 'text-lg font-black leading-none'} style={yatra}>{fmtDistance(session.distanceToManeuverM)}</div>
               <p className="text-xs sm:text-sm font-bold text-slate-200 line-clamp-2 mt-1">{isRtl ? step.instructionUrdu : step.instruction}</p>
             </div>
           </div>
@@ -79,6 +89,7 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
             <span>{Math.max(1, Math.round(session.remainingS / 60))} min</span>
             <span className="text-white">ETA {etaClock}</span>
           </div>
+        </div>
         </div>
       </div>
     </div>
