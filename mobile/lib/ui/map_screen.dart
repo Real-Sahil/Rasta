@@ -11,6 +11,7 @@ import '../core/geo.dart';
 import '../core/navigation.dart';
 import '../core/routing.dart' show RouteSource;
 import '../core/share_trip.dart';
+import '../core/skin_hud.dart';
 import '../core/voice.dart';
 import '../core/fares.dart' show inLahoreArea;
 import '../l10n.dart';
@@ -542,7 +543,9 @@ class NavHud extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(14),
             child: Row(children: [
-              if (skinned)
+              if (app.skin == 'luce')
+                LuceDial(progress: dialProgress(s.distanceToManeuverM), lit: pal.accent, dim: pal.rule, child: Icon(arrived ? Icons.flag : _icon(step?.maneuver ?? 'straight'), color: pal.accent, size: 36))
+              else if (skinned && app.skin != 'nastaliq')
                 Container(
                   width: 56,
                   height: 56,
@@ -559,7 +562,12 @@ class NavHud extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(arrived ? tr(lang, 'arrived') : (off ? tr(lang, 'offRoute') : formatDistance(s.distanceToManeuverM, lang)), style: TextStyle(color: dist, fontSize: 26, fontWeight: FontWeight.bold)),
+                  if (app.skin == 'nastaliq' && !off)
+                    Directionality(
+                      textDirection: (lang == 'ur' || lang == 'pa') ? TextDirection.rtl : TextDirection.ltr,
+                      child: SizedBox(width: double.infinity, child: Text(arrived ? tr(lang, 'arrived') : posterWord(step?.maneuver ?? 'straight', lang), key: const Key('poster-word'), style: TextStyle(color: pal.accent, fontSize: 44, height: 1.6, fontWeight: FontWeight.bold))),
+                    ),
+                  Text(arrived ? tr(lang, 'arrived') : (off ? tr(lang, 'offRoute') : formatDistance(s.distanceToManeuverM, lang)), style: TextStyle(color: dist, fontSize: app.skin == 'luce' ? 30 : 26, fontWeight: app.skin == 'luce' ? FontWeight.w200 : FontWeight.bold)),
                   if (!arrived && !off && step != null) Text(lang == 'en' ? step.instruction : step.instructionUrdu, style: TextStyle(color: sub, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
                 ]),
               ),

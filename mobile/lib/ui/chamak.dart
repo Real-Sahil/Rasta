@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 
 /// Optional truck-art look. Chrome only (nav bar, driving HUD, buttons); the map and data screens stay plain.
@@ -105,4 +107,52 @@ class _StripPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+/// Luce's watch dial: 60 ticks that light clockwise as the turn nears, plus a thin arc.
+class LuceDial extends StatelessWidget {
+  const LuceDial({super.key, required this.progress, required this.lit, required this.dim, required this.child, this.size = 104});
+  final double progress, size;
+  final Color lit, dim;
+  final Widget child;
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(painter: _DialPainter(progress, lit, dim), child: Center(child: child)),
+      );
+}
+
+class _DialPainter extends CustomPainter {
+  _DialPainter(this.progress, this.lit, this.dim);
+  final double progress;
+  final Color lit, dim;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final k = size.width / 120;
+    final litCount = (progress * 60).round();
+    for (var i = 0; i < 60; i++) {
+      final major = i % 5 == 0;
+      final a = i / 60 * 2 * 3.141592653589793 - 3.141592653589793 / 2;
+      final r1 = 57 * k, r2 = (major ? 49 : 52) * k;
+      canvas.drawLine(
+        c + Offset(r1 * _cos(a), r1 * _sin(a)),
+        c + Offset(r2 * _cos(a), r2 * _sin(a)),
+        Paint()
+          ..color = i < litCount ? lit : dim
+          ..strokeWidth = (major ? 2 : 1.2) * k
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+    final rect = Rect.fromCircle(center: c, radius: 42 * k);
+    canvas.drawArc(rect, 0, 6.283185307179586, false, Paint()..color = dim..style = PaintingStyle.stroke..strokeWidth = k);
+    canvas.drawArc(rect, -3.141592653589793 / 2, progress * 6.283185307179586, false, Paint()..color = lit..style = PaintingStyle.stroke..strokeWidth = 2.5 * k..strokeCap = StrokeCap.round);
+  }
+
+  double _cos(double a) => math.cos(a);
+  double _sin(double a) => math.sin(a);
+
+  @override
+  bool shouldRepaint(covariant _DialPainter o) => o.progress != progress || o.lit != lit || o.dim != dim;
 }
