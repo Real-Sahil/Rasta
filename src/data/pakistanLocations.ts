@@ -177,11 +177,40 @@ export const EMERGENCY_CONTACTS: EmergencyContact[] = [
   }
 ];
 
-export const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
-  lahore: { lat: 31.5204, lng: 74.3587 },
-  karachi: { lat: 24.8607, lng: 67.0011 },
-  islamabad: { lat: 33.6844, lng: 73.0479 },
-  rawalpindi: { lat: 33.5651, lng: 73.0169 },
-  multan: { lat: 30.1575, lng: 71.5249 },
-  faisalabad: { lat: 31.4504, lng: 73.135 }
-};
+/** Cities offered for weather / air quality (Open-Meteo works anywhere; these are just convenient picks). */
+export const PK_CITIES: { id: string; en: string; ur: string; lat: number; lng: number }[] = [
+  { id: 'lahore', en: 'Lahore', ur: 'لاہور', lat: 31.5204, lng: 74.3587 },
+  { id: 'karachi', en: 'Karachi', ur: 'کراچی', lat: 24.8607, lng: 67.0011 },
+  { id: 'islamabad', en: 'Islamabad', ur: 'اسلام آباد', lat: 33.6844, lng: 73.0479 },
+  { id: 'rawalpindi', en: 'Rawalpindi', ur: 'راولپنڈی', lat: 33.5651, lng: 73.0169 },
+  { id: 'multan', en: 'Multan', ur: 'ملتان', lat: 30.1575, lng: 71.5249 },
+  { id: 'faisalabad', en: 'Faisalabad', ur: 'فیصل آباد', lat: 31.4504, lng: 73.135 },
+  { id: 'peshawar', en: 'Peshawar', ur: 'پشاور', lat: 34.0151, lng: 71.5249 },
+  { id: 'quetta', en: 'Quetta', ur: 'کوئٹہ', lat: 30.1798, lng: 66.975 },
+  { id: 'hyderabad', en: 'Hyderabad', ur: 'حیدرآباد', lat: 25.396, lng: 68.3578 },
+  { id: 'gujranwala', en: 'Gujranwala', ur: 'گوجرانوالہ', lat: 32.1877, lng: 74.1945 },
+  { id: 'sialkot', en: 'Sialkot', ur: 'سیالکوٹ', lat: 32.4945, lng: 74.5229 },
+  { id: 'sargodha', en: 'Sargodha', ur: 'سرگودھا', lat: 32.0836, lng: 72.6711 },
+  { id: 'bahawalpur', en: 'Bahawalpur', ur: 'بہاولپور', lat: 29.3956, lng: 71.6836 },
+  { id: 'sukkur', en: 'Sukkur', ur: 'سکھر', lat: 27.7052, lng: 68.8574 },
+  { id: 'abbottabad', en: 'Abbottabad', ur: 'ایبٹ آباد', lat: 34.1688, lng: 73.2215 },
+  { id: 'muzaffarabad', en: 'Muzaffarabad', ur: 'مظفرآباد', lat: 34.37, lng: 73.4711 },
+  { id: 'gilgit', en: 'Gilgit', ur: 'گلگت', lat: 35.9208, lng: 74.308 },
+  { id: 'gwadar', en: 'Gwadar', ur: 'گوادر', lat: 25.1264, lng: 62.3225 }
+];
+
+export const CITY_CENTERS: Record<string, { lat: number; lng: number }> = Object.fromEntries(PK_CITIES.map((c) => [c.id, { lat: c.lat, lng: c.lng }]));
+
+/** Nearest listed city within 80 km of a real fix, else null. */
+export function nearestCityId(p: { lat: number; lng: number } | null | undefined): string | null {
+  if (!p) return null;
+  let best: string | null = null;
+  let bestKm = 80;
+  for (const c of PK_CITIES) {
+    const dLat = ((c.lat - p.lat) * Math.PI) / 180, dLng = ((c.lng - p.lng) * Math.PI) / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos((p.lat * Math.PI) / 180) * Math.cos((c.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    const km = 12742 * Math.asin(Math.sqrt(a));
+    if (km < bestKm) { bestKm = km; best = c.id; }
+  }
+  return best;
+}

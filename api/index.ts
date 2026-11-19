@@ -131,6 +131,32 @@ export function validateTransitReport(b: any): { ok: true; value: TransitReportI
 }
 
 // ------------------------------------------------------------------ handlers
+/** Geoapify Places (GeoJSON) -> the bundled-POI shape. OSM tags come from datasource.raw; unknown stays null. */
+export function mapPlaces(body: any, kind: string) {
+  const feats = Array.isArray(body?.features) ? body.features : [];
+  const out: any[] = [];
+  const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : null);
+  for (const f of feats) {
+    const p = f?.properties ?? {};
+    const t = p?.datasource?.raw ?? {};
+    const lat = Number(p.lat), lng = Number(p.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    if (lat < PK_BOX.minLat || lat > PK_BOX.maxLat || lng < PK_BOX.minLng || lng > PK_BOX.maxLng) continue;
+    const name = str(t['name:en']) ?? str(p.name) ?? str(t.name) ?? str(t.brand) ?? str(t.operator);
+    if (!name) continue;
+    const osm = t.osm_type && t.osm_id ? `${t.osm_type === 'n' ? 'node' : t.osm_type === 'w' ? 'way' : t.osm_type === 'r' ? 'relation' : t.osm_type}/${t.osm_id}` : null;
+    out.push({
+      id: osm ? `osm_${osm.replace('/', '_')}` : `ga_${String(p.place_id ?? `${lat},${lng}`).slice(0, 80)}`,
+      kind, name, nameUrdu: str(t['name:ur']), lat, lng,
+      address: str(p.address_line2)?.replace(/,?\s*Pakistan$/i, '') ?? null,
+      phone: str(t.phone) ?? str(t['contact:phone']),
+      open24h: t.opening_hours === '24/7' ? true : null,
+      emergency: t.emergency === 'yes' ? true : null
+    });
+  }
+  return out;
+}
+
 export function createApi({ db, secret, now = Date.now, adminKey, geoapifyKey, fetchFn = fetch }: ApiDeps) {
   const ipHashOf = (req: Request) => {
     const ip = (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown').split(',')[0].trim();
@@ -344,6 +370,32 @@ export function createApi({ db, secret, now = Date.now, adminKey, geoapifyKey, f
       }
     },
 
+    /** Nearest hospitals / fuel stations anywhere in Pakistan (Geoapify Places, which serves OpenStreetMap data).
+     *  `near` is rounded to ~1 km; nothing is logged or stored. Same field meanings as the bundled OSM extract. */
+    async nearby(req: Request): Promise<Response> {
+      if (!geoapifyKey) return fail(404, 'nearby_disabled');
+      const u = new URL(req.url);
+      const kind = u.searchParams.get('kind');
+      const category = kind === 'hospital' ? 'healthcare.hospital' : kind === 'fuel' ? 'service.vehicle.fuel' : null;
+      if (!category) return fail(400, 'bad_kind');
+      const near = (u.searchParams.get('near') || '').split(',').map(Number);
+      if (near.length !== 2 || !near.every(Number.isFinite)) return fail(400, 'bad_near');
+      const [lat, lng] = near.map((v) => Math.round(v * 100) / 100);
+      if (lat < PK_BOX.minLat || lat > PK_BOX.maxLat || lng < PK_BOX.minLng || lng > PK_BOX.maxLng) return fail(400, 'outside_pakistan');
+      const params = new URLSearchParams({ categories: category, filter: `circle:${lng},${lat},50000`, bias: `proximity:${lng},${lat}`, limit: '30', apiKey: geoapifyKey });
+      try {
+        const r = await fetchFn(`https://api.geoapify.com/v2/places?${params}`, { signal: AbortSignal.timeout(8000) });
+        if (!r.ok) {
+          console.error('nearby upstream', r.status);
+          return fail(r.status === 429 ? 429 : 502, r.status === 429 ? 'rate_limited' : 'upstream_error');
+        }
+        return json(200, { items: mapPlaces(await r.json(), kind!) }, { 'cache-control': 'public, max-age=600, s-maxage=604800' });
+      } catch (e: any) {
+        console.error('nearby upstream', e?.name || 'error');
+        return fail(502, 'upstream_error');
+      }
+    },
+
     async handle(req: Request): Promise<Response> {
       const op = new URL(req.url).searchParams.get('op');
       if (req.method === 'POST' && op === 'session') return this.session();
@@ -354,6 +406,7 @@ export function createApi({ db, secret, now = Date.now, adminKey, geoapifyKey, f
       if (req.method === 'POST' && op === 'transit_report') return this.transitReport(req);
       if (req.method === 'GET' && op === 'transit_stats') return this.transitStats(req);
       if (req.method === 'GET' && op === 'geocode') return this.geocode(req);
+      if (req.method === 'GET' && op === 'nearby') return this.nearby(req);
       if (op?.startsWith('admin_')) {
         if (!adminKey) return fail(404, 'unknown_op');
         if (!this.isAdmin(req)) return fail(401, 'unauthorized');

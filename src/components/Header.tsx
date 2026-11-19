@@ -10,6 +10,7 @@ import { SyncStatusInfo } from '../services/incidentSyncService';
 import { SkinPicker } from './SkinPicker';
 import { Moon, Sun, ShieldAlert, CloudRain, Zap, Wind, Info } from 'lucide-react';
 import { fetchCityAqi, CityAqiData } from '../services/aqiService';
+import { PK_CITIES } from '../data/pakistanLocations';
 
 interface HeaderProps {
   currentCity: string;
@@ -65,12 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onChange={(e) => onCityChange(e.target.value)}
                 className="bg-transparent font-medium hover:text-emerald-600 focus:outline-none cursor-pointer truncate max-w-[130px]"
               >
-                <option value="lahore">Lahore (لاہور)</option>
-                <option value="karachi">Karachi (کراچی)</option>
-                <option value="islamabad">Islamabad (اسلام آباد)</option>
-                <option value="rawalpindi">Rawalpindi (راولپنڈی)</option>
-                <option value="multan">Multan (ملتان)</option>
-                <option value="faisalabad">Faisalabad (فیصل آباد)</option>
+                {PK_CITIES.map((c) => <option key={c.id} value={c.id}>{c.en} ({c.ur})</option>)}
               </select>
 
               {/* AQI Badge */}

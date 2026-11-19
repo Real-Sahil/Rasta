@@ -4,7 +4,14 @@ import 'geo.dart';
 const cityCentres = <String, LatLng>{
   'lahore': LatLng(31.5204, 74.3587), 'karachi': LatLng(24.8607, 67.0011), 'islamabad': LatLng(33.6844, 73.0479),
   'rawalpindi': LatLng(33.5651, 73.0169), 'multan': LatLng(30.1575, 71.5249), 'faisalabad': LatLng(31.4504, 73.135),
-};
+  'peshawar': LatLng(34.0151, 71.5249), 'quetta': LatLng(30.1798, 66.975), 'hyderabad': LatLng(25.396, 68.3578),
+  'gujranwala': LatLng(32.1877, 74.1945), 'sialkot': LatLng(32.4945, 74.5229), 'sargodha': LatLng(32.0836, 72.6711),
+  'bahawalpur': LatLng(29.3956, 71.6836), 'sukkur': LatLng(27.7052, 68.8574), 'abbottabad': LatLng(34.1688, 73.2215),
+  'muzaffarabad': LatLng(34.37, 73.4711), 'gilgit': LatLng(35.9208, 74.308), 'gwadar': LatLng(25.1264, 62.3225),
+}; // same list as PK_CITIES on the web
+
+/// "My location" for weather: the fix rounded to 0.1 degree (~10 km) before it is sent to Open-Meteo.
+LatLng roundedForWeather(LatLng p) => LatLng((p.lat * 10).round() / 10, (p.lng * 10).round() / 10);
 
 /// Nearest city within 80 km of a real fix, else null (the UI then asks the user to pick one).
 String? nearestCity(LatLng? p) {

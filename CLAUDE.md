@@ -55,6 +55,8 @@ Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI 
 ## Place search (Geoapify via our API)
 - `GET /api?op=geocode&q=&lang=en|ur&near=lat,lng` proxies Geoapify with `GEOAPIFY_KEY` (Vercel env, encrypted; never in the repo or the app). Pakistan filter, results outside the box dropped, `near` rounded to 0.1° (bias only), edge-cached 24 h, the query is never logged. No key = 404.
 - Web `SearchInput` and Flutter `SearchService` try it first and fall back to public Nominatim on 404/error/offline. `VITE_GEOCODE_URL` still overrides both on web. Privacy paragraph 2 names Geoapify (through our server, so it doesn't see the user's IP) and Nominatim as the fallback.
+- `GET /api?op=nearby&kind=hospital|fuel&near=lat,lng`: Geoapify Places (OSM data) within 50 km, point rounded to 0.01° (~1 km), Pakistan only, edge-cached 7 days, same fields as the bundled POIs (OSM tags from `datasource.raw`, unknown = null). Flutter Emergency tab uses it with a real fix in Pakistan (`services/nearby_service.dart`), credits "OpenStreetMap contributors, via Geoapify", and falls back to the bundled Lahore extract with a visible notice when the server can't answer.
+- Weather/AQI cities: 18 (web `PK_CITIES` in `pakistanLocations.ts`, Flutter `cityCentres`; keep both in step). Web picks the nearest city within 80 km on the first fix unless the user chose one. Flutter adds "My location": the fix rounded to 0.1° (`roundedForWeather`) when no listed city is within 80 km; privacy paragraph 2 (mobile) says so.
 - Geoapify free tier: 3,000 requests/day. Edge caching helps; watch usage in the Geoapify dashboard and restrict the key there.
 
 ## Hardening (moderation, monitoring, limits)

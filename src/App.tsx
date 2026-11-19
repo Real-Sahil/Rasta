@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { MobilityThemeProvider, useMobilityTheme } from './components/ThemeLayoutWrapper';
 import { CommunityIncident, TransitStation } from './types';
-import { POPULAR_LOCATIONS, CITY_CENTERS } from './data/pakistanLocations';
+import { POPULAR_LOCATIONS, CITY_CENTERS, nearestCityId } from './data/pakistanLocations';
 import { getStoredIncidents, saveIncidents } from './services/storage';
 import { RobustGpsManager } from './services/gpsService';
 import { Header } from './components/Header';
@@ -101,6 +101,16 @@ function MainApp() {
     setToast(msg);
     setTimeout(() => setToast((cur) => (cur === msg ? null : cur)), ms);
   };
+
+  // Weather/AQI follow the nearest listed city on the first real fix, unless the user already picked one.
+  const cityPicked = useRef(false);
+  const hasFix = !!fix;
+  useEffect(() => {
+    if (!hasFix || cityPicked.current) return;
+    cityPicked.current = true;
+    const near = nearestCityId(store().fix);
+    if (near) setCurrentCity(near);
+  }, [hasFix]);
 
   useEffect(() => {
     fetchCityAqi(currentCity).then(setAqiData);
@@ -214,6 +224,7 @@ function MainApp() {
   };
 
   const handleCityChange = (city: string) => {
+    cityPicked.current = true;
     setCurrentCity(city);
     const c = CITY_CENTERS[city];
     if (c) {

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../core/conditions.dart';
+import '../core/coverage.dart';
 import '../l10n.dart';
 import '../services/conditions_service.dart';
 import '../state/app_state.dart';
@@ -23,19 +24,30 @@ class _ConditionsCardState extends State<ConditionsCard> {
   Conditions? _c;
   bool _loading = false;
 
+  static const _here = 'here';
+  bool get _hasLocalFix {
+    final f = widget.app.fix?.point;
+    return f != null && inPakistan(f);
+  }
+
   @override
   void initState() {
     super.initState();
+    // Nearest listed city if there is one within 80 km (sends only that city's centre); otherwise, with a real fix in
+    // Pakistan, "my location" rounded to ~10 km; with no fix, Lahore until the user picks.
     final near = nearestCity(widget.app.fix?.point);
-    _city = near ?? 'lahore';
-    _auto = near != null;
+    _city = near ?? (_hasLocalFix ? _here : 'lahore');
+    _auto = near != null || _city == _here;
     _load();
   }
 
   Future<void> _load() async {
     final city = _city!;
+    final fix = widget.app.fix?.point;
     setState(() { _loading = true; });
-    final c = await fetchConditions(city, fetch: widget.fetch);
+    final c = city == _here && fix != null
+        ? await fetchConditionsAt(roundedForWeather(fix), fetch: widget.fetch)
+        : await fetchConditions(city == _here ? 'lahore' : city, fetch: widget.fetch);
     if (mounted && city == _city) setState(() { _c = c; _loading = false; });
   }
 
@@ -59,8 +71,11 @@ class _ConditionsCardState extends State<ConditionsCard> {
           DropdownButtonFormField<String>(
             initialValue: _city,
             decoration: InputDecoration(labelText: tr(lang, 'condCity')),
-            items: [for (final k in cityCentres.keys) DropdownMenuItem(value: k, child: Text(tr(lang, 'city${_cap(k)}')))],
-            onChanged: (v) { if (v != null) { _auto = false; _city = v; _load(); } },
+            items: [
+              if (_hasLocalFix || _city == _here) DropdownMenuItem(value: _here, child: Text(tr(lang, 'cityHere'))),
+              for (final k in cityCentres.keys) DropdownMenuItem(value: k, child: Text(tr(lang, 'city${_cap(k)}'))),
+            ],
+            onChanged: (v) { if (v != null) { _auto = v == _here; _city = v; _load(); } },
           ),
           const SizedBox(height: 8),
           if (_loading && c == null) const LinearProgressIndicator()

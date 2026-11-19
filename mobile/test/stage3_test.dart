@@ -64,7 +64,9 @@ void main() {
     expect(nearestCity(null), isNull);
     expect(nearestCity(const LatLng(31.55, 74.34)), 'lahore');
     expect(nearestCity(const LatLng(33.6, 73.05)), anyOf('islamabad', 'rawalpindi'));
-    expect(nearestCity(const LatLng(27.0, 69.0)), isNull); // middle of nowhere: ask the user, do not guess
+    expect(nearestCity(const LatLng(34.0, 71.56)), 'peshawar');
+    expect(nearestCity(const LatLng(28.5, 64.5)), isNull); // central Balochistan: no listed city close, use "my location"
+    expect(roundedForWeather(const LatLng(28.5432, 64.4567)), const LatLng(28.5, 64.5)); // ~10 km before it leaves the phone
   });
 
   test('conditions: each half fails on its own and bad data is never turned into numbers', () async {

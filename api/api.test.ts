@@ -290,3 +290,35 @@ describe('geocode (Geoapify proxy)', () => {
     expect((await get(make(429, {}), 'q=liberty')).status).toBe(429);
   });
 });
+
+describe('nearby (Geoapify Places)', () => {
+  const feats = { features: [
+    { properties: { lat: 30.2, lon: 71.47, name: 'Nishtar Hospital', address_line2: 'Nishtar Road, Multan, Pakistan', place_id: 'p1',
+      datasource: { raw: { osm_type: 'w', osm_id: 42, 'name:ur': 'نشتر ہسپتال', phone: '+92 61 9200231', emergency: 'yes', opening_hours: '24/7' } } } },
+    { properties: { lat: 30.21, lon: 71.48, place_id: 'p2', datasource: { raw: {} } } }, // no name: dropped
+    { properties: { lat: 30.22, lon: 71.49, name: 'City Clinic', place_id: 'p3' } }
+  ] };
+  const make = (seen: string[] = []) => createApi({ db: async () => [], secret: SECRET, geoapifyKey: 'k',
+    fetchFn: (async (url: string) => { seen.push(String(url)); return new Response(JSON.stringify(feats)); }) as any });
+  const get = (a: ReturnType<typeof createApi>, qs: string) => a.handle(new Request(`https://x.test/api?op=nearby&${qs}`));
+
+  it('maps OSM tags without guessing and rounds the point to ~1 km', async () => {
+    const seen: string[] = [];
+    const r = await get(make(seen), 'kind=hospital&near=30.1984,71.4687');
+    expect(r.status).toBe(200);
+    const { items }: any = await r.json();
+    expect(items).toEqual([
+      { id: 'osm_way_42', kind: 'hospital', name: 'Nishtar Hospital', nameUrdu: 'نشتر ہسپتال', lat: 30.2, lng: 71.47, address: 'Nishtar Road, Multan', phone: '+92 61 9200231', open24h: true, emergency: true },
+      { id: 'ga_p3', kind: 'hospital', name: 'City Clinic', nameUrdu: null, lat: 30.22, lng: 71.49, address: null, phone: null, open24h: null, emergency: null }
+    ]);
+    const u = new URL(seen[0]);
+    expect(u.searchParams.get('categories')).toBe('healthcare.hospital');
+    expect(u.searchParams.get('filter')).toBe('circle:71.47,30.2,50000');
+  });
+  it('rejects bad input and is off without a key', async () => {
+    expect((await get(make(), 'kind=bank&near=30,71')).status).toBe(400);
+    expect((await get(make(), 'kind=fuel&near=52.9,-1.47')).status).toBe(400);
+    expect((await get(make(), 'kind=fuel')).status).toBe(400);
+    expect((await get(api, 'kind=fuel&near=30,71')).status).toBe(404);
+  });
+});

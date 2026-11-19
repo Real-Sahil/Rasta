@@ -5,7 +5,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/emergency.dart';
 import '../core/places.dart';
+import '../core/coverage.dart';
+import '../core/geo.dart';
 import '../l10n.dart';
+import '../services/nearby_service.dart';
 import '../state/app_state.dart';
 import 'map_screen.dart' show formatDistance;
 
@@ -16,16 +19,49 @@ class _Data {
 
 Future<_Data> _load() async => _Data(parsePoiFile(await rootBundle.loadString('assets/osm/hospitals.json')), parsePoiFile(await rootBundle.loadString('assets/osm/fuel.json')));
 
+/// What the list shows: live places near a real fix, or the bundled Lahore extract.
+class _Shown {
+  const _Shown(this.items, {required this.live, this.fetchedAt, this.fellBack = false});
+  final List<Poi> items;
+  final bool live, fellBack; // fellBack: the server couldn't answer, so these are the bundled Lahore places
+  final String? fetchedAt;
+}
+
 class EmergencyScreen extends StatefulWidget {
-  const EmergencyScreen({super.key, required this.app});
+  const EmergencyScreen({super.key, required this.app, this.nearby});
   final AppState app;
+  final NearbyService? nearby;
   @override
   State<EmergencyScreen> createState() => _EmergencyScreenState();
 }
 
 class _EmergencyScreenState extends State<EmergencyScreen> {
   late final Future<_Data> _data = _load();
+  late final NearbyService _nearby = widget.nearby ?? NearbyService();
   bool _hospitals = true;
+  String? _shownKey;
+  Future<_Shown>? _shown;
+
+  Future<_Shown> _resolve(String kind, LatLng? here) async {
+    final d = await _data;
+    final bundled = kind == 'fuel' ? d.fuel : d.hospitals;
+    if (here != null && inPakistan(here)) {
+      final live = await _nearby.nearby(kind, here);
+      if (live != null) return _Shown(live, live: true);
+      return _Shown(bundled.items, live: false, fetchedAt: bundled.fetchedAt, fellBack: true);
+    }
+    return _Shown(bundled.items, live: false, fetchedAt: bundled.fetchedAt);
+  }
+
+  Future<_Shown> _shownFor(String kind, LatLng? here) {
+    // Re-query only when the kind changes or the fix moves to another ~1 km cell, not on every GPS update.
+    final key = here == null ? '$kind|none' : NearbyService.roundedKey(kind, here);
+    if (key != _shownKey || _shown == null) {
+      _shownKey = key;
+      _shown = _resolve(kind, here);
+    }
+    return _shown!;
+  }
 
   void _note(String key) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(widget.app.lang, key))));
 
@@ -81,16 +117,18 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
           const SizedBox(width: 6),
           ChoiceChip(label: Text(tr(lang, 'sosFuel')), selected: !_hospitals, onSelected: (_) => setState(() => _hospitals = false)),
         ]),
-        if (outsideCoverage(here)) Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr(lang, 'sosCoverage'), style: TextStyle(color: Theme.of(context).colorScheme.error))),
-        FutureBuilder<_Data>(
-          future: _data,
+        FutureBuilder<_Shown>(
+          future: _shownFor(_hospitals ? 'hospital' : 'fuel', here),
           builder: (context, snap) {
             if (snap.connectionState != ConnectionState.done) return const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()));
-            final d = snap.data;
-            final file = d == null ? null : (_hospitals ? d.hospitals : d.fuel);
-            final list = file == null ? <NearPoi>[] : nearest(file.items, here);
-            if (list.isEmpty) return Padding(padding: const EdgeInsets.all(16), child: Text(tr(lang, 'sosNoData')));
-            return Column(children: [
+            final shown = snap.data;
+            final live = shown?.live ?? false;
+            final list = shown == null ? <NearPoi>[] : nearest(shown.items, here);
+            final warn = TextStyle(color: Theme.of(context).colorScheme.error);
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (shown?.fellBack == true) Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr(lang, 'sosLiveFail'), style: warn)),
+              if (!live && outsideCoverage(here)) Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr(lang, 'sosCoverage'), style: warn)),
+              if (list.isEmpty) Padding(padding: const EdgeInsets.all(16), child: Text(tr(lang, live ? 'sosNoneNear' : 'sosNoData'))),
               for (final n in list)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -105,7 +143,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                   trailing: n.poi.phone == null ? null : TextButton.icon(onPressed: () => _call(n.poi.phone!), icon: const Icon(Icons.call, size: 16), label: Text(tr(lang, 'sosCall'))),
                 ),
               const SizedBox(height: 8),
-              Text('$osmCredit${file?.fetchedAt == null ? '' : ', ${file!.fetchedAt}'}. ${tr(lang, 'sosCredit')}', style: Theme.of(context).textTheme.labelSmall),
+              Text(
+                live ? '$osmCredit, via Geoapify. ${tr(lang, 'sosCredit')}' : '$osmCredit${shown?.fetchedAt == null ? '' : ', ${shown!.fetchedAt}'}. ${tr(lang, 'sosCredit')}',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
             ]);
           },
         ),
