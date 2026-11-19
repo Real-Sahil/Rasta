@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../l10n.dart';
 import '../state/app_state.dart';
+import 'conditions_card.dart';
 import 'legal_screen.dart';
 
 class InfoScreen extends StatelessWidget {
@@ -23,6 +24,8 @@ class InfoScreen extends StatelessWidget {
         const SizedBox(height: 8),
         if (lang != 'en') Text(tr(lang, 'draft'), style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 16),
+        ConditionsCard(app: app),
+        const SizedBox(height: 8),
         ListTile(
           leading: const Icon(Icons.shield_outlined),
           title: Text(tr(lang, 'infoLegal')),

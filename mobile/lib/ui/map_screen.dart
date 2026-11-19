@@ -7,9 +7,12 @@ import 'package:share_plus/share_plus.dart';
 
 import '../core/geo.dart';
 import '../core/navigation.dart';
+import '../core/routing.dart' show RouteSource;
 import '../core/share_trip.dart';
 import '../core/voice.dart';
+import '../core/fares.dart' show inLahoreArea;
 import '../l10n.dart';
+import 'fare_compare.dart';
 import '../services/gps_service.dart';
 import '../services/search_service.dart';
 import '../state/app_state.dart';
@@ -372,6 +375,8 @@ class RouteSheet extends StatelessWidget {
             if (support.status == VoiceStatus.none) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, 'noVoice'))),
             if (support.status == VoiceStatus.approximate) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, 'approxVoice'))),
             if (lang != 'en') Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr(lang, 'draft'), style: Theme.of(context).textTheme.bodySmall)),
+            if (app.routeSource == RouteSource.network && (app.origin?.point ?? app.fix?.point) != null)
+              FareCompare(lang: lang, route: r, lahore: inLahoreArea(app.origin?.point ?? app.fix!.point)),
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,

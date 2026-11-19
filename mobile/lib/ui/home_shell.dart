@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../l10n.dart';
 import '../services/reports_api.dart';
 import '../state/app_state.dart';
+import 'emergency_screen.dart';
 import 'incidents_screen.dart';
 import 'info_screen.dart';
 import 'map_screen.dart';
@@ -33,6 +34,7 @@ class _HomeShellState extends State<HomeShell> {
             MapScreen(app: app),
             IncidentsScreen(app: app, api: widget.api, active: tab == 1),
             RidersScreen(app: app, api: widget.api, active: tab == 2),
+            EmergencyScreen(app: app),
             InfoScreen(app: app),
           ]),
           bottomNavigationBar: app.navigating
@@ -44,6 +46,7 @@ class _HomeShellState extends State<HomeShell> {
                     NavigationDestination(icon: const Icon(Icons.map_outlined), label: tr(lang, 'navMap')),
                     NavigationDestination(icon: const Icon(Icons.warning_amber), label: tr(lang, 'navRoad')),
                     NavigationDestination(icon: const Icon(Icons.directions_bus_outlined), label: tr(lang, 'navRiders')),
+                    NavigationDestination(icon: const Icon(Icons.local_hospital_outlined), label: tr(lang, 'navSos')),
                     NavigationDestination(icon: const Icon(Icons.info_outline), label: tr(lang, 'navInfo')),
                   ],
                 ),

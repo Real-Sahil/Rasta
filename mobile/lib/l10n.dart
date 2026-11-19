@@ -1,6 +1,7 @@
 // UI strings for the mobile app (English, Urdu, Punjabi). Urdu/Punjabi wording is a DRAFT pending native-speaker review.
 // Mirrors the web app's locales; the web app stays the source for wording until the whole app is ported.
 import 'l10n_app.dart';
+import 'l10n_more.dart';
 import 'l10n_web.dart';
 
 const supportedLangs = ['en', 'ur', 'pa'];
@@ -98,6 +99,8 @@ const Map<String, Map<String, String>> _s = {
   },
 };
 
+/// Later tables override earlier ones (moreStrings > appStrings > webStrings > core strings), so a stage can refine wording.
 String tr(String lang, String key) =>
-    _s[lang]?[key] ?? appStrings[lang]?[key] ?? webStrings[lang]?[key] ?? _s['en']![key] ?? appStrings['en']![key] ?? webStrings['en']![key] ?? key;
+    moreStrings[lang]?[key] ?? _s[lang]?[key] ?? appStrings[lang]?[key] ?? webStrings[lang]?[key] ??
+    moreStrings['en']![key] ?? _s['en']![key] ?? appStrings['en']![key] ?? webStrings['en']![key] ?? key;
 bool isRtl(String lang) => lang == 'ur' || lang == 'pa';
