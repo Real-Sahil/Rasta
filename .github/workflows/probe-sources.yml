@@ -16,3 +16,4 @@ jobs:
         with:
           node-version: 22
       - run: node scripts/probe-sources.mjs
+      - run: node scripts/probe-flood.mjs
