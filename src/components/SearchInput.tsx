@@ -20,6 +20,10 @@ interface SearchInputProps {
   initialValue?: string;
 }
 
+// Set VITE_GEOCODE_URL to a Nominatim-compatible /search endpoint to replace the public server.
+const GEOCODE_URL: string = (import.meta as any).env?.VITE_GEOCODE_URL || 'https://nominatim.openstreetmap.org/search';
+const geocodeCache = new Map<string, LocationPoint[]>();
+
 export const SearchInput: React.FC<SearchInputProps> = ({
   language,
   placeholder,
@@ -156,16 +160,19 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       return;
     }
 
+    const ctrl = new AbortController();
     const timer = setTimeout(async () => {
       try {
         setIsSearchingOnline(true);
         const encoded = encodeURIComponent(query.trim());
+        const cacheKey = `${isInputUrdu ? 'ur' : 'en'}|${query.trim().toLowerCase()}`;
+        const cached = geocodeCache.get(cacheKey);
+        if (cached) { setOnlineResults(cached); return; }
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encoded}&countrycodes=pk&format=json&addressdetails=1&limit=4`,
+          `${GEOCODE_URL}?q=${encoded}&countrycodes=pk&format=json&addressdetails=1&limit=4`,
           {
-            headers: {
-              'Accept-Language': isInputUrdu ? 'ur,en;q=0.8' : 'en,ur;q=0.8'
-            }
+            headers: { 'Accept-Language': isInputUrdu ? 'ur,en;q=0.8' : 'en,ur;q=0.8' },
+            signal: AbortSignal.any([ctrl.signal, AbortSignal.timeout(6000)])
           }
         );
         if (res.ok) {
@@ -181,17 +188,19 @@ export const SearchInput: React.FC<SearchInputProps> = ({
               addressUrdu: item.display_name,
               category: 'hub'
             }));
+            if (geocodeCache.size > 50) geocodeCache.clear();
+            geocodeCache.set(cacheKey, mapped);
             setOnlineResults(mapped);
           }
         }
       } catch (err) {
-        console.warn('Geocoding search failed:', err);
+        if (!ctrl.signal.aborted) console.warn('Geocoding search failed:', err);
       } finally {
-        setIsSearchingOnline(false);
+        if (!ctrl.signal.aborted) setIsSearchingOnline(false);
       }
     }, 450);
 
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); ctrl.abort(); };
   }, [query, isInputUrdu]);
 
   const handleSelect = (loc: LocationPoint) => {

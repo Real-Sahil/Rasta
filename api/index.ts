@@ -5,6 +5,11 @@
  *   GET  /api?op=list               -> { incidents: [...] }            active, non-hidden reports
  *   POST /api?op=create             body: incident fields              report an incident        (token)
  *   POST /api?op=act                body: { id, action }               action = confirm | flag   (token)
+ *   POST /api?op=log                body: { kind, message, ... }       client error report       (IP-limited)
+ *   GET  /api?op=admin_list         -> reports (incl. hidden) + errors (Authorization: Bearer ADMIN_KEY)
+ *   POST /api?op=admin_set          body: { id, action }               hide | restore | delete   (ADMIN_KEY)
+ *   POST /api?op=admin_purge        -> deletes expired reports (>7 d) and old errors (>14 d)  (ADMIN_KEY)
+ *   Admin operations answer 404 until the ADMIN_KEY environment variable is set.
  *
  * Everything lives in this one file on purpose: it has no relative imports, so it deploys identically
  * on any Vercel Node runtime. All logic takes an injected `db`, so tests run it against a real Postgres (PGlite).
@@ -16,6 +21,8 @@ export interface ApiDeps {
   db: Db;
   secret: Buffer | string;
   now?: () => number;
+  /** Enables the admin operations. Unset = admin disabled (404). */
+  adminKey?: string;
 }
 
 const CATEGORIES = ['accident', 'congestion', 'closure', 'construction', 'flooding', 'roadblock', 'police_naka', 'hazard'];
@@ -86,7 +93,7 @@ export function validateNewIncident(b: any): { ok: true; value: NewIncidentInput
 }
 
 // ------------------------------------------------------------------ handlers
-export function createApi({ db, secret, now = Date.now }: ApiDeps) {
+export function createApi({ db, secret, now = Date.now, adminKey }: ApiDeps) {
   const ipHashOf = (req: Request) => {
     const ip = (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown').split(',')[0].trim();
     return createHash('sha256').update(`ip:${ip}`).update(secret).digest('hex').slice(0, 32);
@@ -103,6 +110,7 @@ export function createApi({ db, secret, now = Date.now }: ApiDeps) {
     const msg = String(e?.message ?? '');
     if (msg.includes('rate_limit')) return fail(429, 'rate_limited');
     if (msg.includes('own_report')) return fail(403, 'own_report');
+    if (msg.includes('duplicate_report')) return fail(409, 'duplicate_report');
     if (e?.code === '23503') return fail(404, 'not_found');
     if (e?.code === '23505') return json(200, { ok: true, duplicate: true });
     console.error('db error', e);
@@ -166,12 +174,85 @@ export function createApi({ db, secret, now = Date.now }: ApiDeps) {
       }
     },
 
+    async log(req: Request) {
+      const b = await readJson(req);
+      if (!b || typeof b !== 'object') return fail(400, 'invalid_body');
+      const cut = (v: unknown, n: number) => (typeof v === 'string' && v ? v.slice(0, n) : null);
+      const message = cut(b.message, 500);
+      if (!message || !['error', 'unhandledrejection', 'react'].includes(b.kind)) return fail(400, 'invalid_body');
+      try {
+        await db(
+          `insert into client_errors (ip_hash, kind, message, stack, url, user_agent, release) values ($1,$2,$3,$4,$5,$6,$7)`,
+          [ipHashOf(req), b.kind, message, cut(b.stack, 2000), cut(b.url, 300), cut(req.headers.get('user-agent'), 300), cut(b.release, 40)]
+        );
+        return json(202, { ok: true });
+      } catch (e) {
+        return dbError(e);
+      }
+    },
+
+    // ---- admin (ADMIN_KEY bearer; constant-time compare)
+    isAdmin(req: Request) {
+      if (!adminKey) return false;
+      const given = (req.headers.get('authorization') || '').replace(/^Bearer /i, '');
+      const a = createHash('sha256').update(given).digest();
+      const b = createHash('sha256').update(adminKey).digest();
+      return timingSafeEqual(a, b);
+    },
+
+    async adminList() {
+      try {
+        const incidents = await db(
+          `select id, category, title, description, location_name, lat, lng, created_at, expires_at, confirmations, flags, hidden, reviewed,
+                  left(created_by::text, 8) as device
+             from incidents where created_at > now() - interval '7 days' order by created_at desc limit 300`
+        );
+        const errors = await db(`select id, created_at, kind, message, stack, url, user_agent, release from client_errors order by created_at desc limit 100`);
+        return json(200, { incidents, errors });
+      } catch (e) {
+        return dbError(e);
+      }
+    },
+
+    async adminSet(req: Request) {
+      const b = await readJson(req);
+      if (!b || typeof b.id !== 'string' || !UUID.test(b.id) || !['hide', 'restore', 'delete'].includes(b.action)) return fail(400, 'invalid_body');
+      try {
+        const rows = b.action === 'delete'
+          ? await db('delete from incidents where id = $1 returning id', [b.id])
+          : b.action === 'hide'
+            ? await db('update incidents set hidden = true where id = $1 returning id', [b.id])
+            : await db('update incidents set hidden = false, reviewed = true where id = $1 returning id', [b.id]);
+        return rows.length ? json(200, { ok: true }) : fail(404, 'not_found');
+      } catch (e) {
+        return dbError(e);
+      }
+    },
+
+    async adminPurge() {
+      try {
+        const a = await db(`delete from incidents where expires_at < now() - interval '7 days' returning id`);
+        const e = await db(`delete from client_errors where created_at < now() - interval '14 days' returning id`);
+        return json(200, { incidents: a.length, errors: e.length });
+      } catch (e) {
+        return dbError(e);
+      }
+    },
+
     async handle(req: Request): Promise<Response> {
       const op = new URL(req.url).searchParams.get('op');
       if (req.method === 'POST' && op === 'session') return this.session();
       if (req.method === 'GET' && op === 'list') return this.list(req);
       if (req.method === 'POST' && op === 'create') return this.create(req);
       if (req.method === 'POST' && op === 'act') return this.act(req);
+      if (req.method === 'POST' && op === 'log') return this.log(req);
+      if (op?.startsWith('admin_')) {
+        if (!adminKey) return fail(404, 'unknown_op');
+        if (!this.isAdmin(req)) return fail(401, 'unauthorized');
+        if (req.method === 'GET' && op === 'admin_list') return this.adminList();
+        if (req.method === 'POST' && op === 'admin_set') return this.adminSet(req);
+        if ((req.method === 'POST' || req.method === 'GET') && op === 'admin_purge') return this.adminPurge(); // GET: Vercel Cron
+      }
       return fail(op ? 405 : 404, op ? 'method_not_allowed' : 'unknown_op');
     }
   };
@@ -187,7 +268,7 @@ async function runtime() {
   const sql = neon(url);
   // Session secret: explicit SESSION_SECRET, else derived from the database URL (itself a secret, rotates with it)
   const secret = process.env.SESSION_SECRET || createHash('sha256').update(`buraq-session-v1:${url}`).digest();
-  cached = createApi({ db: async (text, params) => (await sql.query(text, params as any[])) as any[], secret });
+  cached = createApi({ db: async (text, params) => (await sql.query(text, params as any[])) as any[], secret, adminKey: process.env.ADMIN_KEY || undefined });
   return cached;
 }
 

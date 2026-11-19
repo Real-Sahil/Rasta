@@ -3,21 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { MobilityThemeProvider, useMobilityTheme } from './components/ThemeLayoutWrapper';
 import { CommunityIncident, TransitStation } from './types';
 import { POPULAR_LOCATIONS, CITY_CENTERS } from './data/pakistanLocations';
 import { getStoredIncidents, saveIncidents } from './services/storage';
 import { RobustGpsManager } from './services/gpsService';
 import { Header } from './components/Header';
-import { MapLibreProviderAdapter, MapLibreMarkerData } from './components/MapLibreProviderAdapter';
+import { LegalModal, hasSeenNotice } from './components/LegalModal';
+import type { MapLibreMarkerData } from './components/MapLibreProviderAdapter';
 import { SearchInput } from './components/SearchInput';
 import { NavigationPanel } from './components/NavigationPanel';
 import { NavHud } from './components/NavHud';
-import { MultimodalComparison } from './components/MultimodalComparison';
-import { TransitPlanner } from './components/TransitPlanner';
-import { TrafficIncidents } from './components/TrafficIncidents';
-import { EmergencyServices } from './components/EmergencyServices';
+
+
+
+
 import { QuotaWarningBanner } from './components/QuotaWarningBanner';
 import { MobilityAlertsHub } from './components/MobilityAlertsHub';
 import { BottomSheet, SheetSnap } from './components/BottomSheet';
@@ -35,6 +36,14 @@ import { useGpsTracking } from './hooks/useGpsTracking';
 import { useRoutePlanner } from './hooks/useRoutePlanner';
 import { useVoiceAnnouncer } from './hooks/useVoiceAnnouncer';
 import { Navigation } from 'lucide-react';
+
+// Heavy, tab-specific UI is split out of the first load (the map engine alone is ~1 MB)
+const MapLibreProviderAdapter = lazy(() => import('./components/MapLibreProviderAdapter').then((m) => ({ default: m.MapLibreProviderAdapter })));
+const MultimodalComparison = lazy(() => import('./components/MultimodalComparison').then((m) => ({ default: m.MultimodalComparison })));
+const TransitPlanner = lazy(() => import('./components/TransitPlanner').then((m) => ({ default: m.TransitPlanner })));
+const TrafficIncidents = lazy(() => import('./components/TrafficIncidents').then((m) => ({ default: m.TrafficIncidents })));
+const EmergencyServices = lazy(() => import('./components/EmergencyServices').then((m) => ({ default: m.EmergencyServices })));
+const Loading = () => <div role="status" className="p-6 text-center text-sm text-slate-500">…</div>;
 
 function MainApp() {
   const { language, isRtl, t } = useMobilityTheme();
@@ -83,6 +92,8 @@ function MainApp() {
   });
   const [incidents, setIncidents] = useState<CommunityIncident[]>(getStoredIncidents());
 
+  const [firstRun, setFirstRun] = useState(() => !hasSeenNotice());
+  const [legalOpen, setLegalOpen] = useState(() => !hasSeenNotice());
   const flash = (msg: string, ms = 4500) => {
     setToast(msg);
     setTimeout(() => setToast((cur) => (cur === msg ? null : cur)), ms);
@@ -257,7 +268,12 @@ function MainApp() {
     if (backend && navigator.onLine) {
       submitIncident(newInc)
         .then(() => refreshRemote())
-        .catch((e) => flash(isRtl ? 'رپورٹ نہیں بھیجی جا سکی' : `Could not send report: ${e?.message ?? 'error'}`));
+        .catch((e) => {
+          const code = e?.code as string | undefined;
+          if (code === 'duplicate_report') flash(isRtl ? 'اسی مقام پر ایسی رپورٹ پہلے سے موجود ہے۔ اسے تصدیق کر دیں۔' : 'A similar report already exists here. Confirm it instead.', 6000);
+          else if (code === 'rate_limited') flash(isRtl ? 'بہت زیادہ رپورٹس۔ کچھ دیر بعد کوشش کریں۔' : 'Too many reports from this device. Please try again later.', 6000);
+          else flash(isRtl ? 'رپورٹ نہیں بھیجی جا سکی' : 'Could not send the report. Please try again.');
+        });
       return;
     }
     const updated = [newInc, ...incidents];
@@ -316,7 +332,9 @@ function MainApp() {
         onToggleMonsoon={() => setIsMonsoonMode(!isMonsoonMode)}
         isOledNightMode={isOledNightMode}
         onToggleOledNight={() => setIsOledNightMode(!isOledNightMode)}
+        onLegalClick={() => setLegalOpen(true)}
       />
+      <LegalModal open={legalOpen} firstRun={firstRun} onClose={() => { setLegalOpen(false); setFirstRun(false); }} />
 
       {!syncInfo.isOnline && (
         <div role="status" className="bg-amber-500 text-slate-950 text-xs font-bold px-4 py-1.5 text-center z-40">
@@ -378,6 +396,7 @@ function MainApp() {
             />
           )}
 
+          <Suspense fallback={<Loading />}>
           <MapLibreProviderAdapter
             center={center}
             zoom={zoom}
@@ -402,6 +421,7 @@ function MainApp() {
               if (m.incidentData) handleFocusIncident(m.incidentData);
             }}
           />
+          </Suspense>
 
           {/* Selected Map Marker Info Modal */}
           {selectedMapMarker && (
@@ -536,6 +556,7 @@ function MainApp() {
             />
           )}
 
+          <Suspense fallback={<Loading />}>
           {activeTab === 'multimodal' && (
             activeRoute ? (
               <MultimodalComparison
@@ -576,7 +597,7 @@ function MainApp() {
               }}
             />
           )}
-
+          </Suspense>
         </BottomSheet>
 
         <BottomNav active={activeTab} onChange={openTab} hidden={session !== null} isRtl={isRtl} />

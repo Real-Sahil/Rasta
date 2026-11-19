@@ -7,6 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
+    define: { __RELEASE__: JSON.stringify((process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev').slice(0, 7)) },
     plugins: [
       react(),
       tailwindcss(),
@@ -30,7 +31,7 @@ export default defineConfig(() => {
           ]
         },
         workbox: {
-          navigateFallbackDenylist: [/^\/api/],
+          navigateFallbackDenylist: [/^\/api/, /^\/admin/],
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           runtimeCaching: [
@@ -64,6 +65,7 @@ export default defineConfig(() => {
         }
       })
     ],
+    build: { chunkSizeWarningLimit: 1200 },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

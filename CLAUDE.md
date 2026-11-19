@@ -1,6 +1,6 @@
 # Buraq Pakistan – project guide
 
-Pakistan-first mobility PWA (React 19 + Vite 8 + Tailwind 4 + MapLibre GL). Client-only: there is no backend.
+Pakistan-first mobility PWA (React 19 + Vite 8 + Tailwind 4 + MapLibre GL). Static PWA plus one Vercel Function backed by Neon Postgres (community reports only).
 
 ## Commands
 - `npm install` – plain install works (no `--legacy-peer-deps` needed; lockfile is `package-lock.json`).
@@ -49,8 +49,20 @@ Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI 
 - Add every new UI string to all four locales and provide Urdu text for RTL.
 - Third-party calls (Nominatim, OSRM, Open-Meteo, ArcGIS/OpenFreeMap tiles) send coordinates/queries off-device; don't claim otherwise in the privacy copy.
 
+## Hardening (moderation, monitoring, limits)
+- **Admin**: `/admin.html` (noindex, not in the service-worker fallback) talks to `?op=admin_list|admin_set|admin_purge` with `Authorization: Bearer $ADMIN_KEY`. Without `ADMIN_KEY` those ops answer 404. The page keeps the key in `sessionStorage` and builds the DOM with `textContent` only. Never render report text as HTML.
+- **Daily clean-up**: `vercel.json` cron calls `GET /api?op=admin_purge` at 03:17 UTC (expired reports > 7 days, error logs > 14 days). Vercel sends `Authorization: Bearer $CRON_SECRET`, so `CRON_SECRET` must equal `ADMIN_KEY`.
+- **Spam**: migration 003 adds a near-duplicate trigger (same category within ~150 m while an active report exists → `duplicate_report`, HTTP 409). The client shows a friendly message. Limits remain friction, not identity.
+- **Monitoring**: `src/services/errorReporting.ts` (window error / unhandledrejection, max 10 per session, de-duplicated) and `ErrorBoundary` post to `?op=log` (table `client_errors`, no user identifiers, 14-day retention). Read them in `/admin.html`. No third-party service.
+- **Routing/geocoding resilience**: `src/core/routing.ts` fails over across `CAR_ENDPOINTS` / `FOOT_ENDPOINTS` with timeouts and a 2-minute cache, then falls back to the labelled offline estimate; `SearchInput` geocoding is abortable with a 6 s timeout and cached. To use a paid or self-hosted router/geocoder set `VITE_ROUTING_CAR_URL`, `VITE_ROUTING_FOOT_URL`, `VITE_GEOCODE_URL` at build time and add the host to `connect-src` in `vercel.json`.
+- **Legal**: first-run driving notice + privacy + terms (`LegalModal`, keys `legal*` in all four locales). The text is a plain-language draft; have a lawyer read it before relying on it. Update the privacy copy whenever a new third-party host is added.
+- **CSP** lives in `vercel.json` (`Content-Security-Policy`). Every external host must be listed there; `npm run test:e2e` enforces the policy against the built app and fails on any violation. MapLibre needs `worker-src blob:` and inline styles.
+- **Function region**: `sin1` (next to the Neon database).
+- **Bundle**: the map engine and tab screens are lazy chunks (`lazy()` in `App.tsx`); the entry chunk is ~0.5 MB.
+- **Browser tests**: `npm run test:e2e` (Playwright, mocked OSRM/Nominatim/Open-Meteo/API, runs in CI after `npm run build`; install with `npm install --no-save playwright`; set `CHROMIUM_PATH` to use a preinstalled browser).
+
 ## Known gaps (not yet fixed)
-Incidents are device-local (no backend, so no real community sharing or moderation); transit station list is incomplete and fares are estimates; no transit routing; PWA icons are 1376×768 images declared as 192/512; offline map packs and offline routing don't exist; main JS bundle is a single ~1.5 MB chunk; no Playwright suite in CI yet.
+Transit station list is incomplete and fares are estimates; no transit routing; PWA icons are 1376×768 images declared as 192/512; offline map packs and offline routing don't exist; the public OSRM/Nominatim/OpenFreeMap/Esri services have no SLA or commercial licence; Urdu/Punjabi wording and voice clips are unreviewed by native speakers; the legal text is not lawyer-reviewed.
 
 ## Hooks
 `.claude/settings.json` installs deps on remote session start (`.claude/hooks/session-start.sh`, skips when package files are unchanged) and runs a typecheck after edits to `src/**/*.ts(x)`.

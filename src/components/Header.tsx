@@ -7,7 +7,7 @@ import React from 'react';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
 import { Language } from '../types';
 import { SyncStatusInfo } from '../services/incidentSyncService';
-import { Moon, Sun, ShieldAlert, CloudRain, Zap, Wind } from 'lucide-react';
+import { Moon, Sun, ShieldAlert, CloudRain, Zap, Wind, Info } from 'lucide-react';
 import { fetchCityAqi, CityAqiData } from '../services/aqiService';
 
 interface HeaderProps {
@@ -19,6 +19,7 @@ interface HeaderProps {
   onToggleMonsoon: () => void;
   isOledNightMode: boolean;
   onToggleOledNight: () => void;
+  onLegalClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,9 +30,10 @@ export const Header: React.FC<HeaderProps> = ({
   isMonsoonMode,
   onToggleMonsoon,
   isOledNightMode,
-  onToggleOledNight
+  onToggleOledNight,
+  onLegalClick
 }) => {
-  const { language, setLanguage, theme, toggleTheme, isRtl } = useMobilityTheme();
+  const { language, setLanguage, theme, toggleTheme, isRtl, t } = useMobilityTheme();
   const [aqiData, setAqiData] = React.useState<CityAqiData | null>(null);
 
   React.useEffect(() => {
@@ -72,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* AQI Badge */}
               {aqiData && (
-                <div className={`hidden md:flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black ${aqiData.colorClass} shadow-xs`}>
+                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[10px] font-black ${aqiData.colorClass} shadow-xs`}>
                   <Wind className="w-3 h-3" />
                   <span>AQI {aqiData.aqi}</span>
                 </div>
@@ -139,6 +141,13 @@ export const Header: React.FC<HeaderProps> = ({
               <Zap className="w-4 h-4" />
             </button>
           </div>
+
+          {onLegalClick && (
+            <button type="button" onClick={onLegalClick} aria-label={t.legalLink} title={t.legalLink}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors shrink-0">
+              <Info className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Theme Mode Toggle */}
           <button

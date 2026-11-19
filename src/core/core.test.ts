@@ -3,7 +3,7 @@ import { haversineM, bearingDeg, projectOnSegment, cumulativeLengths } from './g
 import { matchToRoute } from './routeMatcher';
 import { createSession, updateSession } from './navigation';
 import { nextAnnouncement } from './announcer';
-import { parseOsrmRoutes, estimateRoute, fetchRoutes, buildOsrmUrl } from './routing';
+import { parseOsrmRoutes, estimateRoute, fetchRoutes, buildOsrmUrl, clearRouteCache, endpoints } from './routing';
 import { RouteOption } from '../types';
 
 // A ~2 km straight route heading north along lng 74.35, with 3 steps
@@ -183,8 +183,10 @@ describe('routing', () => {
     expect(r.steps.reduce((s, x) => s + x.distanceMeters, 0)).toBe(Math.round(r.distanceKm * 1000));
   });
   it('fetchRoutes returns network routes, else an estimate', async () => {
+    clearRouteCache();
     const ok = vi.fn().mockResolvedValue({ ok: true, json: async () => osrm });
     expect((await fetchRoutes(req, { fetchImpl: ok as any })).source).toBe('network');
+    clearRouteCache();
     const bad = vi.fn().mockRejectedValue(new Error('offline'));
     const r = await fetchRoutes(req, { fetchImpl: bad as any });
     expect(r.source).toBe('estimate');
@@ -192,7 +194,21 @@ describe('routing', () => {
     const http500 = vi.fn().mockResolvedValue({ ok: false });
     expect((await fetchRoutes(req, { fetchImpl: http500 as any })).source).toBe('estimate');
   });
+  it('fails over to the next server, then caches the result', async () => {
+    clearRouteCache();
+    const f = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 429 })
+      .mockResolvedValue({ ok: true, json: async () => osrm });
+    const r = await fetchRoutes(req, { fetchImpl: f as any });
+    expect(r.source).toBe('network');
+    expect(f).toHaveBeenCalledTimes(2);
+    expect(f.mock.calls[0][0]).not.toBe(f.mock.calls[1][0]);
+    await fetchRoutes(req, { fetchImpl: f as any }); // served from cache
+    expect(f).toHaveBeenCalledTimes(2);
+    expect(endpoints('DRIVING').length).toBeGreaterThanOrEqual(2);
+  });
   it('propagates caller cancellation', async () => {
+    clearRouteCache();
     const ac = new AbortController();
     ac.abort();
     const f = vi.fn().mockRejectedValue(new DOMException('x', 'AbortError'));

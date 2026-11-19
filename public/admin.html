@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Buraq admin</title>
+<style>
+  body{font:14px/1.4 system-ui,sans-serif;margin:0;padding:16px;background:#0f172a;color:#e2e8f0}
+  h1{font-size:18px;margin:0 0 12px} h2{font-size:15px;margin:24px 0 8px}
+  input,button{font:inherit;padding:6px 10px;border-radius:8px;border:1px solid #475569;background:#1e293b;color:inherit}
+  button{cursor:pointer} button.danger{border-color:#dc2626;color:#fca5a5}
+  .row{background:#1e293b;border-radius:10px;padding:10px;margin:8px 0}
+  .row.hidden-r{opacity:.55} .meta{color:#94a3b8;font-size:12px} .actions{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+  pre{white-space:pre-wrap;word-break:break-word;margin:4px 0 0;font-size:12px;color:#cbd5e1}
+  #msg{margin:8px 0;color:#fbbf24}
+</style>
+</head>
+<body>
+<h1>Buraq admin</h1>
+<form id="login">
+  <input id="key" type="password" placeholder="Admin key" autocomplete="off" required>
+  <button type="submit">Sign in</button>
+</form>
+<div id="msg" role="status"></div>
+<div id="app" hidden>
+  <button id="refresh">Refresh</button>
+  <button id="purge" class="danger">Purge old data</button>
+  <h2>Reports (last 7 days)</h2><div id="incidents"></div>
+  <h2>Client errors</h2><div id="errors"></div>
+</div>
+<script>
+(function () {
+  var KEY = 'buraq_admin_key';
+  var $ = function (id) { return document.getElementById(id); };
+  var get = function () { try { return sessionStorage.getItem(KEY); } catch (e) { return null; } };
+  var set = function (v) { try { v ? sessionStorage.setItem(KEY, v) : sessionStorage.removeItem(KEY); } catch (e) {} };
+  function say(t) { $('msg').textContent = t || ''; }
+  function api(op, method, body) {
+    return fetch('/api?op=' + op, {
+      method: method || 'GET',
+      headers: Object.assign({ authorization: 'Bearer ' + get() }, body ? { 'content-type': 'application/json' } : {}),
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) { if (r.status === 401 || r.status === 404) set(null); throw new Error(d.error || ('http_' + r.status)); }
+        return d;
+      });
+    });
+  }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function btn(label, cls, fn) { var b = el('button', cls, label); b.type = 'button'; b.onclick = fn; return b; }
+  function act(id, action) {
+    if (action === 'delete' && !confirm('Delete this report permanently?')) return;
+    api('admin_set', 'POST', { id: id, action: action }).then(load).catch(function (e) { say(e.message); });
+  }
+  function render(d) {
+    var box = $('incidents'); box.textContent = '';
+    d.incidents.forEach(function (i) {
+      var r = el('div', 'row' + (i.hidden ? ' hidden-r' : ''));
+      r.appendChild(el('strong', null, '[' + i.category + '] ' + i.title));
+      r.appendChild(el('pre', null, (i.description || '') + '\n' + (i.location_name || '') + ' (' + i.lat + ', ' + i.lng + ')'));
+      r.appendChild(el('div', 'meta', 'created ' + i.created_at + ' · expires ' + i.expires_at + ' · confirmations ' + i.confirmations + ' · flags ' + i.flags + ' · device ' + i.device + (i.hidden ? ' · HIDDEN' : '') + (i.reviewed ? ' · reviewed' : '')));
+      var a = el('div', 'actions');
+      a.appendChild(i.hidden ? btn('Restore', '', function () { act(i.id, 'restore'); }) : btn('Hide', '', function () { act(i.id, 'hide'); }));
+      a.appendChild(btn('Delete', 'danger', function () { act(i.id, 'delete'); }));
+      r.appendChild(a); box.appendChild(r);
+    });
+    if (!d.incidents.length) box.appendChild(el('div', 'meta', 'No reports.'));
+    var eb = $('errors'); eb.textContent = '';
+    d.errors.forEach(function (e) {
+      var r = el('div', 'row');
+      r.appendChild(el('strong', null, '[' + e.kind + '] ' + e.message));
+      r.appendChild(el('div', 'meta', e.created_at + ' · ' + (e.url || '') + ' · release ' + (e.release || '?')));
+      if (e.stack) r.appendChild(el('pre', null, e.stack));
+      eb.appendChild(r);
+    });
+    if (!d.errors.length) eb.appendChild(el('div', 'meta', 'No client errors logged.'));
+  }
+  function load() {
+    say('Loading…');
+    api('admin_list').then(function (d) { say(''); $('login').hidden = true; $('app').hidden = false; render(d); })
+      .catch(function (e) { $('app').hidden = true; $('login').hidden = false; say(e.message === 'unauthorized' ? 'Wrong key.' : e.message === 'unknown_op' ? 'Admin is not enabled (ADMIN_KEY not set).' : e.message); });
+  }
+  $('login').onsubmit = function (ev) { ev.preventDefault(); set($('key').value); $('key').value = ''; load(); };
+  $('refresh').onclick = load;
+  $('purge').onclick = function () {
+    if (!confirm('Delete expired reports older than 7 days and errors older than 14 days?')) return;
+    api('admin_purge', 'POST', {}).then(function (r) { say('Purged ' + r.incidents + ' reports, ' + r.errors + ' errors.'); load(); }).catch(function (e) { say(e.message); });
+  };
+  if (get()) load();
+})();
+</script>
+</body>
+</html>

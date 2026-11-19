@@ -27,7 +27,7 @@ try {
   const html = await r.text();
   reachable = r.status === 200 && html.includes('id="root"');
   rec('access', 'home page is publicly reachable', reachable ? 'PASS' : 'FAIL', `HTTP ${r.status}${r.status >= 300 && r.status < 400 ? ' -> ' + r.headers.get('location') : ''}${/vercel.*(login|sso|authentication)/i.test(html) ? ' (Vercel login wall)' : ''}`);
-  for (const [k, v] of [['content-security-policy', 'CSP'], ['x-content-type-options', 'nosniff'], ['strict-transport-security', 'HSTS']]) {
+  for (const [k, v] of [['content-security-policy', 'CSP (enforced)'], ['x-content-type-options', 'nosniff'], ['strict-transport-security', 'HSTS']]) {
     rec('security', `${v} header`, r.headers.get(k) ? 'PASS' : 'WARN', r.headers.get(k) ? '' : 'missing');
   }
 } catch (e) { rec('access', 'home page is publicly reachable', 'FAIL', String(e.message)); }
@@ -106,6 +106,7 @@ if (reachable) {
   });
   const page = await ctx.newPage();
   const pageErrors = [], failedReq = [];
+  await page.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`)); });
   page.on('pageerror', (e) => pageErrors.push(e.message));
   page.on('requestfailed', (q) => failedReq.push(`${q.url().slice(0, 90)} ${q.failure()?.errorText}`));
   const shot = (n) => page.screenshot({ path: `${OUT}/${n}.png` });
@@ -195,6 +196,7 @@ if (reachable) {
   await shot('08_urdu');
   await step('i18n', 'Urdu switches the page to RTL', async () => (await page.evaluate(() => document.documentElement.dir)) === 'rtl');
 
+  await step('security', 'no Content-Security-Policy violations during the whole run (map, tiles, routing, fonts, voice)', async () => { const v = [...new Set(await page.evaluate(() => window.__csp || []))]; return v.length === 0 ? true : v.slice(0, 5).join(' | '); });
   await step('health', 'no uncaught page errors during the whole run', async () => pageErrors.length === 0 ? true : pageErrors.slice(0, 3).join(' | '));
   const noisy = failedReq.filter((f) => !/favicon|sentry/.test(f));
   rec('health', 'failed network requests', noisy.length === 0 ? 'PASS' : 'WARN', noisy.slice(0, 5).join(' | '));

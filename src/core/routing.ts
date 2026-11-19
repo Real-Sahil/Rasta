@@ -19,16 +19,25 @@ export interface RouteResult {
   source: 'network' | 'estimate';
 }
 
+// Routing servers, tried in order. Set VITE_ROUTING_CAR_URL / VITE_ROUTING_FOOT_URL (an OSRM-compatible
+// ".../route/v1/driving" base) to put a paid or self-hosted server first; the free public servers stay as fallbacks.
 // The public OSRM demo server only has a car profile; walking uses the FOSSGIS foot server.
-function endpoint(mode: TravelMode): string {
-  return mode === 'WALKING'
-    ? 'https://routing.openstreetmap.de/routed-foot/route/v1/driving'
-    : 'https://router.project-osrm.org/route/v1/driving';
-}
+const env = (import.meta as any).env ?? {};
+const CAR_ENDPOINTS = [
+  env.VITE_ROUTING_CAR_URL,
+  'https://router.project-osrm.org/route/v1/driving',
+  'https://routing.openstreetmap.de/routed-car/route/v1/driving'
+].filter(Boolean) as string[];
+const FOOT_ENDPOINTS = [
+  env.VITE_ROUTING_FOOT_URL,
+  'https://routing.openstreetmap.de/routed-foot/route/v1/driving'
+].filter(Boolean) as string[];
 
-export function buildOsrmUrl(req: RouteRequest): string {
+export const endpoints = (mode: TravelMode): string[] => (mode === 'WALKING' ? FOOT_ENDPOINTS : CAR_ENDPOINTS);
+
+export function buildOsrmUrl(req: RouteRequest, base: string = endpoints(req.mode)[0]): string {
   const { from, to } = req;
-  return `${endpoint(req.mode)}/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true&alternatives=true`;
+  return `${base}/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true&alternatives=true`;
 }
 
 /** The two longest named roads of a route, used as its 'via' label. */
@@ -95,21 +104,39 @@ export function estimateRoute(req: RouteRequest): RouteOption {
   };
 }
 
+// Short-lived cache so a repeated request (re-open, mode toggle back) doesn't hit the server again.
+const CACHE_TTL_MS = 2 * 60 * 1000;
+const cache = new Map<string, { at: number; routes: RouteOption[] }>();
+const cacheKey = (r: RouteRequest) => `${r.mode}|${r.destId}|${r.from.lat.toFixed(4)},${r.from.lng.toFixed(4)}|${r.to.lat.toFixed(4)},${r.to.lng.toFixed(4)}`;
+export const clearRouteCache = () => cache.clear();
+
 export async function fetchRoutes(
   req: RouteRequest,
-  opts: { fetchImpl?: typeof fetch; signal?: AbortSignal; timeoutMs?: number } = {}
+  opts: { fetchImpl?: typeof fetch; signal?: AbortSignal; timeoutMs?: number; now?: () => number } = {}
 ): Promise<RouteResult> {
   const f = opts.fetchImpl ?? fetch;
-  try {
-    const signals = [AbortSignal.timeout(opts.timeoutMs ?? 6000)];
-    if (opts.signal) signals.push(opts.signal);
-    const res = await f(buildOsrmUrl(req), { signal: AbortSignal.any(signals) });
-    if (res.ok) {
-      const routes = parseOsrmRoutes(await res.json(), req);
-      if (routes.length) return { routes, source: 'network' };
+  const now = opts.now ?? Date.now;
+  const key = cacheKey(req);
+  const hit = cache.get(key);
+  if (hit && now() - hit.at < CACHE_TTL_MS) return { routes: hit.routes, source: 'network' };
+
+  for (const base of endpoints(req.mode)) {
+    if (opts.signal?.aborted) throw new DOMException('aborted', 'AbortError');
+    try {
+      const signals = [AbortSignal.timeout(opts.timeoutMs ?? 6000)];
+      if (opts.signal) signals.push(opts.signal);
+      const res = await f(buildOsrmUrl(req, base), { signal: AbortSignal.any(signals) });
+      if (res.ok) {
+        const routes = parseOsrmRoutes(await res.json(), req);
+        if (routes.length) {
+          cache.set(key, { at: now(), routes });
+          return { routes, source: 'network' };
+        }
+      }
+    } catch (err) {
+      if (opts.signal?.aborted) throw err; // caller cancelled: don't mask it as an estimate
     }
-  } catch (err) {
-    if (opts.signal?.aborted) throw err; // caller cancelled: don't mask it as an estimate
+    // timeout, 429/5xx or unusable body: fall through to the next server
   }
   return { routes: [estimateRoute(req)], source: 'estimate' };
 }

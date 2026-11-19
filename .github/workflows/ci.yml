@@ -25,3 +25,20 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save playwright   # test-only dependency, kept out of package.json
+      - run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+      - name: Browser tests (mocked services, enforced CSP)
+        run: npm run test:e2e
