@@ -320,6 +320,7 @@ class _SearchPanelState extends State<SearchPanel> {
   final _from = TextEditingController();
   List<Place> _results = const [];
   bool _forFrom = false;
+  bool _hadRoute = false;
   Timer? _debounce;
   String? _error;
 
@@ -344,8 +345,10 @@ class _SearchPanelState extends State<SearchPanel> {
           _results = r;
           _error = r.isEmpty && q.trim().length >= 2 ? 'noResults' : null;
         });
+      } on SearchException catch (e) {
+        if (mounted) setState(() { _results = const []; _error = e.busy ? 'searchBusy' : 'offline'; });
       } catch (_) {
-        if (mounted) setState(() => _error = 'offline');
+        if (mounted) setState(() { _results = const []; _error = 'offline'; });
       }
     });
   }
@@ -366,13 +369,15 @@ class _SearchPanelState extends State<SearchPanel> {
   Widget build(BuildContext context) {
     final lang = app.lang;
     final hasRoute = app.destination != null;
-    // keep the "from" text in step with the state (cleared route, "your location")
-    if (!hasRoute && (_to.text.isNotEmpty || _from.text.isNotEmpty)) {
+    // Clear the fields only when a route has just been cleared. (Clearing on every rebuild without a route erased
+    // whatever the user was typing each time the GPS fix or any other state changed.)
+    if (_hadRoute && !hasRoute) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _to.clear();
         _from.clear();
       });
     }
+    _hadRoute = hasRoute;
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Material(
         elevation: 4,

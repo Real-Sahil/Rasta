@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -10,6 +12,14 @@ class Place {
   final String name;
   final String detail;
   final LatLng point;
+}
+
+/// Why a search failed, so the UI can tell "no internet" from "the search service is busy".
+class SearchException implements Exception {
+  const SearchException(this.busy);
+  final bool busy; // true: the server answered with an error / rate limit; false: no connection or timeout
+  @override
+  String toString() => busy ? 'SearchException(busy)' : 'SearchException(offline)';
 }
 
 /// Place search through Nominatim (OpenStreetMap), limited to Pakistan. The query leaves the device: the privacy
@@ -32,12 +42,38 @@ class SearchService {
     if (near != null) {
       params['viewbox'] = '${near.lng - 0.5},${near.lat + 0.5},${near.lng + 0.5},${near.lat - 0.5}';
     }
-    final res = await _client
-        .get(Uri.https('nominatim.openstreetmap.org', '/search', params), headers: {'User-Agent': 'BuraqPakistan-mobile/1.0', 'Accept-Language': 'en,ur'})
-        .timeout(const Duration(seconds: 6));
+    final uri = Uri.https('nominatim.openstreetmap.org', '/search', params);
+    final headers = {'User-Agent': 'BuraqPakistan-mobile/1.0 (+https://github.com/Real-Sahil/Rasta)', 'Accept-Language': 'en,ur'};
+    http.Response? res;
+    SearchException? failure;
+    // One retry: a first request on a cold mobile connection often times out or resets.
+    for (var attempt = 0; attempt < 2 && res == null; attempt++) {
+      try {
+        final r = await _client.get(uri, headers: headers).timeout(const Duration(seconds: 8));
+        if (r.statusCode == 200) {
+          res = r;
+        } else {
+          failure = const SearchException(true); // 403/429/5xx: server reachable but refusing or overloaded
+          if (r.statusCode != 429 && r.statusCode < 500) break;
+        }
+      } on TimeoutException {
+        failure = const SearchException(false);
+      } on SocketException {
+        failure = const SearchException(false);
+      } on http.ClientException {
+        failure = const SearchException(false);
+      }
+      if (mine != _seq) return null;
+      if (res == null && attempt == 0) await Future<void>.delayed(const Duration(milliseconds: 600));
+    }
     if (mine != _seq) return null;
-    if (res.statusCode != 200) return [];
-    final list = jsonDecode(res.body);
+    if (res == null) throw failure ?? const SearchException(false);
+    final dynamic list;
+    try {
+      list = jsonDecode(res.body);
+    } on FormatException {
+      throw const SearchException(true);
+    }
     final out = <Place>[];
     if (list is List) {
       for (final p in list) {
