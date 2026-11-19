@@ -18,6 +18,12 @@ interface SearchInputProps {
   onUseCurrentLocation?: () => void;
   currentCoords?: { lat: number; lng: number } | null;
   initialValue?: string;
+  /** Text shown for the current selection; changing it from outside (swap, map tap) updates the field. */
+  externalLabel?: string;
+  /** Compact row used inside the From/To panel: no voice button, no recents saved. */
+  compact?: boolean;
+  leadingIcon?: React.ReactNode;
+  currentLocationLabel?: string;
 }
 
 // Set VITE_GEOCODE_URL to a Nominatim-compatible /search endpoint to replace the public server.
@@ -30,9 +36,14 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   onSelectLocation,
   onUseCurrentLocation,
   currentCoords,
-  initialValue = ''
+  initialValue = '',
+  externalLabel,
+  compact = false,
+  leadingIcon,
+  currentLocationLabel
 }) => {
-  const [query, setQuery] = useState(initialValue);
+  const [query, setQuery] = useState(externalLabel ?? initialValue);
+  useEffect(() => { if (externalLabel !== undefined) setQuery(externalLabel); }, [externalLabel]);
   const [isOpen, setIsOpen] = useState(false);
   const [isSearchingOnline, setIsSearchingOnline] = useState(false);
   const [onlineResults, setOnlineResults] = useState<LocationPoint[]>([]);
@@ -207,6 +218,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     setQuery(isUrdu ? loc.nameUrdu : loc.name);
     setIsOpen(false);
     
+    if (compact) { onSelectLocation(loc); return; }
     // Save to recent destinations
     const updated = [loc, ...recentDestinations.filter(item => item.id !== loc.id)].slice(0, 4);
     setRecentDestinations(updated);
@@ -226,11 +238,11 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   return (
     <div ref={containerRef} className="relative w-full z-40">
       <div className="relative flex items-center bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-200/80 dark:border-slate-800 transition-all focus-within:ring-2 focus-within:ring-[#20A477] focus-within:border-[#20A477]">
-        <div className="p-3 text-slate-400 dark:text-slate-500 flex items-center justify-center">
+        <div className={`${compact ? 'p-2.5' : 'p-3'} text-slate-400 dark:text-slate-500 flex items-center justify-center`}>
           {isSearchingOnline ? (
             <Loader2 className="w-5 h-5 animate-spin text-[#20A477]" />
           ) : (
-            <Search className="w-5 h-5" />
+            leadingIcon ?? <Search className="w-5 h-5" />
           )}
         </div>
 
@@ -262,7 +274,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         )}
 
         {/* Hands-Free Voice Search Button */}
-        <button
+        {!compact && <button
           type="button"
           onClick={handleToggleVoice}
           className={`p-2 mx-1 rounded-xl transition-all relative ${
@@ -273,7 +285,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           title={isListening ? 'Stop Listening' : (isUrdu ? 'آواز سے منزل تلاش کریں' : 'Voice Search')}
         >
           {isListening ? <Radio className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
-        </button>
+        </button>}
 
         {onUseCurrentLocation && (
           <button
@@ -283,10 +295,10 @@ export const SearchInput: React.FC<SearchInputProps> = ({
               setIsOpen(false);
             }}
             className="m-1.5 px-3 py-1.5 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-[#143C35] dark:text-emerald-400 hover:bg-emerald-100 rounded-xl text-xs font-semibold transition-all border border-emerald-200 dark:border-emerald-800"
-            title={t.currentLocation}
+            title={currentLocationLabel ?? t.currentLocation}
           >
             <Navigation className="w-3.5 h-3.5 text-[#20A477]" />
-            <span className="hidden sm:inline">{t.currentLocation}</span>
+            <span className="hidden sm:inline">{currentLocationLabel ?? t.currentLocation}</span>
           </button>
         )}
       </div>

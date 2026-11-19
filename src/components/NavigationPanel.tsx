@@ -21,12 +21,14 @@ interface NavigationPanelProps {
   onTravelModeChange: (mode: TravelMode) => void;
   onClearNavigation: () => void;
   hasFix: boolean;
+  /** Name of a custom start point; omit when starting from my location. */
+  originName?: string;
   weatherData?: WeatherData | null;
 }
 
 export const NavigationPanel: React.FC<NavigationPanelProps> = ({
   destination, activeRoute, routes, routesLoading, routesSource, onSelectRoute, travelMode, onTravelModeChange,
-  onClearNavigation, hasFix, weatherData = null
+  onClearNavigation, hasFix, originName, weatherData = null
 }) => {
   const { isRtl, t } = useMobilityTheme();
 
@@ -42,7 +44,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
             <span className="font-semibold truncate max-w-[240px]">
-              {hasFix ? (isRtl ? 'موجودہ جی پی ایس مقام' : 'Current GPS Location') : (isRtl ? 'GPS مقام غیر دستیاب' : 'GPS Location Unavailable')}
+              {originName ? originName : hasFix ? (isRtl ? 'موجودہ جی پی ایس مقام' : 'Current GPS Location') : (isRtl ? 'GPS مقام غیر دستیاب' : 'GPS Location Unavailable')}
             </span>
           </div>
 

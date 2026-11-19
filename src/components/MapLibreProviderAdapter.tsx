@@ -56,6 +56,8 @@ export interface MapLibreProviderAdapterProps {
   /** Translated strings for the past-flooding layer (the layer is hidden when omitted). */
   floodLabels?: FloodLabels;
   recenterLabel?: string;
+  /** Distance (px) of the map controls from the top, to clear the search / From-To panel. */
+  controlsTopPx?: number;
 }
 
 export interface FloodLabels {
@@ -91,7 +93,8 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
   onMarkerClick,
   className = '',
   floodLabels,
-  recenterLabel = 'Re-centre'
+  recenterLabel = 'Re-centre',
+  controlsTopPx = 72
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -568,7 +571,8 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
 
       {/* Floating Map Controls */}
       <div
-        className={`absolute top-[4.5rem] ${
+        style={{ top: controlsTopPx }}
+        className={`absolute ${
           isRtl ? 'right-4' : 'left-4'
         } z-10 flex flex-col gap-2 items-center`}
       >

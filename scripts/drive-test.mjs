@@ -57,6 +57,7 @@ await page.waitForTimeout(1500);
 await page.locator('input[type=text]').first().fill('Badshahi'); await page.waitForTimeout(800);
 await page.getByText('Badshahi Mosque & Lahore Fort').first().click(); await page.waitForTimeout(2500);
 
+await page.screenshot({ path: `${OUT}/0-route-panel.png` });
 await page.getByRole('button', { name: /start navigation/i }).first().click().catch(async () => { await page.getByText(/start/i).first().click(); });
 await page.waitForTimeout(1500);
 await page.screenshot({ path: `${OUT}/1-start.png` });

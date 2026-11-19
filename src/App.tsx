@@ -35,7 +35,7 @@ import { useAppStore, activeRouteOf } from './core/store';
 import { useGpsTracking } from './hooks/useGpsTracking';
 import { useRoutePlanner } from './hooks/useRoutePlanner';
 import { useVoiceAnnouncer } from './hooks/useVoiceAnnouncer';
-import { Navigation } from 'lucide-react';
+import { Navigation, ArrowUpDown, X, MapPin } from 'lucide-react';
 
 // Heavy, tab-specific UI is split out of the first load (the map engine alone is ~1 MB)
 const MapLibreProviderAdapter = lazy(() => import('./components/MapLibreProviderAdapter').then((m) => ({ default: m.MapLibreProviderAdapter })));
@@ -53,6 +53,7 @@ function MainApp() {
   const heading = useAppStore((s) => s.heading);
   const gpsError = useAppStore((s) => s.gps.error);
   const destination = useAppStore((s) => s.destination);
+  const origin = useAppStore((s) => s.origin);
   const travelMode = useAppStore((s) => s.travelMode);
   const routes = useAppStore((s) => s.routes);
   const routesSource = useAppStore((s) => s.routesSource);
@@ -360,19 +361,79 @@ function MainApp() {
       <main className="flex-1 relative overflow-hidden flex flex-col min-h-0 w-full">
         {/* Full-Screen Interactive Map Canvas */}
         <div className="absolute inset-0 w-full h-full bg-white dark:bg-slate-950">
-          {/* Floating Search Bar Over Map */}
+          {/* Floating search: one "where to" bar, which becomes a From / To panel once a destination is chosen */}
           <div className="absolute top-3 left-3 right-3 lg:left-4 lg:right-auto lg:w-96 z-20">
-            <SearchInput
-              language={language}
-              placeholder={t.searchPlaceholder}
-              onSelectLocation={(loc) => {
-                store().setDestination(loc);
-                setCenter({ lat: loc.lat, lng: loc.lng });
-                setZoom(15);
-              }}
-              onUseCurrentLocation={handleRecenter}
-              currentCoords={fix}
-            />
+            {!destination ? (
+              <SearchInput
+                language={language}
+                placeholder={t.searchPlaceholder}
+                onSelectLocation={(loc) => {
+                  store().setDestination(loc);
+                  setCenter({ lat: loc.lat, lng: loc.lng });
+                  setZoom(15);
+                }}
+                onUseCurrentLocation={handleRecenter}
+                currentCoords={fix}
+              />
+            ) : (
+              <div className="flex items-stretch gap-1.5">
+                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                  <div className="relative z-50">
+                    <SearchInput
+                      compact
+                      language={language}
+                      placeholder={t.fromPlaceholder}
+                      externalLabel={origin ? (isRtl ? origin.nameUrdu : origin.name) : t.yourLocation}
+                      leadingIcon={<span className="w-3 h-3 rounded-full border-[3px] border-sky-600 bg-white" />}
+                      currentLocationLabel={t.yourLocation}
+                      onUseCurrentLocation={() => store().setOrigin(null)}
+                      onSelectLocation={(loc) => { store().setOrigin(loc); setCenter({ lat: loc.lat, lng: loc.lng }); }}
+                      currentCoords={fix}
+                    />
+                  </div>
+                  <div className="relative z-40">
+                    <SearchInput
+                      compact
+                      language={language}
+                      placeholder={t.toPlaceholder}
+                      externalLabel={isRtl ? destination.nameUrdu : destination.name}
+                      leadingIcon={<MapPin className="w-4 h-4 text-rose-600" />}
+                      onSelectLocation={(loc) => { store().setDestination(loc); setCenter({ lat: loc.lat, lng: loc.lng }); setZoom(15); }}
+                      currentCoords={fix}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col justify-between gap-1.5">
+                  <button
+                    type="button"
+                    title={t.clearRoute}
+                    aria-label={t.clearRoute}
+                    onClick={() => { store().setOrigin(null); store().setDestination(null); }}
+                    className="p-2 rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-slate-200/80 dark:border-slate-800 text-slate-500 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    title={t.swapPoints}
+                    aria-label={t.swapPoints}
+                    disabled={!origin && !fix}
+                    onClick={() => {
+                      const here = fix ? { id: 'me', name: t.yourLocation, nameUrdu: t.yourLocation, lat: fix.lat, lng: fix.lng } : null;
+                      const from = origin ?? here;
+                      const to = destination;
+                      if (!from) return;
+                      // the old destination becomes the start; the old start (or my position) becomes the destination
+                      store().setDestination(from);
+                      store().setOrigin(to);
+                    }}
+                    className="p-2 rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-slate-200/80 dark:border-slate-800 text-slate-600 disabled:opacity-40 cursor-pointer"
+                  >
+                    <ArrowUpDown className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Consolidated Mobility Alerts Hub */}
@@ -416,6 +477,7 @@ function MainApp() {
             route={mapRoute}
             floodLabels={floodLabels}
             recenterLabel={t.recenter}
+            controlsTopPx={destination ? 128 : 72}
             onMapClick={(coords: { lat: number; lng: number }) => {
               const n = `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
               store().setDestination({
@@ -526,7 +588,7 @@ function MainApp() {
                 disabled={!activeRoute || routesLoading}
                 onClick={() => {
                   const res = handleStart();
-                  if (!res.ok) flash(res.reason === 'no_fix' ? (isRtl ? 'GPS لوکیشن دستیاب نہیں۔ براہ کرم مقام کی اجازت دیں اور دوبارہ کوشش کریں۔' : 'No GPS fix yet. Allow location access and try again.') : (isRtl ? 'ابھی کوئی راستہ دستیاب نہیں۔' : 'No route available yet.'));
+                  if (!res.ok) flash(res.reason === 'custom_origin' ? t.previewOnly : res.reason === 'no_fix' ? (isRtl ? 'GPS لوکیشن دستیاب نہیں۔ براہ کرم مقام کی اجازت دیں اور دوبارہ کوشش کریں۔' : 'No GPS fix yet. Allow location access and try again.') : (isRtl ? 'ابھی کوئی راستہ دستیاب نہیں۔' : 'No route available yet.'));
                 }}
                 className="w-full py-3.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 disabled:text-slate-500 text-white font-black text-base flex items-center justify-center gap-2 cursor-pointer"
               >
@@ -560,8 +622,9 @@ function MainApp() {
               onSelectRoute={(id) => store().selectRoute(id)}
               travelMode={travelMode}
               onTravelModeChange={(m) => store().setTravelMode(m)}
-              onClearNavigation={() => store().setDestination(null)}
+              onClearNavigation={() => { store().setOrigin(null); store().setDestination(null); }}
               hasFix={fix !== null}
+              originName={origin ? (isRtl ? origin.nameUrdu : origin.name) : undefined}
               weatherData={weatherData}
             />
           )}

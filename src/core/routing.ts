@@ -10,6 +10,8 @@ export interface RouteRequest {
   from: LatLng;
   to: LatLng;
   destId: string;
+  /** Identifies a custom start point so route ids never collide across starts. Omit for 'my location'. */
+  fromId?: string;
   mode: TravelMode;
 }
 
@@ -58,7 +60,7 @@ export function parseOsrmRoutes(data: any, req: RouteRequest): RouteOption[] {
     const km = Number((r.distance / 1000).toFixed(1));
     const roads = mainRoads(steps);
     out.push({
-      id: `osrm_${req.destId}_${req.mode}_${idx}`,
+      id: `osrm_${req.fromId ?? 'me'}_${req.destId}_${req.mode}_${idx}`,
       title: idx === 0 ? 'Recommended route' : `Alternative route ${idx}`,
       titleUrdu: idx === 0 ? 'تجویز کردہ راستہ' : `متبادل راستہ ${idx}`,
       via: roads.length ? roads.join(' & ') : 'Main roads',
@@ -87,7 +89,7 @@ export function estimateRoute(req: RouteRequest): RouteOption {
     lng: req.from.lng + ((req.to.lng - req.from.lng) * i) / 12
   }));
   return {
-    id: `local_${req.destId}_${req.mode}`,
+    id: `local_${req.fromId ?? 'me'}_${req.destId}_${req.mode}`,
     title: 'Estimated route (offline)',
     titleUrdu: 'اندازہً راستہ (آف لائن)',
     via: 'Straight-line estimate, no road data. Connect to the internet for turn-by-turn routing',

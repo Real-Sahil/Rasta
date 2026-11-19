@@ -7,7 +7,7 @@ import { RouteOption } from '../types';
 const dest = (id: string, lat = 31.55, lng = 74.35) => ({ id, name: id, nameUrdu: id, lat, lng });
 const reset = () => {
   useAppStore.getState().stopNavigation();
-  useAppStore.setState({ fix: null, destination: null, routes: [], activeRouteId: null, session: null, routesSource: null, voiceMuted: false, announcement: null });
+  useAppStore.setState({ fix: null, origin: null, destination: null, routes: [], activeRouteId: null, session: null, routesSource: null, voiceMuted: false, announcement: null });
 };
 const mockFetch = (fn: (req: any) => Promise<any>) => vi.spyOn(routing, 'fetchRoutes').mockImplementation(fn as any);
 
@@ -24,6 +24,30 @@ describe('app store', () => {
     expect(useAppStore.getState().startNavigation()).toEqual({ ok: true });
     expect(useAppStore.getState().session?.status).toBe('navigating');
     expect(useAppStore.getState().announcement?.en).toMatch(/Head toward/);
+  });
+
+  it('routes from a custom start, keeps route ids distinct per start, and only previews (no navigation)', async () => {
+    const seen: any[] = [];
+    mockFetch(async (req) => { seen.push(req); return { routes: [estimateRoute(req)], source: 'estimate' }; });
+    useAppStore.getState().setFix({ lat: 31.5, lng: 74.3 });
+    useAppStore.getState().setDestination(dest('d', 31.6, 74.4));
+    await useAppStore.getState().loadRoutes();
+    const fromMe = activeRouteOf(useAppStore.getState())!;
+    expect(seen[0].from).toEqual({ lat: 31.5, lng: 74.3 });
+
+    useAppStore.getState().setOrigin(dest('o', 31.52, 74.32));
+    expect(useAppStore.getState().routes).toEqual([]); // old route cleared at once
+    await useAppStore.getState().loadRoutes();
+    const fromO = activeRouteOf(useAppStore.getState())!;
+    expect(seen[1].from.lat).toBeCloseTo(31.52);
+    expect(fromO.id).not.toBe(fromMe.id);
+    expect(useAppStore.getState().startNavigation()).toEqual({ ok: false, reason: 'custom_origin' });
+
+    useAppStore.getState().setOrigin(null); // back to "my location"
+    await useAppStore.getState().loadRoutes();
+    expect(useAppStore.getState().startNavigation()).toEqual({ ok: true });
+    useAppStore.getState().setOrigin(dest('x')); // can't change the start mid-trip
+    expect(useAppStore.getState().origin).toBeNull();
   });
 
   it('a slower, older route request can never overwrite a newer destination', async () => {

@@ -15,7 +15,7 @@ export interface GpsStatus {
   error: string | null;
 }
 
-export type StartResult = { ok: true } | { ok: false; reason: 'no_fix' | 'no_route' };
+export type StartResult = { ok: true } | { ok: false; reason: 'no_fix' | 'no_route' | 'custom_origin' };
 
 export interface AppState {
   cityCenter: LatLng;
@@ -23,6 +23,8 @@ export interface AppState {
   heading: number;
   gps: GpsStatus;
 
+  /** Custom start point for previewing a route. null = my location (the only start navigation can use). */
+  origin: LocationPoint | null;
   destination: LocationPoint | null;
   travelMode: TravelMode;
   routes: RouteOption[];
@@ -38,6 +40,7 @@ export interface AppState {
   setCityCenter: (c: LatLng) => void;
   setGps: (g: Partial<GpsStatus>) => void;
   setFix: (fix: Fix) => void;
+  setOrigin: (o: LocationPoint | null) => void;
   setDestination: (d: LocationPoint | null) => void;
   setTravelMode: (m: TravelMode) => void;
   selectRoute: (id: string) => void;
@@ -58,7 +61,7 @@ export const REROUTE_MIN_INTERVAL_MS = 10_000;
 export const activeRouteOf = (s: Pick<AppState, 'routes' | 'activeRouteId'>): RouteOption | null =>
   s.routes.find((r) => r.id === s.activeRouteId) ?? null;
 
-export const routeStartOf = (s: Pick<AppState, 'fix' | 'cityCenter'>): LatLng => s.fix ?? s.cityCenter;
+export const routeStartOf = (s: Pick<AppState, 'fix' | 'cityCenter'> & { origin?: LocationPoint | null }): LatLng => s.origin ?? s.fix ?? s.cityCenter;
 
 export const useAppStore = create<AppState>((set, get) => {
   const announce = (a: Announcement | null) => {
@@ -95,6 +98,7 @@ export const useAppStore = create<AppState>((set, get) => {
     heading: 0,
     gps: { signalLost: false, accuracyWarning: false, error: null },
 
+    origin: null,
     destination: null,
     travelMode: 'DRIVING',
     routes: [],
@@ -128,6 +132,13 @@ export const useAppStore = create<AppState>((set, get) => {
       if (next.status === 'off_route') void reroute();
     },
 
+    setOrigin: (o) => {
+      if (get().session) return; // the start can't change mid-trip
+      routeAbort?.abort();
+      routeRequestSeq++;
+      set({ origin: o, routes: [], routesSource: null, routesLoading: false, activeRouteId: null });
+    },
+
     setDestination: (d) => {
       routeAbort?.abort();
       routeRequestSeq++;
@@ -154,7 +165,7 @@ export const useAppStore = create<AppState>((set, get) => {
       set({ routesLoading: true });
       try {
         const res = await fetchRoutes(
-          { from: routeStartOf(st), to: st.destination, destId: st.destination.id, mode: st.travelMode },
+          { from: routeStartOf(st), fromId: st.origin?.id, to: st.destination, destId: st.destination.id, mode: st.travelMode },
           { signal: routeAbort.signal }
         );
         if (seq !== routeRequestSeq) return; // a newer request owns the state
@@ -173,6 +184,7 @@ export const useAppStore = create<AppState>((set, get) => {
     startNavigation: () => {
       const st = get();
       const route = activeRouteOf(st);
+      if (st.origin) return { ok: false, reason: 'custom_origin' }; // a route from elsewhere is a preview; navigation follows your real position
       if (!route) return { ok: false, reason: 'no_route' };
       if (!st.fix) return { ok: false, reason: 'no_fix' };
       announced = new Set();
