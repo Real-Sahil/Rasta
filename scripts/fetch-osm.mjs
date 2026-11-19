@@ -71,7 +71,7 @@ async function metroLines() {
   const items = [];
   const cities = {};
   for (const [city, bbox] of Object.entries(METRO_CITIES)) {
-    const q = `[out:json][timeout:120];(rel${TRANSIT_ROUTE}["name"~"${METRO_NAME}",i](${bbox});rel${TRANSIT_ROUTE}["network"~"${METRO_NAME}",i](${bbox}););->.r;(.r;node(r.r);rel(br.r)["type"="route_master"];);out body;`;
+    const q = `[out:json][timeout:120];(rel${TRANSIT_ROUTE}["name"~"${METRO_NAME}",i](${bbox});rel${TRANSIT_ROUTE}["network"~"${METRO_NAME}",i](${bbox});)->.r;(.r;node(r.r);rel(br.r)["type"="route_master"];);out body;`;
     let els;
     try {
       els = await overpass(q);
