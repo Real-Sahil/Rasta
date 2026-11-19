@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'l10n.dart';
 import 'state/app_state.dart';
-import 'ui/map_screen.dart';
+import 'services/api_client.dart';
+import 'services/reports_api.dart';
+import 'ui/home_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +22,7 @@ class BuraqApp extends StatefulWidget {
 
 class _BuraqAppState extends State<BuraqApp> {
   final AppState app = AppState();
+  final ReportsApi api = ReportsApi(ApiClient());
 
   @override
   void initState() {
@@ -42,7 +45,7 @@ class _BuraqAppState extends State<BuraqApp> {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(colorSchemeSeed: const Color(0xFF059669), useMaterial3: true),
         builder: (context, child) => Directionality(textDirection: isRtl(app.lang) ? TextDirection.rtl : TextDirection.ltr, child: child!),
-        home: SafetyGate(app: app, child: MapScreen(app: app)),
+        home: SafetyGate(app: app, child: HomeShell(app: app, api: api)),
       ),
     );
   }
@@ -93,6 +96,8 @@ class _SafetyGateState extends State<SafetyGate> {
               Text(tr(lang, 'appName'), style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
               const SizedBox(height: 24),
               Text(tr(lang, 'driveSafe'), style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              for (final k in ['legalNotice2', 'legalNotice3']) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(tr(lang, k), textAlign: TextAlign.center)),
               const SizedBox(height: 16),
               Wrap(alignment: WrapAlignment.center, spacing: 8, children: [
                 for (final l in supportedLangs)
