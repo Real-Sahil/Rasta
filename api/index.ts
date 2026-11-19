@@ -5,6 +5,8 @@
  *   GET  /api?op=list               -> { incidents: [...] }            active, non-hidden reports
  *   POST /api?op=create             body: incident fields              report an incident        (token)
  *   POST /api?op=act                body: { id, action }               action = confirm | flag   (token)
+ *   POST /api?op=transit_report     body: { city, kind, mode, value }  fare (PKR) or delay (min)  (token)
+ *   GET  /api?op=transit_stats&city= -> { stats: [...] }               median/quartiles, only with >=5 reports from >=3 devices
  *   POST /api?op=log                body: { kind, message, ... }       client error report       (IP-limited)
  *   GET  /api?op=admin_list         -> reports (incl. hidden) + errors (Authorization: Bearer ADMIN_KEY)
  *   POST /api?op=admin_set          body: { id, action }               hide | restore | delete   (ADMIN_KEY)
@@ -26,6 +28,8 @@ export interface ApiDeps {
 }
 
 const CATEGORIES = ['accident', 'congestion', 'closure', 'construction', 'flooding', 'roadblock', 'police_naka', 'hazard'];
+export const TRANSIT_CITIES = ['lahore', 'karachi', 'islamabad', 'rawalpindi', 'multan', 'faisalabad'];
+export const TRANSIT_MODES = ['metrobus', 'orange_line', 'bus', 'van', 'rickshaw', 'taxi', 'ride_hail'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TOKEN_TTL_MS = 90 * 24 * 3600 * 1000;
 const MAX_BODY_BYTES = 8 * 1024;
@@ -90,6 +94,18 @@ export function validateNewIncident(b: any): { ok: true; value: NewIncidentInput
     ttl_minutes = b.ttl_minutes;
   }
   return { ok: true, value: { category: b.category, title, ...(fields as Omit<NewIncidentInput, 'category' | 'title' | 'lat' | 'lng' | 'ttl_minutes'>), lat, lng, ttl_minutes } };
+}
+
+export type TransitReportInput = { city: string; kind: 'fare' | 'delay'; mode: string; value: number };
+
+export function validateTransitReport(b: any): { ok: true; value: TransitReportInput } | { ok: false; error: string } {
+  if (!b || typeof b !== 'object') return { ok: false, error: 'invalid_body' };
+  if (!TRANSIT_CITIES.includes(b.city)) return { ok: false, error: 'invalid_city' };
+  if (b.kind !== 'fare' && b.kind !== 'delay') return { ok: false, error: 'invalid_kind' };
+  if (!TRANSIT_MODES.includes(b.mode)) return { ok: false, error: 'invalid_mode' };
+  const max = b.kind === 'fare' ? 20000 : 240;
+  if (!Number.isInteger(b.value) || b.value < 1 || b.value > max) return { ok: false, error: 'invalid_value' };
+  return { ok: true, value: { city: b.city, kind: b.kind, mode: b.mode, value: b.value } };
 }
 
 // ------------------------------------------------------------------ handlers
@@ -174,6 +190,43 @@ export function createApi({ db, secret, now = Date.now, adminKey }: ApiDeps) {
       }
     },
 
+    async transitReport(req: Request) {
+      const device = deviceOf(req);
+      if (!device) return fail(401, 'unauthorized');
+      const v = validateTransitReport(await readJson(req));
+      if (!v.ok) return fail(400, v.error);
+      try {
+        await db('insert into transit_reports (created_by, ip_hash, city, kind, mode, value) values ($1,$2,$3,$4,$5,$6)',
+          [device, ipHashOf(req), v.value.city, v.value.kind, v.value.mode, v.value.value]);
+        return json(201, { ok: true });
+      } catch (e) {
+        return dbError(e);
+      }
+    },
+
+    /** Medians over a window (fares 60 days, delays 3 hours). A group is only shown with >=5 reports from >=3 devices. */
+    async transitStats(req: Request) {
+      const city = new URL(req.url).searchParams.get('city') ?? '';
+      if (!TRANSIT_CITIES.includes(city)) return fail(400, 'invalid_city');
+      try {
+        const rows = await db(
+          `select kind, mode, count(*)::int as n, count(distinct created_by)::int as devices,
+                  percentile_cont(0.5) within group (order by value)  as median,
+                  percentile_cont(0.25) within group (order by value) as p25,
+                  percentile_cont(0.75) within group (order by value) as p75
+             from transit_reports
+            where city = $1 and created_at > now() - (case when kind = 'delay' then interval '3 hours' else interval '60 days' end)
+            group by kind, mode
+           having count(*) >= 5 and count(distinct created_by) >= 3
+            order by kind, mode`,
+          [city]
+        );
+        return json(200, { stats: rows.map((r) => ({ kind: r.kind, mode: r.mode, n: r.n, devices: r.devices, median: Math.round(Number(r.median)), p25: Math.round(Number(r.p25)), p75: Math.round(Number(r.p75)) })) });
+      } catch (e) {
+        return dbError(e);
+      }
+    },
+
     async log(req: Request) {
       const b = await readJson(req);
       if (!b || typeof b !== 'object') return fail(400, 'invalid_body');
@@ -233,7 +286,8 @@ export function createApi({ db, secret, now = Date.now, adminKey }: ApiDeps) {
       try {
         const a = await db(`delete from incidents where expires_at < now() - interval '7 days' returning id`);
         const e = await db(`delete from client_errors where created_at < now() - interval '14 days' returning id`);
-        return json(200, { incidents: a.length, errors: e.length });
+        const tr = await db(`delete from transit_reports where created_at < now() - interval '120 days' returning id`);
+        return json(200, { incidents: a.length, errors: e.length, transitReports: tr.length });
       } catch (e) {
         return dbError(e);
       }
@@ -246,6 +300,8 @@ export function createApi({ db, secret, now = Date.now, adminKey }: ApiDeps) {
       if (req.method === 'POST' && op === 'create') return this.create(req);
       if (req.method === 'POST' && op === 'act') return this.act(req);
       if (req.method === 'POST' && op === 'log') return this.log(req);
+      if (req.method === 'POST' && op === 'transit_report') return this.transitReport(req);
+      if (req.method === 'GET' && op === 'transit_stats') return this.transitStats(req);
       if (op?.startsWith('admin_')) {
         if (!adminKey) return fail(404, 'unknown_op');
         if (!this.isAdmin(req)) return fail(401, 'unauthorized');

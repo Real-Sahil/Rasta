@@ -663,6 +663,7 @@ function MainApp() {
           {activeTab === 'transit' && (
             <TransitPlanner
               onSelectStation={handleFocusStation}
+              city={currentCity}
             />
           )}
 

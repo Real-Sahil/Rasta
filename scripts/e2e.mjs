@@ -127,6 +127,13 @@ check('swap puts the old destination in the From field', (await page.locator('in
 await page.getByRole('button', { name: 'Clear Route' }).first().click(); await page.waitForTimeout(500);
 check('clearing the route returns to the single search bar', await page.locator('input[type=text]').count() === 1);
 
+// 4d. riders can report a fare; typical values appear only with enough reports (the mocked API returns none)
+await page.getByRole('button', { name: 'Transit' }).click(); await page.waitForTimeout(800);
+check('Transit tab shows the riders report card and says there is not enough data yet', /Riders report/.test(await text()) && /Not enough reports yet/.test(await text()));
+await page.locator('section[aria-label="Riders report"] input[type=number]').fill('450');
+await page.getByRole('button', { name: 'Send report' }).click(); await page.waitForTimeout(600);
+check('a fare report is sent to the API and acknowledged', apiCalls.includes('POST transit_report') && /Your report was sent/.test(await text()));
+
 // 5. client error reporting reaches the log endpoint, once per distinct error
 await page.evaluate(() => { setTimeout(() => { throw new Error('e2e boom'); }, 0); });
 await page.waitForTimeout(800);

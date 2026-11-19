@@ -6,14 +6,16 @@
 import React, { useState } from 'react';
 import { METROBUS_STATIONS, ORANGELINE_STATIONS, OSM_CREDIT, OSM_UPDATED, stationName } from '../data/osmData';
 import { TransitStation } from '../types';
+import { TransitReports } from './TransitReports';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
 import { Train, Bus, MapPin, Calculator, Check, ArrowRight, ShieldCheck, Ticket } from 'lucide-react';
 
 interface TransitPlannerProps {
   onSelectStation: (station: TransitStation) => void;
+  city?: string;
 }
 
-export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation }) => {
+export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation, city = 'lahore' }) => {
   const { isRtl, t } = useMobilityTheme();
   const [activeTab, setActiveTab] = useState<'metrobus' | 'orangeline' | 'calculator'>('metrobus');
 
@@ -270,6 +272,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation 
           </div>
         </div>
       )}
+      <TransitReports city={city} />
       <p className="text-[10px] text-slate-400">
         {OSM_CREDIT}{OSM_UPDATED ? `, updated ${OSM_UPDATED}` : ''}. Fares are estimates; check at the station.
       </p>

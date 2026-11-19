@@ -81,7 +81,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request(op: string, init: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<any> {
+export async function request(op: string, init: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<any> {
   const headers: Record<string, string> = {};
   if (init.body !== undefined) headers['content-type'] = 'application/json';
   const token = init.auth === false ? null : readToken();
@@ -95,7 +95,7 @@ async function request(op: string, init: { method?: string; body?: unknown; auth
 }
 
 /** One anonymous, signed identity per device: enough for ownership, rate limits and one confirmation per person. */
-async function authed(op: string, body?: unknown): Promise<any> {
+export async function authed(op: string, body?: unknown): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
     if (!readToken()) writeToken((await request('session', { method: 'POST', auth: false })).token);
     try {

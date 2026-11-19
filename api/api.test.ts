@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { readFileSync, readdirSync } from 'node:fs';
-import { createApi, signToken, verifyToken, validateNewIncident } from './index';
+import { createApi, signToken, verifyToken, validateNewIncident, validateTransitReport } from './index';
 
 const SECRET = 'test-secret';
 const migrationsDir = new URL('../db/migrations/', import.meta.url);
@@ -199,5 +199,44 @@ describe('moderation and monitoring', () => {
     await pg.exec(`update incidents set expires_at = now() - interval '8 days' where title = 'old one'`);
     const r = (await (await adminCall('POST', 'admin_purge', 'admin-key-for-tests')).json()) as any;
     expect(r.incidents).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('transit reports', () => {
+  const tr = (over: Record<string, unknown> = {}) => ({ city: 'lahore', kind: 'fare', mode: 'rickshaw', value: 400, ...over });
+  const stats = async (city = 'lahore') => ((await (await call('GET', `transit_stats&city=${city}`)).json()) as any).stats as any[];
+
+  it('validates city, kind, mode and value ranges per kind', () => {
+    expect(validateTransitReport(tr()).ok).toBe(true);
+    for (const bad of [{ city: 'paris' }, { kind: 'x' }, { mode: 'rocket' }, { value: 0 }, { value: 1.5 }, { value: 20001 }, { kind: 'delay', value: 241 }, { value: '400' }]) {
+      expect(validateTransitReport(tr(bad)).ok).toBe(false);
+    }
+    expect(validateTransitReport(null).ok).toBe(false);
+  });
+  it('needs a token, rejects bad bodies, and the database rejects out-of-range values too', async () => {
+    expect((await call('POST', 'transit_report', { body: tr() })).status).toBe(401);
+    const a = await newToken();
+    expect((await call('POST', 'transit_report', { token: a, body: tr({ value: -5 }) })).status).toBe(400);
+    await expect(pg.query(`insert into transit_reports (created_by, ip_hash, city, kind, mode, value) values (gen_random_uuid(), 'x', 'lahore', 'delay', 'metrobus', 999)`)).rejects.toThrow();
+  });
+  it('a device cannot repeat the same report within 10 minutes', async () => {
+    const a = await newToken();
+    expect((await call('POST', 'transit_report', { token: a, body: tr({ city: 'multan', mode: 'van' }) })).status).toBe(201);
+    expect((await call('POST', 'transit_report', { token: a, body: tr({ city: 'multan', mode: 'van', value: 90 }) })).status).toBe(409);
+    expect((await call('POST', 'transit_report', { token: a, body: tr({ city: 'multan', mode: 'bus' }) })).status).toBe(201); // different mode is fine
+  });
+  it('shows no statistics until 5 reports from at least 3 devices, then medians and quartiles', async () => {
+    const one = await newToken();
+    for (const v of [100, 100, 100, 100, 100]) await pg.query(`insert into transit_reports (created_by, ip_hash, city, kind, mode, value) values ($1,'h','karachi','fare','taxi',$2)`, [(verifyToken(one, SECRET, clock) as string), v]).catch(() => {});
+    expect(await stats('karachi')).toEqual([]); // trigger allows 1 per 10 min per device; and one device is never enough anyway
+    for (const v of [300, 400, 500, 600, 700]) {
+      const t = await newToken();
+      expect((await call('POST', 'transit_report', { token: t, ip: `9.9.9.${v / 100}`, body: tr({ city: 'karachi', mode: 'rickshaw', value: v }) })).status).toBe(201);
+    }
+    const s = (await stats('karachi')).find((x) => x.mode === 'rickshaw')!;
+    expect(s).toMatchObject({ kind: 'fare', n: 5, devices: 5, median: 500, p25: 400, p75: 600 });
+  });
+  it('rejects an unknown city on the stats endpoint', async () => {
+    expect((await call('GET', 'transit_stats&city=atlantis')).status).toBe(400);
   });
 });
