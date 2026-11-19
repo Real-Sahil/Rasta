@@ -29,7 +29,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://server.arcgisonline.com https://tiles.openfreemap.org; connect-src 'self' blob: https://tiles.openfreemap.org https://server.arcgisonline.com https://router.project-osrm.org https://routing.openstreetmap.de https://nominatim.openstreetmap.org https://api.open-meteo.com https://air-quality-api.open-meteo.com; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://tiles.openfreemap.org; connect-src 'self' blob: https://tiles.openfreemap.org https://router.project-osrm.org https://routing.openstreetmap.de https://nominatim.openstreetmap.org https://api.open-meteo.com https://air-quality-api.open-meteo.com; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         }
       ]
     }

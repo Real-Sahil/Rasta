@@ -15,7 +15,7 @@ Pakistan-first mobility PWA (React 19 + Vite 8 + Tailwind 4 + MapLibre GL). Stat
 - `src/hooks/` – thin adapters: `useGpsTracking` (GPS → store), `useRoutePlanner` (reload routes on destination/mode/~200 m start change, frozen mid-trip), `useVoiceAnnouncer` (store announcements → speech, honours mute, works on any tab).
 - `src/App.tsx` – view state + layout only. Never put routing/GPS/navigation logic back in components.
 - `src/services/` – GPS manager, speech, fares, storage, Open-Meteo AQI/weather, incident sync.
-- `src/components/` – UI. `MapLibreProviderAdapter` is the live map; `OsmMapView` is the no-WebGL fallback.
+- `src/components/` – UI. `MapLibreProviderAdapter` is the live map (OpenFreeMap styles only: Liberty/Bright/Positron; there is no free satellite imagery, so none is offered); `OsmMapView` is the no-WebGL fallback (standard OSM tiles; keep it light, per the OSM tile policy).
 - `src/data/` – locales (en/ur/pa/ar must keep identical keys) and Lahore location/transit data.
 
 Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI flows, drive the built app with Playwright using `serviceWorkers: 'block'` (the PWA service worker otherwise bypasses `page.route` mocks) and move simulated GPS in realistic hops (the GPS glitch filter rejects jumps over 1.2 km in under 2 s).
@@ -50,7 +50,7 @@ Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI 
 - Keep `route`/`markers` props to the map memoised; new object identities re-run map effects every render.
 - Public OSRM only has a car profile; walking uses the FOSSGIS foot server.
 - Add every new UI string to all four locales and provide Urdu text for RTL.
-- Third-party calls (Nominatim, OSRM, Open-Meteo, ArcGIS/OpenFreeMap tiles) send coordinates/queries off-device; don't claim otherwise in the privacy copy.
+- Third-party calls (Nominatim, OSRM, Open-Meteo, OpenFreeMap tiles, and OpenStreetMap tiles in the no-WebGL fallback) send coordinates/queries off-device; don't claim otherwise in the privacy copy.
 
 ## Hardening (moderation, monitoring, limits)
 - **Admin**: `/admin.html` (noindex, not in the service-worker fallback) talks to `?op=admin_list|admin_set|admin_purge` with `Authorization: Bearer $ADMIN_KEY`. Without `ADMIN_KEY` those ops answer 404. The page keeps the key in `sessionStorage` and builds the DOM with `textContent` only. Never render report text as HTML.
@@ -65,7 +65,7 @@ Tests: pure logic in `src/core` and `src/services` is covered by Vitest. For UI 
 - **Browser tests**: `npm run test:e2e` (Playwright, mocked OSRM/Nominatim/Open-Meteo/API, runs in CI after `npm run build`; install with `npm install --no-save playwright`; set `CHROMIUM_PATH` to use a preinstalled browser).
 
 ## Known gaps (not yet fixed)
-Transit station list is incomplete and fares are estimates; no transit routing; PWA icons are 1376×768 images declared as 192/512; offline map packs and offline routing don't exist; the public OSRM/Nominatim/OpenFreeMap/Esri services have no SLA or commercial licence; Urdu/Punjabi wording and voice clips are unreviewed by native speakers; the legal text is not lawyer-reviewed.
+Transit station list is incomplete and fares are estimates; no transit routing; PWA icons are 1376×768 images declared as 192/512; offline map packs and offline routing don't exist; the public OSRM/Nominatim/OpenFreeMap/OpenStreetMap-tile services have no SLA or commercial licence; Urdu/Punjabi wording and voice clips are unreviewed by native speakers; the legal text is not lawyer-reviewed.
 
 ## Hooks
 `.claude/settings.json` installs deps on remote session start (`.claude/hooks/session-start.sh`, skips when package files are unchanged) and runs a typecheck after edits to `src/**/*.ts(x)`.

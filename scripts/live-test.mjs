@@ -121,7 +121,7 @@ if (reachable) {
   await step('ui', 'app renders header, search, bottom nav', async () => (await text()).includes('BURAQ') && (await page.locator('nav[aria-label="Main"]').count()) === 1);
   await step('ui', 'map canvas is present and has size', async () => { const b = await page.locator('canvas.maplibregl-canvas').first().boundingBox(); return !!b && b.width > 200 && b.height > 200 ? `${Math.round(b.width)}x${Math.round(b.height)}` : false; });
   await step('map', 'basemap tiles actually load (>= 1 tile request OK)', async () => {
-    const ok = await page.evaluate(() => performance.getEntriesByType('resource').filter((e) => /openfreemap|arcgisonline|tiles/.test(e.name)).length);
+    const ok = await page.evaluate(() => performance.getEntriesByType('resource').filter((e) => /openfreemap|tile\.openstreetmap|tiles/.test(e.name)).length);
     return ok > 0 ? `${ok} tile/style requests` : false;
   });
   await step('gps', 'real fix is picked up (position marker shown, no GPS error)', async () => (await page.locator('.maplibregl-marker').count()) > 0 && !/Location permission denied/.test(await text()));

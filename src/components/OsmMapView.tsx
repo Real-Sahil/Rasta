@@ -38,7 +38,6 @@ export const OsmMapView: React.FC<OsmMapViewProps> = ({
 }) => {
   const [zoom, setZoom] = useState(initialZoom || 13);
   const [currentCenter, setCurrentCenter] = useState(center);
-  const [tileSource, setTileSource] = useState<'arcgis' | 'cyclosm' | 'satellite'>('arcgis');
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [hasMoved, setHasMoved] = useState(false);
@@ -226,31 +225,15 @@ export const OsmMapView: React.FC<OsmMapViewProps> = ({
         const posX = width / 2 + (tx - centerTileX) * 256;
         const posY = height / 2 + (ty - centerTileY) * 256;
 
-        let tileUrl = '';
-        if (tileSource === 'satellite') {
-          tileUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${ty}/${wrappedX}`;
-        } else if (tileSource === 'cyclosm') {
-          const sub = ['a', 'b', 'c'][Math.abs(wrappedX + ty) % 3];
-          tileUrl = `https://${sub}.tile-cyclosm.openstreetmap.fr/cyclosm/${zoom}/${wrappedX}/${ty}.png`;
-        } else {
-          // Default: 100% Free ArcGIS World Street Map (high definition street network, labeled chowks, 0 keys, 0 watermark)
-          tileUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${zoom}/${ty}/${wrappedX}`;
-        }
+        // Standard OpenStreetMap tiles: this view only runs when the phone cannot draw the WebGL map, so load is light
+        const tileUrl = `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${ty}.png`;
 
         tiles.push(
           <img
-            key={`${zoom}-${tx}-${ty}-${tileSource}`}
+            key={`${zoom}-${tx}-${ty}`}
             src={tileUrl}
             alt=""
             loading="lazy"
-            onError={(e) => {
-              // Fallback to ArcGIS World Street Map if secondary provider has transient error
-              const target = e.currentTarget;
-              if (!target.dataset.fallbackApplied) {
-                target.dataset.fallbackApplied = 'true';
-                target.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${zoom}/${ty}/${wrappedX}`;
-              }
-            }}
             className="absolute select-none pointer-events-none transition-opacity duration-200"
             style={{
               width: 256,
@@ -419,51 +402,11 @@ export const OsmMapView: React.FC<OsmMapViewProps> = ({
 
       {/* Attribution & Layer Selector */}
       <div className="absolute bottom-1 right-2 z-30 flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-2 py-0.5 rounded text-[10px] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
-        <span>© OpenStreetMap • Esri ArcGIS</span>
+        <span>© OpenStreetMap contributors</span>
       </div>
 
       {/* Floating Map Controls & Layer Selector */}
       <div className="absolute top-20 right-3 z-30 flex flex-col gap-1.5 shadow-md items-end">
-        {/* Layer Mode Switcher */}
-        <div className="flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur rounded-xl border border-slate-200 dark:border-slate-800 p-1 shadow-md gap-1">
-          <button
-            type="button"
-            onClick={() => setTileSource('arcgis')}
-            className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-              tileSource === 'arcgis'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-            title="ArcGIS World Street Map (Free, 0 Keys)"
-          >
-            Streets
-          </button>
-          <button
-            type="button"
-            onClick={() => setTileSource('cyclosm')}
-            className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-              tileSource === 'cyclosm'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-            title="OpenStreetMap CyclOSM (Free, 0 Keys)"
-          >
-            OSM
-          </button>
-          <button
-            type="button"
-            onClick={() => setTileSource('satellite')}
-            className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-              tileSource === 'satellite'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-            title="Satellite Imagery (Free, 0 Keys)"
-          >
-            Satellite
-          </button>
-        </div>
-
         {/* Floating Zoom Controls */}
         <div className="flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur rounded-xl shadow-md border border-slate-200 dark:border-slate-800 overflow-hidden">
           <button

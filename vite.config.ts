@@ -36,10 +36,10 @@ export default defineConfig(() => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/server\.arcgisonline\.com\/.*/i,
+              urlPattern: /^https:\/\/tiles\.openfreemap\.org\/planet\/.*/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: 'arcgis-tiles-cache',
+                cacheName: 'map-tiles-cache',
                 expiration: {
                   maxEntries: 500,
                   maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days

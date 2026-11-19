@@ -68,81 +68,13 @@ export interface FloodLabels {
 interface FloodEvent { id: string; title: string; datasetDate: string | null; polygons: number[][][][] }
 const FLOOD_COLOURS = ['#2563eb', '#7c3aed'];
 
-// 100% Free ArcGIS World Street Map (Raster MapLibre Style Specification, 0 keys, 0 watermarks)
-const FREE_ARCGIS_STREETS_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    'arcgis-streets': {
-      type: 'raster',
-      tiles: [
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
-      ],
-      tileSize: 256,
-      attribution: '© Esri, HERE, Garmin, OpenStreetMap contributors'
-    }
-  },
-  layers: [
-    {
-      id: 'arcgis-streets-layer',
-      type: 'raster',
-      source: 'arcgis-streets',
-      minzoom: 0,
-      maxzoom: 19
-    }
-  ]
-};
-
-// 100% Free ArcGIS World Satellite / Imagery (0 keys, 0 watermarks)
-const FREE_ARCGIS_SATELLITE_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    'arcgis-satellite': {
-      type: 'raster',
-      tiles: [
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-      ],
-      tileSize: 256,
-      attribution: '© Esri, Maxar, Earthstar Geographics'
-    }
-  },
-  layers: [
-    {
-      id: 'arcgis-satellite-layer',
-      type: 'raster',
-      source: 'arcgis-satellite',
-      minzoom: 0,
-      maxzoom: 19
-    }
-  ]
-};
-
-// Greyscale Minimalist for reduced eye strain during night driving
-const GREYSCALE_MINIMALIST_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    'greyscale-osm': {
-      type: 'raster',
-      tiles: [
-        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'
-      ],
-      tileSize: 256,
-      attribution: '© Esri Greyscale Minimalist'
-    }
-  },
-  layers: [
-    {
-      id: 'greyscale-layer',
-      type: 'raster',
-      source: 'greyscale-osm',
-      minzoom: 0,
-      maxzoom: 19
-    }
-  ]
-};
-
-// OpenFreeMap Vector Styles (100% Free, Zero Keys, Zero Watermarks)
+// OpenFreeMap vector styles (no key, no watermark, OpenStreetMap data)
 const OPENFREEMAP_LIBERTY_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 const OPENFREEMAP_BRIGHT_STYLE = 'https://tiles.openfreemap.org/styles/bright';
+const OPENFREEMAP_POSITRON_STYLE = 'https://tiles.openfreemap.org/styles/positron'; // light, low-glare
+
+type StyleMode = 'liberty' | 'bright' | 'positron';
+const STYLE_MODES: StyleMode[] = ['liberty', 'bright', 'positron'];
 
 export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = ({
   center,
@@ -162,7 +94,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<{ [key: string]: maplibregl.Marker }>({});
-  const [styleMode, setStyleMode] = useState<'liberty' | 'bright' | 'arcgis' | 'satellite' | 'greyscale-minimalist'>('liberty');
+  const [styleMode, setStyleMode] = useState<StyleMode>('liberty');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [styleVersion, setStyleVersion] = useState(0);
   const [mapSlow, setMapSlow] = useState(false);
@@ -184,16 +116,12 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
     return true;
   });
 
-  const getStyleSpec = (mode: string) => {
+  const getStyleSpec = (mode: StyleMode) => {
     switch (mode) {
       case 'bright':
         return OPENFREEMAP_BRIGHT_STYLE;
-      case 'arcgis':
-        return FREE_ARCGIS_STREETS_STYLE;
-      case 'satellite':
-        return FREE_ARCGIS_SATELLITE_STYLE;
-      case 'greyscale-minimalist':
-        return GREYSCALE_MINIMALIST_STYLE;
+      case 'positron':
+        return OPENFREEMAP_POSITRON_STYLE;
       case 'liberty':
       default:
         return OPENFREEMAP_LIBERTY_STYLE;
@@ -238,13 +166,13 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
       map.resize();
     });
 
-    // Fallback if vector style encounters CDN or fetch error
+    // If the default style can't be fetched, try the simpler Bright style once; the slow-map notice covers a full outage
     map.on('error', (e) => {
-      console.warn('MapLibre error event, attempting ArcGIS street fallback:', e);
-      if (styleMode === 'liberty' || styleMode === 'bright') {
+      console.warn('MapLibre error event:', e);
+      if (styleMode === 'liberty') {
         try {
-          map.setStyle(FREE_ARCGIS_STREETS_STYLE);
-          setStyleMode('arcgis');
+          map.setStyle(OPENFREEMAP_BRIGHT_STYLE);
+          setStyleMode('bright');
         } catch {}
       }
     });
@@ -539,15 +467,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
   const toggleStyle = () => {
     const map = mapRef.current;
     if (!map) return;
-    const modes: ('liberty' | 'bright' | 'arcgis' | 'satellite' | 'greyscale-minimalist')[] = [
-      'liberty',
-      'bright',
-      'arcgis',
-      'satellite',
-      'greyscale-minimalist'
-    ];
-    const nextIdx = (modes.indexOf(styleMode) + 1) % modes.length;
-    const nextMode = modes[nextIdx];
+    const nextMode = STYLE_MODES[(STYLE_MODES.indexOf(styleMode) + 1) % STYLE_MODES.length];
     setStyleMode(nextMode);
     try {
       map.setStyle(getStyleSpec(nextMode));
@@ -695,19 +615,11 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
           onClick={toggleStyle}
           hidden={isNavigatingLive}
           className="bg-white/95 dark:bg-slate-900/95 backdrop-blur text-slate-800 dark:text-slate-100 p-2.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-          title="Cycle Map Styles (Liberty / Bright / ArcGIS / Satellite / Greyscale)"
+          title="Cycle map styles (Liberty / Bright / Light)"
         >
           <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span className="hidden sm:inline">
-            {styleMode === 'liberty'
-              ? 'Liberty Vector'
-              : styleMode === 'bright'
-              ? 'Bright Vector'
-              : styleMode === 'arcgis'
-              ? 'ArcGIS Streets'
-              : styleMode === 'satellite'
-              ? 'Satellite'
-              : 'Light Greyscale'}
+            {styleMode === 'liberty' ? 'Liberty' : styleMode === 'bright' ? 'Bright' : 'Light'}
           </span>
         </button>
 
