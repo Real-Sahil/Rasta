@@ -46,7 +46,7 @@ for (const id of DATASETS) {
     // ogr2ogr filters to the region with the spatial index and reprojects to WGS84, so we never parse the full national file in JS.
     // Newline-delimited output, simplified and attribute-free by GDAL, read line by line: the raw regional layer is hundreds of MB.
     const geo = join(work, `${id.slice(0, 20)}-${i}.geojsonl`);
-    execFileSync('ogr2ogr', ['-f', 'GeoJSONSeq', '-t_srs', 'EPSG:4326', '-spat', ...BBOX.map(String), '-spat_srs', 'EPSG:4326', '-select', '', '-simplify', '0.0003', '-lco', 'COORDINATE_PRECISION=5', geo, shp], { stdio: 'inherit' });
+    execFileSync('ogr2ogr', ['-f', 'GeoJSONSeq', '-t_srs', 'EPSG:4326', '-spat', ...BBOX.map(String), '-spat_srs', 'EPSG:4326', '-select', '', '-explodecollections', '-lco', 'COORDINATE_PRECISION=5', geo, shp], { stdio: 'inherit' });
     let seen = 0;
     const clipped = [];
     for await (const line of createInterface({ input: createReadStream(geo), crlfDelay: Infinity })) {
