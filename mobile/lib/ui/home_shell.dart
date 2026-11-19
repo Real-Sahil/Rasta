@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../l10n.dart';
 import '../services/reports_api.dart';
 import '../state/app_state.dart';
+import 'chamak.dart';
 import 'emergency_screen.dart';
 import 'incidents_screen.dart';
 import 'info_screen.dart';
@@ -39,7 +40,9 @@ class _HomeShellState extends State<HomeShell> {
           ]),
           bottomNavigationBar: app.navigating
               ? null
-              : NavigationBar(
+              : Column(mainAxisSize: MainAxisSize.min, children: [
+                  if (app.chamak) const ChamakStrip(height: 8),
+                  NavigationBar(
                   selectedIndex: tab,
                   onDestinationSelected: (i) => setState(() => _tab = i),
                   destinations: [
@@ -49,7 +52,8 @@ class _HomeShellState extends State<HomeShell> {
                     NavigationDestination(icon: const Icon(Icons.local_hospital_outlined), label: tr(lang, 'navSos')),
                     NavigationDestination(icon: const Icon(Icons.info_outline), label: tr(lang, 'navInfo')),
                   ],
-                ),
+                  ),
+                ]),
         );
       },
     );

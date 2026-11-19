@@ -6,6 +6,7 @@ import '../l10n.dart';
 import '../services/reports_api.dart';
 import '../services/search_service.dart';
 import '../state/app_state.dart';
+import 'line_diagram.dart';
 import 'riders_screen.dart';
 
 class _Lines {
@@ -33,6 +34,7 @@ class _TransitScreenState extends State<TransitScreen> {
   int _tab = 0; // 0 stations, 1 fare, 2 riders
   String _line = 'orangeline';
   bool _student = false;
+  bool _diagram = false; // stations tab: list or schematic
   String? _from, _to;
   late final Future<_Lines> _data = _load();
 
@@ -97,10 +99,25 @@ class _TransitScreenState extends State<TransitScreen> {
               onTap: () => _routeTo(s),
             ),
         ]);
+    Widget diagram(String titleKey, List<Station> list, Color c) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Text('${tr(lang, titleKey)} · ${_fill(lang, 'trStops', {'n': list.length})}', style: Theme.of(context).textTheme.titleMedium),
+          ),
+          if (list.isEmpty) Padding(padding: const EdgeInsets.all(16), child: Text(tr(lang, 'trNoData'))),
+          LineDiagram(stations: list, color: c, lang: lang, onPick: _routeTo, boardLabel: tr(lang, 'diagBoard'), alightLabel: tr(lang, 'diagAlight'), note: tr(lang, 'diagNote')),
+        ]);
     return ListView(children: [
-      Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Text(tr(lang, 'trTapHint'))),
-      section('trOrange', d.orange),
-      section('trMetrobus', d.metrobus),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: SegmentedButton<bool>(
+          segments: [ButtonSegment(value: false, label: Text(tr(lang, 'diagList'))), ButtonSegment(value: true, label: Text(tr(lang, 'diagDiagram')))],
+          selected: {_diagram},
+          onSelectionChanged: (s) => setState(() => _diagram = s.first),
+        ),
+      ),
+      Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 0), child: Text(tr(lang, 'trTapHint'))),
+      if (_diagram) ...[diagram('trOrange', d.orange, const Color(0xFFF26A21)), diagram('trMetrobus', d.metrobus, const Color(0xFFE11D48))] else ...[section('trOrange', d.orange), section('trMetrobus', d.metrobus)],
       Padding(padding: const EdgeInsets.all(16), child: Text(tr(lang, 'trCredit'), style: Theme.of(context).textTheme.bodySmall)),
     ]);
   }
@@ -141,6 +158,17 @@ class _TransitScreenState extends State<TransitScreen> {
         items: [for (final s in list) item(s)],
         onChanged: (v) => setState(() => _to = v),
       ),
+      if (list.isNotEmpty)
+        LineDiagram(
+          stations: list,
+          color: _line == 'metrobus' ? const Color(0xFFE11D48) : const Color(0xFFF26A21),
+          lang: lang,
+          fromId: from,
+          toId: to,
+          boardLabel: tr(lang, 'diagBoard'),
+          alightLabel: tr(lang, 'diagAlight'),
+          note: tr(lang, 'diagNote'),
+        ),
       SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(tr(lang, 'trStudent')), value: _student, onChanged: (v) => setState(() => _student = v)),
       if (from != null && to != null)
         Card(

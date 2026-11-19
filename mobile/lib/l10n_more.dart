@@ -1,6 +1,9 @@
 // Stage 3 strings: emergency, conditions, fares. Urdu/Punjabi wording is a DRAFT pending native-speaker review.
 const Map<String, Map<String, String>> moreStrings = {
   'en': {
+    'themeLabel': 'Appearance', 'themeAuto': 'Auto', 'themeLight': 'Light', 'themeDark': 'Dark',
+    'skinLabel': 'Truck-art style', 'skinNote': 'Decorates the menu bar and driving screen. The map stays plain.',
+    'diagList': 'List', 'diagDiagram': 'Diagram', 'diagNote': 'Schematic, not to scale.', 'diagBoard': 'Board', 'diagAlight': 'Get off',
     'navTransit': 'Transit', 'trTabStations': 'Stations', 'trTabFare': 'Fare', 'trTabRiders': 'Riders',
     'trMetrobus': 'Metrobus', 'trOrange': 'Orange Line', 'trStops': '{n} stops', 'trTapHint': 'Tap a station to get directions to it.',
     'trFrom': 'From', 'trTo': 'To', 'trStudent': 'Student concession (half fare)', 'trFareResult': '{n} stops · about {min} min · Rs {fare}',
@@ -31,6 +34,9 @@ const Map<String, Map<String, String>> moreStrings = {
     'legalPrivacy2': 'Your GPS position stays on your phone, except when you ask for a route or place search: then the start and end points or your search words are sent to the free map services we use (OSRM / OpenStreetMap servers and Nominatim). Weather and air quality come from Open-Meteo, which receives the coordinates of the city you pick, and map tiles from OpenFreeMap, which learns the area you are viewing and your IP address. Each of those services has its own privacy policy. While you navigate, the app keeps using your location with the screen off and shows a notification; speech uses your phone\'s own voice engine.',
   },
   'ur': {
+    'themeLabel': 'ظاہری شکل', 'themeAuto': 'خودکار', 'themeLight': 'روشن', 'themeDark': 'تاریک',
+    'skinLabel': 'ٹرک آرٹ انداز', 'skinNote': 'مینو بار اور ڈرائیونگ اسکرین سجاتا ہے۔ نقشہ سادہ رہتا ہے۔',
+    'diagList': 'فہرست', 'diagDiagram': 'خاکہ', 'diagNote': 'خاکہ، پیمانے کے مطابق نہیں۔', 'diagBoard': 'سوار ہوں', 'diagAlight': 'اتریں',
     'navTransit': 'ٹرانزٹ', 'trTabStations': 'سٹیشن', 'trTabFare': 'کرایہ', 'trTabRiders': 'مسافر',
     'trMetrobus': 'میٹرو بس', 'trOrange': 'اورنج لائن', 'trStops': '{n} سٹاپ', 'trTapHint': 'کسی سٹیشن پر ٹیپ کریں، راستہ دکھایا جائے گا۔',
     'trFrom': 'سے', 'trTo': 'تک', 'trStudent': 'طلبہ کی رعایت (آدھا کرایہ)', 'trFareResult': '{n} سٹاپ · تقریباً {min} منٹ · روپے {fare}',
@@ -61,6 +67,9 @@ const Map<String, Map<String, String>> moreStrings = {
     'legalPrivacy2': 'آپ کی جی پی ایس لوکیشن آپ کے فون پر رہتی ہے، سوائے اس کے کہ آپ راستہ یا مقام تلاش کریں: تب آغاز اور منزل کے نقطے یا آپ کے الفاظ ہماری استعمال کردہ مفت نقشہ سروسز (OSRM / اوپن اسٹریٹ میپ سرورز اور Nominatim) کو بھیجے جاتے ہیں۔ موسم اور ہوا کا معیار Open-Meteo سے آتا ہے، جسے آپ کے منتخب شہر کے کوآرڈینیٹس ملتے ہیں، اور نقشے کی ٹائلز OpenFreeMap سے، جسے آپ کا دیکھا ہوا علاقہ اور آئی پی ایڈریس معلوم ہوتا ہے۔ ہر سروس کی اپنی رازداری پالیسی ہے۔ نیویگیشن کے دوران ایپ اسکرین بند ہونے پر بھی آپ کا مقام استعمال کرتی ہے اور ایک نوٹیفکیشن دکھاتی ہے؛ آواز آپ کے فون کا اپنا انجن بولتا ہے۔',
   },
   'pa': {
+    'themeLabel': 'ظاہری شکل', 'themeAuto': 'خودکار', 'themeLight': 'روشن', 'themeDark': 'گہرا',
+    'skinLabel': 'ٹرک آرٹ انداز', 'skinNote': 'مینو بار تے ڈرائیونگ اسکرین سجاؤندا اے۔ نقشہ سادہ رہندا اے۔',
+    'diagList': 'لسٹ', 'diagDiagram': 'خاکہ', 'diagNote': 'خاکہ، پیمانے مطابق نہیں۔', 'diagBoard': 'سوار ہووو', 'diagAlight': 'اتروو',
     'navTransit': 'ٹرانزٹ', 'trTabStations': 'سٹیشن', 'trTabFare': 'کرایہ', 'trTabRiders': 'سواریاں',
     'trMetrobus': 'میٹرو بس', 'trOrange': 'اورنج لائن', 'trStops': '{n} سٹاپ', 'trTapHint': 'کسے سٹیشن تے ٹیپ کرو، راہ دسیا جاوے گا۔',
     'trFrom': 'توں', 'trTo': 'تک', 'trStudent': 'طالبعلماں دی رعایت (اَدھا کرایہ)', 'trFareResult': '{n} سٹاپ · لگبھگ {min} منٹ · روپے {fare}',

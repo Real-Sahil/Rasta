@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:material_ui/material_ui.dart' show ThemeMode;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/announcer.dart';
 import '../core/geo.dart';
@@ -26,6 +28,8 @@ class AppState extends ChangeNotifier {
   final GetFn? _get; // test hook for the HTTP client
 
   String lang = 'en';
+  bool chamak = false; // optional truck-art chrome, off by default
+  ThemeMode themeMode = ThemeMode.system;
   Fix? fix; // null until a real GPS fix
   GpsProblem gpsProblem = GpsProblem.none;
   Place? destination;
@@ -49,7 +53,32 @@ class AppState extends ChangeNotifier {
 
   bool get muted => speech.muted;
 
+  Future<void> _loadPrefs() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      chamak = p.getBool('skinChamak') ?? false;
+      themeMode = switch (p.getString('themeMode')) { 'light' => ThemeMode.light, 'dark' => ThemeMode.dark, _ => ThemeMode.system };
+    } catch (_) {}
+  }
+
+  Future<void> setChamak(bool v) async {
+    chamak = v;
+    notifyListeners();
+    try {
+      (await SharedPreferences.getInstance()).setBool('skinChamak', v);
+    } catch (_) {}
+  }
+
+  Future<void> setThemeMode(ThemeMode m) async {
+    themeMode = m;
+    notifyListeners();
+    try {
+      (await SharedPreferences.getInstance()).setString('themeMode', m.name);
+    } catch (_) {}
+  }
+
   Future<void> init() async {
+    await _loadPrefs();
     await speech.init();
     gpsProblem = await gps.ensurePermission();
     if (gpsProblem == GpsProblem.none) _startGps(background: false);

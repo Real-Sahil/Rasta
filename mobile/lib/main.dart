@@ -6,6 +6,7 @@ import 'l10n.dart';
 import 'state/app_state.dart';
 import 'services/api_client.dart';
 import 'services/reports_api.dart';
+import 'ui/chamak.dart';
 import 'ui/home_shell.dart';
 
 void main() {
@@ -43,7 +44,9 @@ class _BuraqAppState extends State<BuraqApp> {
       builder: (context, _) => MaterialApp(
         title: tr(app.lang, 'appName'),
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(colorSchemeSeed: const Color(0xFF059669), useMaterial3: true),
+        theme: buildTheme(chamak: app.chamak, brightness: Brightness.light),
+        darkTheme: buildTheme(chamak: app.chamak, brightness: Brightness.dark),
+        themeMode: app.themeMode,
         builder: (context, child) => Directionality(textDirection: isRtl(app.lang) ? TextDirection.rtl : TextDirection.ltr, child: child!),
         home: SafetyGate(app: app, child: HomeShell(app: app, api: api)),
       ),

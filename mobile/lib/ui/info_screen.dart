@@ -24,6 +24,25 @@ class InfoScreen extends StatelessWidget {
         const SizedBox(height: 8),
         if (lang != 'en') Text(tr(lang, 'draft'), style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: 16),
+        Text(tr(lang, 'themeLabel'), style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        SegmentedButton<ThemeMode>(
+          segments: [
+            ButtonSegment(value: ThemeMode.system, label: Text(tr(lang, 'themeAuto'))),
+            ButtonSegment(value: ThemeMode.light, label: Text(tr(lang, 'themeLight'))),
+            ButtonSegment(value: ThemeMode.dark, label: Text(tr(lang, 'themeDark'))),
+          ],
+          selected: {app.themeMode},
+          onSelectionChanged: (s) => app.setThemeMode(s.first),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(tr(lang, 'skinLabel')),
+          subtitle: Text(tr(lang, 'skinNote')),
+          value: app.chamak,
+          onChanged: app.setChamak,
+        ),
+        const SizedBox(height: 8),
         ConditionsCard(app: app),
         const SizedBox(height: 8),
         ListTile(
