@@ -54,3 +54,4 @@ Incidents are device-local (no backend, so no real community sharing or moderati
 
 ## Hooks
 `.claude/settings.json` installs deps on remote session start (`.claude/hooks/session-start.sh`, skips when package files are unchanged) and runs a typecheck after edits to `src/**/*.ts(x)`.
+- Urdu clips (13) in `public/audio/ur/` come from the open tiny-urdu model, not a cloud service: see `docs/urdu-clips.md` (spellings, status, licence caveat). Unreviewed by ear or by a native speaker.

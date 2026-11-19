@@ -1,1 +1,17 @@
-{}
+{
+  "ur": [
+    "arrive",
+    "arrived",
+    "d200",
+    "d500",
+    "depart",
+    "merge",
+    "reroute",
+    "roundabout",
+    "start",
+    "straight",
+    "turn-left",
+    "turn-right",
+    "u-turn"
+  ]
+}
