@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { orderedStops, toStation, toPoi, withMeta, pickLines, baseLineName, stationsAlong, trackOf } from './osm.mjs';
+import { orderedStops, toStation, toPoi, withMeta, pickLines, baseLineName, stationsAlong, trackOf, stationsNearTrack, tidyLineStations, trackPoints } from './osm.mjs';
 
 const nodes = [
   { type: 'node', id: 1, lat: 31.45, lon: 74.24, tags: { name: 'Ali Town', 'name:ur': 'علی ٹاؤن' } },
@@ -118,5 +118,32 @@ describe('lines drawn as a track only', () => {
   it('refuses a track with too many breaks', () => {
     const broken = { members: [0, 1, 2, 3].map((i) => ({ type: 'way', ref: i, role: '', geometry: [{ lat: 30 + i, lon: 71 }, { lat: 30 + i + 0.01, lon: 71 }] })) };
     expect(trackOf(broken)).toBeNull();
+  });
+});
+
+describe('unordered tracks and line-word tidying', () => {
+  const st = (id, name, lat, lon) => ({ type: 'node', id, lat, lon, tags: { public_transport: 'station', name } });
+
+  it('orders stations near an unordered track by a nearest-neighbour chain from one end', () => {
+    // an L-shaped line: south->north, then east; ways listed out of order
+    const r = { members: [
+      { type: 'way', role: '', geometry: [{ lat: 33.70, lon: 73.00 }, { lat: 33.70, lon: 73.10 }] },
+      { type: 'way', role: '', geometry: [{ lat: 33.60, lon: 73.00 }, { lat: 33.70, lon: 73.00 }] }
+    ] };
+    const pts = trackPoints(r).flatMap((p, i, a) => (i ? [{ lat: (p.lat + a[i - 1].lat) / 2, lon: (p.lon + a[i - 1].lon) / 2 }, p] : [p]));
+    const out = stationsNearTrack(pts, [st(1, 'Corner', 33.70, 73.0), st(2, 'East', 33.70, 73.10), st(3, 'South', 33.60, 73.0), st(4, 'Mid', 33.65, 73.0), st(5, 'Off', 33.5, 72.5)]);
+    const names = out.map((s) => s.tags.name);
+    expect(names.length).toBe(4);
+    expect([names, [...names].reverse()]).toContainEqual(['South', 'Mid', 'Corner', 'East']);
+  });
+
+  it('drops a nearby bus stand when most stations carry the line word, and trims that word', () => {
+    const out = tidyLineStations([st(1, 'Gulgasht Metrobus', 0, 0), st(2, 'General Bus Stand', 0, 0), st(3, 'Metro Bus Terminal Faizabad', 0, 0), st(4, 'NUST Metro Bus Station', 0, 0), st(5, 'G10 Metro Station', 0, 0)]);
+    expect(out.map((s) => s.tags.name)).toEqual(['Gulgasht', 'Faizabad', 'NUST', 'G10']);
+    expect(out[1].osmName).toBe('Metro Bus Terminal Faizabad');
+  });
+
+  it('keeps every station when the line word is not the norm', () => {
+    expect(tidyLineStations([st(1, 'A', 0, 0), st(2, 'B', 0, 0), st(3, 'C Metro Station', 0, 0)]).length).toBe(3);
   });
 });
