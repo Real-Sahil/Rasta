@@ -408,13 +408,13 @@ export const RouteTimeCostChart: React.FC<RouteTimeCostChartProps> = ({
             <TrendingUp className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <h4 className="text-xs font-bold text-[color:var(--ink)] flex items-center gap-1.5">
               <span>{isRtl ? 'وقت بمقابلہ خرچ تجزیہ' : 'Time vs. Cost Matrix'}</span>
               <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-extrabold">
                 D3
               </span>
             </h4>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+            <p className="text-[10px] text-[color:var(--ink-2)]">
               {isRtl
                 ? 'بہترین معاشی اور تیز رفتار فیصلے کے لیے روٹس کا تقابل'
                 : 'Interactive tradeoff chart for faster commute decisions'}
@@ -430,7 +430,7 @@ export const RouteTimeCostChart: React.FC<RouteTimeCostChartProps> = ({
             className={`px-2 py-1 rounded flex items-center gap-1 transition-all ${
               viewMode === 'scatter'
                 ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                : 'text-[color:var(--ink-2)] hover:text-slate-900'
             }`}
             title="D3 Scatter Plot Matrix"
           >
@@ -443,7 +443,7 @@ export const RouteTimeCostChart: React.FC<RouteTimeCostChartProps> = ({
             className={`px-2 py-1 rounded flex items-center gap-1 transition-all ${
               viewMode === 'bars'
                 ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                : 'text-[color:var(--ink-2)] hover:text-slate-900'
             }`}
             title="Comparative Side-by-Side Bars"
           >
@@ -464,19 +464,19 @@ export const RouteTimeCostChart: React.FC<RouteTimeCostChartProps> = ({
 
           {/* Interactive Hover / Selection Callout */}
           {hoveredPoint && (
-            <div className="absolute top-2 right-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-2 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 text-[11px] space-y-1 pointer-events-none transition-all z-20 max-w-[200px]">
-              <div className="font-bold text-slate-900 dark:text-white truncate">
+            <div className="absolute top-2 right-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-2 rounded-xl shadow-lg border border-[color:var(--line)] text-[11px] space-y-1 pointer-events-none transition-all z-20 max-w-[200px]">
+              <div className="font-bold text-[color:var(--ink)] truncate">
                 {isRtl ? hoveredPoint.route.titleUrdu : hoveredPoint.route.title}
               </div>
-              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 text-[10px]">
+              <div className="flex items-center justify-between text-[color:var(--ink-2)] text-[10px]">
                 <span>{isRtl ? 'مدت:' : 'Time:'}</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">
                   {hoveredPoint.timeMinutes} {isRtl ? 'منٹ' : 'mins'}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 text-[10px]">
+              <div className="flex items-center justify-between text-[color:var(--ink-2)] text-[10px]">
                 <span>{isRtl ? 'کل خرچ:' : 'Total Cost:'}</span>
-                <span className="font-bold text-slate-900 dark:text-white">
+                <span className="font-bold text-[color:var(--ink)]">
                   Rs. {hoveredPoint.totalCostPkr}
                 </span>
               </div>
@@ -506,11 +506,11 @@ export const RouteTimeCostChart: React.FC<RouteTimeCostChartProps> = ({
                 className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
                   isSelected
                     ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 shadow-xs'
-                    : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 hover:bg-slate-100/70'
+                    : 'border-[color:var(--line)] bg-white/70 dark:bg-slate-900/50 hover:bg-slate-100/70'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 text-xs mb-1.5">
-                  <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
+                  <div className="font-bold text-[color:var(--ink)] flex items-center gap-1.5 truncate">
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: item.color }}
@@ -541,7 +541,7 @@ export const RouteTimeCostChart: React.FC<RouteTimeCostChartProps> = ({
                       <Clock className="w-3 h-3 text-slate-400" />
                       {isRtl ? 'سفر کا دورانیہ:' : 'Duration:'}
                     </span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                    <span className="font-bold text-[color:var(--ink)]">
                       {item.timeMinutes} {isRtl ? 'منٹ' : 'mins'}
                     </span>
                   </div>
@@ -584,13 +584,13 @@ export const RouteTimeCostChart: React.FC<RouteTimeCostChartProps> = ({
 
       {/* Financial & Time Decision Card */}
       {tradeOffVerdict && (
-        <div className="p-2.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 text-slate-800 dark:text-slate-200 text-[11px] flex items-start gap-2">
+        <div className="p-2.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 text-[color:var(--ink)] text-[11px] flex items-start gap-2">
           <Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <span className="font-bold text-emerald-800 dark:text-emerald-300 block">
               {isRtl ? 'ذہین فیصلہ ساز مشورہ:' : 'Mobility Intelligence Insight:'}
             </span>
-            <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-[color:var(--ink-2)] leading-relaxed">
               {isRtl ? tradeOffVerdict.ur : tradeOffVerdict.en}
             </p>
           </div>

@@ -89,7 +89,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ title, snap, onSnapCha
     >
       {floating && <div className={`absolute ${side} bottom-full mb-3 flex flex-col gap-3 items-center`}>{floating}</div>}
 
-      <div className="skin-sheet w-full h-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-t-3xl shadow-[0_-12px_35px_rgba(15,23,42,0.18)] flex flex-col overflow-hidden">
+      <div className="skin-sheet w-full h-full bg-[color:var(--surface)] rounded-t-[28px] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_-18px_40px_-16px_rgba(14,26,20,0.35)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_-18px_40px_-16px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden">
         {/* Drag handle + title */}
         <div
           role="button"
@@ -100,18 +100,18 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ title, snap, onSnapCha
           onPointerUp={onPointerUp}
           onPointerCancel={() => { drag.current = null; setDragH(null); }}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSnapChange(snap === 'full' ? 'peek' : 'full'); }}
-          className="touch-none select-none cursor-grab active:cursor-grabbing shrink-0 pt-2 pb-2 px-5 border-b border-slate-100 dark:border-slate-800"
+          className="touch-none select-none cursor-grab active:cursor-grabbing shrink-0 pt-2.5 pb-2 px-5"
         >
-          <div className="skin-handle mx-auto w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700 mb-2" />
+          <div className="skin-handle mx-auto w-9 h-[5px] rounded-full bg-[color:var(--line)] dark:bg-white/15 mb-2.5" />
           <div className="flex items-center justify-between">
-            <h3 className="skin-display text-sm font-extrabold text-slate-800 dark:text-slate-100 truncate">{title}</h3>
-            {snap === 'full' ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+            <h3 className="skin-display font-display text-[19px] font-extrabold text-[color:var(--ink)] truncate">{title}</h3>
+            {snap === 'full' ? <ChevronDown className="w-5 h-5 text-[color:var(--ink-2)]" /> : <ChevronUp className="w-5 h-5 text-[color:var(--ink-2)]" />}
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">{children}</div>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-1 pb-4 space-y-4">{children}</div>
 
-        {footer && <div className="shrink-0 p-3 border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95">{footer}</div>}
+        {footer && <div className="shrink-0 px-4 pt-2 pb-3 bg-[color:var(--surface)]">{footer}</div>}
       </div>
     </div>
   );

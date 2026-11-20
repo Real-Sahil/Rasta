@@ -11,10 +11,8 @@ import {
   CheckCircle,
   ThumbsUp,
   Clock,
-  ShieldCheck,
   PlusCircle,
   X,
-  Camera,
   MapPin,
   Navigation,
   Mic,
@@ -30,6 +28,14 @@ interface TrafficIncidentsProps {
   onConfirmIncident: (id: string) => void;
   onFocusIncident: (incident: CommunityIncident) => void;
   userCoords?: { lat: number; lng: number } | null;
+}
+
+/** "3 h 20 min ago" style age; never negative. */
+function ageText(ms: number, rtl: boolean): string {
+  const m = Math.max(0, Math.round(ms / 60000));
+  const h = Math.floor(m / 60), r = m % 60;
+  if (rtl) return m < 1 ? 'ابھی' : h ? `${h} گھنٹے ${r ? `${r} منٹ ` : ''}پہلے` : `${m} منٹ پہلے`;
+  return m < 1 ? 'just now' : h ? `${h} h ${r ? `${r} min ` : ''}ago` : `${m} min ago`;
 }
 
 export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
@@ -162,20 +168,12 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
     <div className="space-y-3">
       {/* Feed Controls Header */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-500 animate-pulse" />
-            <span>{t.incidentTitle}</span>
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {t.incidentSubtitle}
-          </p>
-        </div>
+        <p className="ui-sub min-w-0 flex-1">{t.incidentSubtitle}</p>
 
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20"
+          className="ui-btn ui-btn-primary h-10 px-4 text-sm shrink-0"
         >
           <PlusCircle className="w-4 h-4" />
           <span>{t.reportButton}</span>
@@ -183,7 +181,7 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
       </div>
 
       {/* Category Pills Filter */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
         {[
           { id: 'all', label: isRtl ? 'تمام' : 'All' },
           { id: 'congestion', label: isRtl ? 'ٹریفک جام' : 'Congestion' },
@@ -195,11 +193,8 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
             key={tab.id}
             type="button"
             onClick={() => setSelectedCategory(tab.id as any)}
-            className={`px-3 py-1 rounded-lg font-semibold shrink-0 transition-all ${
-              selectedCategory === tab.id
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-            }`}
+            aria-pressed={selectedCategory === tab.id}
+            className="ui-chip shrink-0"
           >
             {tab.label}
           </button>
@@ -210,8 +205,8 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
       <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
         {filteredIncidents.length === 0 && (
           <div className="py-8 text-center space-y-2">
-            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{isRtl ? 'ابھی کوئی رپورٹ نہیں' : 'No reports yet'}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="font-display text-[17px] font-extrabold text-[color:var(--ink)]">{isRtl ? 'ابھی کوئی رپورٹ نہیں' : 'No reports yet'}</p>
+            <p className="text-xs text-[color:var(--ink-2)]">
               {isRtl ? 'راستے میں کچھ نظر آئے تو رپورٹ کریں تاکہ دوسروں کی مدد ہو۔' : 'See something on the road? Report it to help other drivers. Reports expire after a few hours.'}
             </p>
           </div>
@@ -223,7 +218,7 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
             <div
               key={incident.id}
               onClick={() => onFocusIncident(incident)}
-              className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/50 shadow-xs transition-all cursor-pointer space-y-2"
+              className="p-4 bg-[color:var(--paper)] rounded-[22px] hover:ring-1 hover:ring-[color:var(--line)] transition-shadow cursor-pointer space-y-2.5"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -231,49 +226,42 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
                     {badge.label}
                   </span>
 
-                  {incident.isOfficialVerified ? (
-                    <span className="flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
-                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                      PSCA Verified
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-medium">
+                    <span className="text-[11px] text-[color:var(--ink-2)] font-semibold num">
                       {t.credibility}: {incident.credibilityScore}%
                     </span>
-                  )}
                 </div>
 
-                <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                <div className="flex items-center gap-1 text-[11px] text-[color:var(--ink-2)] num shrink-0">
                   <Clock className="w-3 h-3" />
                   <span>
-                    {Math.round((Date.now() - incident.timestamp) / 60000)}m ago
+                    {ageText(Date.now() - incident.timestamp, isRtl)}
                   </span>
                 </div>
               </div>
 
               <div>
-                <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                <h4 className="font-display font-extrabold text-[15px] text-[color:var(--ink)]">
                   {isRtl ? incident.titleUrdu : incident.title}
                 </h4>
-                <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <div className="flex items-center gap-1 text-xs text-[color:var(--ink-2)] mt-0.5">
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate">{isRtl ? incident.locationNameUrdu : incident.locationName}</span>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                <p className="text-xs text-[color:var(--ink-2)] mt-1">
                   {isRtl ? incident.descriptionUrdu : incident.description}
                 </p>
               </div>
 
               {incident.alternativeRouteAdvice && (
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50 dark:border-emerald-900/40 rounded-lg text-xs text-emerald-900 dark:text-emerald-300">
+                <div className="p-2.5 bg-[color:var(--surface)] rounded-xl text-xs text-[color:var(--ink)]">
                   <span className="font-bold">{isRtl ? 'متبادل راستہ:' : 'Advisory:'} </span>
                   {isRtl ? incident.alternativeRouteAdviceUrdu : incident.alternativeRouteAdvice}
                 </div>
               )}
 
               {/* Confirmation / Upvote & Share bar */}
-              <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
-                <span className="text-slate-400 text-[11px]">
+              <div className="flex items-center justify-between pt-1 border-t border-[color:var(--line)] text-xs">
+                <span className="text-[color:var(--ink-2)] text-[11px] num">
                   {incident.upvotes} {t.commuters} {t.confirmedBy}
                 </span>
 
@@ -284,8 +272,8 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
                       e.stopPropagation();
                       handleShareIncident(incident);
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 font-bold transition-all cursor-pointer"
-                    title="Share Incident Report"
+                    className="ui-btn ui-btn-soft h-8 px-3 text-xs"
+                    title={isRtl ? 'شیئر' : 'Share'}
                   >
                     <Share2 className="w-3.5 h-3.5" />
                     <span>{isRtl ? 'شیئر' : 'Share'}</span>
@@ -297,11 +285,8 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
                       e.stopPropagation();
                       onConfirmIncident(incident.id);
                     }}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-all ${
-                      incident.userConfirmed
-                        ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-emerald-50'
-                    }`}
+                    aria-pressed={!!incident.userConfirmed}
+                    className={`ui-btn h-8 px-3 text-xs ${incident.userConfirmed ? 'ui-btn-ink' : 'ui-btn-soft'}`}
                   >
                     <ThumbsUp className="w-3.5 h-3.5" />
                     <span>{t.confirmIncident}</span>
@@ -315,17 +300,17 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
 
       {/* Community Report Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
+        <div className="anim-fade fixed inset-0 z-50 bg-black/55 backdrop-blur-sm flex items-center justify-center p-3">
+          <div className="anim-sheet bg-[color:var(--surface)] rounded-[28px] max-w-lg w-full p-5 sm:p-6 shadow-[var(--shadow-float)] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-[color:var(--line)]">
+              <h3 className="font-extrabold text-base text-[color:var(--ink)] flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
                 <span>{isRtl ? 'سڑک کا مسئلہ یا حادثہ رپورٹ کریں' : 'Report Live Traffic Incident'}</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="ui-btn ui-btn-soft w-9 h-9 p-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -333,7 +318,7 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
 
             <form onSubmit={handleCreateReport} className="mt-4 space-y-3.5 text-xs sm:text-sm">
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[color:var(--ink)] mb-1">
                   {isRtl ? 'مسئلے کی قسم' : 'Incident Category'}
                 </label>
                 {reportError && (
@@ -342,7 +327,7 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as IncidentCategory)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium"
+                  className="w-full p-2.5 rounded-xl border-0 ring-1 ring-[color:var(--line)] focus:ring-2 focus:ring-[color:var(--ink)] outline-none bg-[color:var(--paper)] text-[color:var(--ink)] font-medium"
                 >
                   <option value="congestion">Severe Traffic Jam (شدید رش)</option>
                   <option value="accident">Accident (حادثہ)</option>
@@ -354,7 +339,7 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block font-semibold text-[color:var(--ink)] mb-1">
                   {isRtl ? 'مقام کا نام (مثلاً کینال روڈ، کلمہ چوک)' : 'Location / Chowk Name'}
                 </label>
                 <input
@@ -363,13 +348,13 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
                   value={locationName}
                   onChange={(e) => setLocationName(e.target.value)}
                   placeholder="e.g. Canal Road Campus Bridge Underpass"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                  className="w-full p-2.5 rounded-xl border-0 ring-1 ring-[color:var(--line)] focus:ring-2 focus:ring-[color:var(--ink)] outline-none bg-[color:var(--paper)] text-[color:var(--ink)]"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="font-semibold text-slate-700 dark:text-slate-300">
+                  <label className="font-semibold text-[color:var(--ink)]">
                     {isRtl ? 'عنوان (انگریزی یا اردو)' : 'Incident Headline'}
                   </label>
                   <button
@@ -378,7 +363,7 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
                     className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold transition-all ${
                       isVoiceReporting && voiceTarget === 'title'
                         ? 'bg-rose-500 text-white animate-pulse'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-600'
+                        : 'bg-[color:var(--paper)] text-[color:var(--ink-2)] hover:text-[color:var(--ink)]'
                     }`}
                   >
                     <Mic className="w-3 h-3" />
@@ -391,13 +376,13 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Underpass drainage blocked, 20 mins delay"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                  className="w-full p-2.5 rounded-xl border-0 ring-1 ring-[color:var(--line)] focus:ring-2 focus:ring-[color:var(--ink)] outline-none bg-[color:var(--paper)] text-[color:var(--ink)]"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="font-semibold text-slate-700 dark:text-slate-300">
+                  <label className="font-semibold text-[color:var(--ink)]">
                     {isRtl ? 'تفصیل و متبادل راستہ' : 'Details & Alternative Route Advice'}
                   </label>
                   <button
@@ -406,7 +391,7 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
                     className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold transition-all ${
                       isVoiceReporting && voiceTarget === 'description'
                         ? 'bg-rose-500 text-white animate-pulse'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-600'
+                        : 'bg-[color:var(--paper)] text-[color:var(--ink-2)] hover:text-[color:var(--ink)]'
                     }`}
                   >
                     <Mic className="w-3 h-3" />
@@ -418,7 +403,7 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Advice fellow Pakistani drivers which road to take instead..."
-                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                  className="w-full p-2.5 rounded-xl border-0 ring-1 ring-[color:var(--line)] focus:ring-2 focus:ring-[color:var(--ink)] outline-none bg-[color:var(--paper)] text-[color:var(--ink)]"
                 />
               </div>
 
@@ -429,24 +414,17 @@ export const TrafficIncidents: React.FC<TrafficIncidentsProps> = ({
                 </div>
               )}
 
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center gap-2 text-slate-500 cursor-pointer hover:border-emerald-500 hover:text-emerald-600 transition-colors">
-                <Camera className="w-5 h-5" />
-                <span className="font-medium text-xs">
-                  {isRtl ? 'تصویر منسلک کریں (اختیاری)' : 'Attach Road Photo (Optional)'}
-                </span>
-              </div>
-
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="ui-btn ui-btn-soft h-11 px-4"
                 >
-                  Cancel
+                  {isRtl ? 'منسوخ' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-600/30"
+                  className="ui-btn ui-btn-primary h-11 px-5"
                 >
                   {isRtl ? 'الرٹ شائع کریں' : 'Publish Report'}
                 </button>

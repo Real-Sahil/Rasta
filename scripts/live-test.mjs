@@ -175,13 +175,13 @@ if (reachable) {
   }
   await step('data', 'OpenStreetMap transit stations present (Transit tab not empty)', async () => { await page.getByRole('button', { name: 'Transit', exact: true }).last().click(); await page.waitForTimeout(500); return /No station data yet/.test(await text()) ? false : true; });
   await step('data', 'OSM hospitals present in SOS tab', async () => { await page.getByRole('button', { name: 'SOS', exact: true }).last().click(); await page.waitForTimeout(500); return /No place data available yet/.test(await text()) ? false : true; });
-  await step('security', 'SOS refuses to send nothing without GPS is covered by unit tests; button exists', async () => (await page.getByText('SOS WhatsApp').count()) === 1);
+  await step('security', 'SOS refuses to send nothing without GPS is covered by unit tests; button exists', async () => (await page.getByText('Send my location on WhatsApp').count()) === 1);
 
   // report an incident through the UI (needs the backend)
   if (WRITE) {
     await page.getByRole('button', { name: 'Alerts', exact: true }).last().click();
     await page.waitForTimeout(500);
-    await page.getByText('Report New Incident').click();
+    await page.getByRole('button', { name: 'Report', exact: true }).click();
     await page.waitForTimeout(600);
     await shot('06_report_form');
     await step('report', 'report form opens', async () => (await page.locator('form').count()) > 0);

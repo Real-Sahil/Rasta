@@ -11,7 +11,6 @@ import { useMobilityTheme } from './ThemeLayoutWrapper';
 import {
   PhoneCall,
   Share2,
-  ShieldAlert,
   Fuel,
   Wrench,
   Hospital,
@@ -60,27 +59,19 @@ export const EmergencyServices: React.FC<EmergencyServicesProps> = ({
   };
 
   return (
-    <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 space-y-4">
+    <div className="space-y-4">
       {/* Emergency Header */}
-      <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-        <div>
-          <h3 className="skin-display font-extrabold text-base text-rose-700 dark:text-rose-400 flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-rose-600 animate-pulse" />
-            <span>{t.emergencyTab}</span>
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            {t.emergencySubtitle}
-          </p>
-        </div>
+      <div className="space-y-2">
+        <p className="ui-sub">{t.emergencySubtitle}</p>
 
         {/* SOS WhatsApp Share Button */}
         <button
           type="button"
           onClick={handleShareSos}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/30 shrink-0"
+          className="ui-btn ui-btn-primary w-full h-12 text-[15px]"
         >
-          <MessageCircle className="w-4 h-4 fill-current" />
-          <span>{isRtl ? 'واٹس ایپ لوکیشن' : 'SOS WhatsApp'}</span>
+          <MessageCircle className="w-5 h-5" />
+          <span>{isRtl ? 'واٹس ایپ پر اپنا مقام بھیجیں' : 'Send my location on WhatsApp'}</span>
         </button>
       </div>
 
@@ -90,41 +81,42 @@ export const EmergencyServices: React.FC<EmergencyServicesProps> = ({
           <a
             key={contact.id}
             href={`tel:${contact.number}`}
-            className="p-3 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/60 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all flex flex-col justify-between group"
+            className="p-3.5 rounded-[20px] bg-[color:var(--paper)] ring-1 ring-[color:var(--line)] active:scale-[0.98] transition-transform flex flex-col justify-between group"
           >
             <div>
-              <span className="text-xs font-bold text-slate-900 dark:text-white block group-hover:text-rose-600 transition-colors">
+              <span className="text-xs font-bold text-[color:var(--ink)] block">
                 {isRtl ? contact.titleUrdu : contact.title}
               </span>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+              <p className="text-[10px] text-[color:var(--ink-2)] mt-0.5 line-clamp-1">
                 {isRtl ? contact.descriptionUrdu : contact.description}
               </p>
             </div>
 
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-rose-200/60 dark:border-rose-900/40">
-              <span className="text-base font-black text-rose-700 dark:text-rose-400">
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-[color:var(--line)]">
+              <span className="font-display num text-[22px] font-extrabold text-[color:var(--danger)] leading-none">
                 {contact.number}
               </span>
-              <PhoneCall className="w-4 h-4 text-rose-600 group-hover:scale-110 transition-transform" />
+              <span className="ui-btn ui-btn-danger w-8 h-8 p-0"><PhoneCall className="w-4 h-4" /></span>
             </div>
           </a>
         ))}
       </div>
 
       {/* Local Road Services (Petrol, Puncture, Mechanics, Hospitals) */}
-      <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+      <div className="space-y-2 pt-2 border-t border-[color:var(--line)]">
         <div className="flex items-center justify-between">
-          <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+          <span className="font-display font-extrabold text-[15px] text-[color:var(--ink)]">
             {t.nearbyServices}
           </span>
           {/* Filter Pills */}
-          <div className="flex items-center gap-1 text-[11px]">
+          <div className="flex items-center gap-1.5">
             {([['hospital', isRtl ? 'ہسپتال' : 'Hospitals'], ['fuel', isRtl ? 'پٹرول' : 'Fuel']] as const).map(([id, label]) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setActiveFilter(id)}
-                className={`px-2 py-0.5 rounded-lg font-semibold ${activeFilter === id ? 'bg-emerald-600 text-white' : 'text-slate-500'}`}
+                aria-pressed={activeFilter === id}
+                className="ui-chip"
               >
                 {label}
               </button>
@@ -134,7 +126,7 @@ export const EmergencyServices: React.FC<EmergencyServicesProps> = ({
 
         <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
           {services.length === 0 && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 p-2">
+            <p className="text-xs text-[color:var(--ink-2)] p-2">
               {isRtl ? 'اس وقت ڈیٹا دستیاب نہیں۔' : 'No place data available yet.'}
             </p>
           )}
@@ -142,15 +134,15 @@ export const EmergencyServices: React.FC<EmergencyServicesProps> = ({
             <div
               key={p.id}
               onClick={() => onFocusLocation && onFocusLocation({ lat: p.lat, lng: p.lng })}
-              className="p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center justify-between gap-2"
+              className="px-3 py-2.5 rounded-[18px] bg-[color:var(--paper)] hover:ring-1 hover:ring-[color:var(--line)] transition-shadow cursor-pointer flex items-center justify-between gap-2"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="p-2 rounded-xl bg-white dark:bg-slate-700 shadow-xs shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-[color:var(--surface)] ring-1 ring-[color:var(--line)] flex items-center justify-center shrink-0">
                   {p.kind === 'fuel' ? <Fuel className="w-4 h-4 text-emerald-600" /> : <Hospital className="w-4 h-4 text-rose-600" />}
                 </div>
                 <div className="min-w-0">
-                  <h5 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 truncate">{stationName(p, isRtl)}</h5>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  <h5 className="font-bold text-xs sm:text-sm text-[color:var(--ink)] truncate">{stationName(p, isRtl)}</h5>
+                  <p className="text-[11px] text-[color:var(--ink-2)] truncate">
                     {[d != null ? (d < 1000 ? `${Math.round(d / 10) * 10} m` : `${(d / 1000).toFixed(1)} km`) : null, p.address, p.emergency ? (isRtl ? 'ایمرجنسی' : 'Emergency') : null, p.open24h ? '24/7' : null].filter(Boolean).join(' • ')}
                   </p>
                 </div>
@@ -159,16 +151,16 @@ export const EmergencyServices: React.FC<EmergencyServicesProps> = ({
                 <a
                   href={`tel:${p.phone}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-1 shrink-0"
+                  className="ui-btn ui-btn-soft h-8 px-3 text-xs shrink-0"
                 >
                   <PhoneCall className="w-3 h-3" />
-                  <span>Call</span>
+                  <span>{isRtl ? 'کال' : 'Call'}</span>
                 </a>
               )}
             </div>
           ))}
         </div>
-        <p className="text-[10px] text-slate-400">
+        <p className="text-[11px] text-[color:var(--ink-2)]">
           {OSM_CREDIT}{OSM_UPDATED ? `, updated ${OSM_UPDATED}` : ''}. {isRtl ? 'فون نمبر اور اوقات صرف جہاں معلوم ہوں۔' : 'Phone numbers and hours are shown only where OpenStreetMap has them; availability is not guaranteed.'}
         </p>
       </div>

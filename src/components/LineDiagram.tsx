@@ -48,7 +48,7 @@ export const LineDiagram: React.FC<Props> = ({ stations, color, isRtl, fromId, t
                 <div aria-hidden className="absolute left-1/2 -translate-x-1/2 w-2.5"
                   style={{ background: color, top: first ? '50%' : 0, bottom: last ? '50%' : 0 }} />
                 {isFrom || isTo ? (
-                  <div aria-hidden className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-[5px] border-slate-900 dark:border-white ${isFrom ? 'bg-white dark:bg-slate-900' : 'bg-slate-900 dark:bg-white'}`} />
+                  <div aria-hidden className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-[5px] border-slate-900 dark:border-white ${isFrom ? 'bg-[color:var(--surface)]' : 'bg-slate-900 dark:bg-white'}`} />
                 ) : (
                   <div aria-hidden className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-[3px] bg-slate-900 dark:bg-slate-100" />
                 )}
@@ -60,7 +60,7 @@ export const LineDiagram: React.FC<Props> = ({ stations, color, isRtl, fromId, t
                 className={`flex-1 min-w-0 py-1.5 text-start flex flex-col justify-center ${interactive ? 'cursor-pointer hover:opacity-70' : 'cursor-default'}`}
               >
                 {(isFrom || isTo) && (
-                  <span className="text-[10px] tracking-widest uppercase font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="text-[10px] tracking-widest uppercase font-semibold text-[color:var(--ink-2)]">
                     {isFrom ? boardLabel : alightLabel} · {s.code}
                   </span>
                 )}

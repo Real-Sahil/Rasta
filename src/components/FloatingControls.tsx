@@ -20,16 +20,16 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({ onReportClic
         type="button"
         onClick={onReportClick}
         aria-label={isRtl ? 'سڑک کی رپورٹ' : 'Report a road hazard'}
-        className="w-12 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-full shadow-xl flex items-center justify-center border-2 border-white cursor-pointer"
+        className="ui-btn ui-glass w-12 h-12 p-0 text-[color:var(--ink)]"
       >
-        <AlertTriangle className="w-6 h-6" />
+        <AlertTriangle className="w-5 h-5 fill-[color:var(--signal)] stroke-[color:var(--ink)]" />
       </button>
     )}
     <button
       type="button"
       onClick={onLocateClick}
       aria-label={isRtl ? 'میرا مقام' : 'My location'}
-      className="w-12 h-12 bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 rounded-full shadow-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer"
+      className="ui-btn ui-glass w-12 h-12 p-0 text-[color:var(--brand)] dark:text-[color:var(--brand-hi)]"
     >
       <LocateFixed className="w-5 h-5" />
     </button>

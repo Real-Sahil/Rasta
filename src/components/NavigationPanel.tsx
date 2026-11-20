@@ -39,17 +39,17 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
   return (
     <div className="space-y-4">
       {/* Origin -> Destination Header */}
-      <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+      <div className="flex items-start justify-between gap-3 border-b border-[color:var(--line)] pb-3">
         <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
+          <div className="flex items-center gap-2.5 text-[13px] text-[color:var(--ink-2)]">
+            <span className="w-2.5 h-2.5 rounded-full border-[3px] border-[color:var(--brand-hi)] shrink-0" />
             <span className="font-semibold truncate max-w-[240px]">
-              {originName ? originName : hasFix ? (isRtl ? 'موجودہ جی پی ایس مقام' : 'Current GPS Location') : (isRtl ? 'GPS مقام غیر دستیاب' : 'GPS Location Unavailable')}
+              {originName ? originName : hasFix ? (isRtl ? 'آپ کا مقام' : 'Your location') : (isRtl ? 'GPS کا انتظار' : 'Waiting for GPS')}
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-black text-slate-900 dark:text-white">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm" />
+          <div className="flex items-center gap-2.5 text-[15px] font-extrabold text-[color:var(--ink)]">
+            <span className="w-2.5 h-2.5 rounded-[3px] bg-[color:var(--ink)] rotate-45 shrink-0" />
             <span className="truncate max-w-[260px]">
               {isRtl ? destination.nameUrdu : destination.name}
             </span>
@@ -59,7 +59,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
         <button
           type="button"
           onClick={onClearNavigation}
-          className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800"
+          className="ui-btn ui-btn-soft w-9 h-9 p-0 text-[color:var(--ink-2)]" aria-label={t.clearRoute}
           title={t.clearRoute}
         >
           <X className="w-5 h-5" />
@@ -76,7 +76,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
       {weatherData && (
         <div className="p-3 rounded-2xl bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/30 flex items-center gap-2.5 text-xs">
           <CloudRain className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0" />
-          <p className="text-[11px] text-slate-600 dark:text-slate-300">
+          <p className="text-[11px] text-[color:var(--ink-2)]">
             {isRtl
               ? `موسم: ${weatherData.conditionUrdu} • ${weatherData.temperatureC}°C • پانی جمع ہونے کا خطرہ: ${weatherData.waterloggingRiskUrdu}`
               : `Weather: ${weatherData.condition}, ${weatherData.temperatureC}°C • Waterlogging risk: ${weatherData.waterloggingRisk}`}
@@ -85,7 +85,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
       )}
 
       {/* Travel Mode Pills */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-2xl text-xs font-bold">
+      <div className="ui-seg" role="group">
         {[
           { id: 'DRIVING', label: isRtl ? 'کار' : 'Car', icon: Car },
           { id: 'TWO_WHEELER', label: isRtl ? 'موٹر سائیکل' : 'Bike', icon: Bike },
@@ -99,11 +99,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
               key={mode.id}
               type="button"
               onClick={() => onTravelModeChange(mode.id as TravelMode)}
-              className={`flex-1 py-2 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                isSelected
-                  ? 'bg-white dark:bg-slate-700 text-[#143C35] dark:text-emerald-300 shadow-sm font-black'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
+              aria-pressed={isSelected}
             >
               <Icon className="w-4 h-4" />
               <span>{mode.label}</span>
@@ -114,12 +110,12 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
 
       {/* Available Route Alternatives */}
       <div className="space-y-2">
-        <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider block">
+        <span className="ui-sub font-bold block">
           {t.alternativeRoutes}
         </span>
 
         {routesLoading && (
-          <div className="flex items-center gap-2 text-xs text-slate-500"><Loader2 className="w-4 h-4 animate-spin" />{isRtl ? 'راستے تلاش ہو رہے ہیں…' : 'Finding routes…'}</div>
+          <div className="flex items-center gap-2 ui-sub"><Loader2 className="w-4 h-4 animate-spin" />{isRtl ? 'راستے تلاش ہو رہے ہیں…' : 'Finding routes…'}</div>
         )}
         {routesSource === 'estimate' && !routesLoading && (
           <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-900 dark:text-amber-200 text-[11px] font-bold">
@@ -135,27 +131,31 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
                 key={route.id}
                 style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
                 onClick={() => onSelectRoute(route.id)}
-                className={`animate-in p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectRoute(route.id); }}
+                className={`animate-in px-4 py-3.5 rounded-[20px] border-2 transition-[background-color,border-color,transform] duration-200 cursor-pointer flex items-center justify-between active:scale-[0.99] ${
                   isSelected
-                    ? 'border-[#20A477] bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-[#20A477]/30 shadow-md'
-                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/50 hover:bg-slate-100'
+                    ? 'border-[color:var(--ink)] bg-[color:var(--surface)] shadow-[0_10px_24px_-14px_rgba(14,26,20,0.55)]'
+                    : 'border-transparent bg-[color:var(--paper)] hover:border-[color:var(--line)]'
                 }`}
               >
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-black text-base text-slate-900 dark:text-white">
+                    <span className="font-display num text-[22px] font-extrabold text-[color:var(--ink)] leading-none">
                       {route.durationMinutes} {t.mins}
                     </span>
-                    <span className="text-xs text-slate-500 font-semibold">
-                      ({route.distanceKm.toFixed(1)} km)
+                    <span className="num text-xs text-[color:var(--ink-2)] font-bold">
+                      · {route.distanceKm.toFixed(1)} km
                     </span>
                     {routes.length > 1 && route.durationMinutes === fastestDuration && (
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-[#20A477] text-white">
+                      <span className="ui-signal text-[11px] font-extrabold px-2 py-0.5 rounded-full">
                         {isRtl ? 'بہترین' : 'Fastest'}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  <p className="text-xs text-[color:var(--ink-2)] font-medium">
                     {isRtl ? route.viaUrdu : route.via}
                   </p>
                 </div>

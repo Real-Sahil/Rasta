@@ -269,9 +269,9 @@ function MainApp() {
   };
 
   const sheetTitle = {
-      navigate: destination ? (isRtl ? 'راستہ' : 'Route') : (isRtl ? 'منزل منتخب کریں' : 'Choose a destination'),
-      multimodal: isRtl ? 'سفر کے طریقوں کا موازنہ' : 'Compare ways to travel',
-      transit: isRtl ? 'لاہور میٹرو بس اور اورنج لائن' : 'Lahore Metrobus & Orange Line',
+      navigate: destination ? (isRtl ? 'راستہ' : 'Route') : (isRtl ? 'کہاں جانا ہے؟' : 'Where to?'),
+      multimodal: isRtl ? 'سفر کا موازنہ' : 'Compare',
+      transit: isRtl ? 'میٹرو اور بی آر ٹی' : 'Metro & BRT',
       incidents: isRtl ? `سڑک کی رپورٹس (${incidents.length})` : `Road reports (${incidents.length})`,
       emergency: isRtl ? 'ایمرجنسی مدد' : 'Emergency help'
     }[activeTab];
@@ -438,7 +438,7 @@ function MainApp() {
                     title={t.clearRoute}
                     aria-label={t.clearRoute}
                     onClick={() => { store().setOrigin(null); store().setDestination(null); }}
-                    className="p-2 rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-slate-200/80 dark:border-slate-800 text-slate-500 cursor-pointer"
+                    className="p-2 rounded-xl bg-[color:var(--surface)] shadow-lg border border-slate-200/80 dark:border-slate-800 text-slate-500 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -456,7 +456,7 @@ function MainApp() {
                       store().setDestination(from);
                       store().setOrigin(to);
                     }}
-                    className="p-2 rounded-xl bg-white dark:bg-slate-900 shadow-lg border border-slate-200/80 dark:border-slate-800 text-slate-600 disabled:opacity-40 cursor-pointer"
+                    className="p-2 rounded-xl bg-[color:var(--surface)] shadow-lg border border-slate-200/80 dark:border-slate-800 text-slate-600 disabled:opacity-40 cursor-pointer"
                   >
                     <ArrowUpDown className="w-4 h-4" />
                   </button>
@@ -527,17 +527,17 @@ function MainApp() {
 
           {/* Selected Map Marker Info Modal */}
           {selectedMapMarker && (
-            <div className="absolute top-20 left-4 right-4 lg:left-auto lg:right-4 lg:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-4 z-40 animate-in fade-in space-y-3">
-              <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+            <div className="absolute top-20 left-4 right-4 lg:left-auto lg:right-4 lg:w-96 bg-[color:var(--surface)] rounded-2xl shadow-2xl border border-[color:var(--line)] p-4 z-40 animate-in fade-in space-y-3">
+              <div className="flex items-start justify-between gap-2 border-b border-[color:var(--line)] pb-2.5">
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0 shadow-md">
                     {selectedMapMarker.type === 'incident' ? '⚠️' : selectedMapMarker.type === 'transit_station' ? '🚇' : '📍'}
                   </div>
                   <div>
-                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    <div className="text-[10px] font-extrabold  text-emerald-600 dark:text-emerald-400">
                       {selectedMapMarker.type.replace('_', ' ').toUpperCase()}
                     </div>
-                    <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-0.5">
+                    <h4 className="font-bold text-sm text-[color:var(--ink)] mt-0.5">
                       {isRtl && selectedMapMarker.titleUrdu ? selectedMapMarker.titleUrdu : (selectedMapMarker.title || 'Location Detail')}
                     </h4>
                   </div>
@@ -550,7 +550,7 @@ function MainApp() {
                 </button>
               </div>
 
-              <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div className="space-y-2 text-xs text-[color:var(--ink-2)]">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Coordinates:</span>
                   <span className="font-mono font-semibold">{selectedMapMarker.lat.toFixed(4)}, {selectedMapMarker.lng.toFixed(4)}</span>
@@ -566,7 +566,7 @@ function MainApp() {
                       <span className="text-slate-400">Community Upvotes:</span>
                       <span className="font-semibold">{selectedMapMarker.incidentData.upvotes} Upvotes</span>
                     </div>
-                    <p className="text-xs text-slate-500 italic mt-1 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg">
+                    <p className="text-xs text-slate-500 italic mt-1 bg-[color:var(--paper)]/50 p-2 rounded-lg">
                       "{isRtl ? selectedMapMarker.incidentData.descriptionUrdu : selectedMapMarker.incidentData.description}"
                     </p>
                   </>
@@ -621,7 +621,7 @@ function MainApp() {
                   const res = handleStart();
                   if (!res.ok) flash(res.reason === 'custom_origin' ? t.previewOnly : res.reason === 'no_fix' ? (isRtl ? 'GPS لوکیشن دستیاب نہیں۔ براہ کرم مقام کی اجازت دیں اور دوبارہ کوشش کریں۔' : 'No GPS fix yet. Allow location access and try again.') : (isRtl ? 'ابھی کوئی راستہ دستیاب نہیں۔' : 'No route available yet.'));
                 }}
-                className="skin-primary w-full py-3.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 disabled:text-slate-500 text-white font-black text-base flex items-center justify-center gap-2 cursor-pointer transition-[transform,background-color] duration-150 active:scale-[0.98] disabled:active:scale-100"
+                className="skin-primary ui-btn ui-btn-primary w-full h-14 text-[17px]"
               >
                 <Navigation className="w-5 h-5" />
                 <span>{isRtl ? 'نیویگیشن شروع کریں' : 'Start navigation'}</span>
@@ -633,11 +633,10 @@ function MainApp() {
           <div key={activeTab} className="animate-in space-y-4">
           {activeTab === 'navigate' && !destination && (
             <div className="space-y-3">
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{isRtl ? 'کہاں جانا ہے؟' : 'Where to?'}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{isRtl ? 'اوپر تلاش کریں، نقشے پر ٹیپ کریں، یا یہاں سے منتخب کریں:' : 'Search above, tap the map, or pick a popular place:'}</p>
+              <p className="ui-sub">{isRtl ? 'اوپر تلاش کریں، نقشے پر ٹیپ کریں، یا یہاں سے منتخب کریں' : 'Search, tap the map, or pick a place'}</p>
               <div className="flex flex-wrap gap-2">
                 {POPULAR_LOCATIONS.slice(0, 6).map((loc) => (
-                  <button key={loc.id} type="button" onClick={() => { store().setDestination(loc); setCenter({ lat: loc.lat, lng: loc.lng }); setZoom(14); }} className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-100 dark:hover:bg-emerald-950 cursor-pointer">
+                  <button key={loc.id} type="button" onClick={() => { store().setDestination(loc); setCenter({ lat: loc.lat, lng: loc.lng }); setZoom(14); }} className="ui-chip">
                     {isRtl ? loc.nameUrdu : loc.name.split(',')[0]}
                   </button>
                 ))}
@@ -672,7 +671,7 @@ function MainApp() {
                 onSelectMode={setSelectedMultimodalMode}
               />
             ) : (
-              <p className="p-4 text-sm text-slate-500 dark:text-slate-400">
+              <p className="p-4 text-sm text-[color:var(--ink-2)]">
                 {isRtl ? 'موازنہ دیکھنے کے لیے پہلے منزل منتخب کریں۔' : 'Pick a destination first to compare travel options for that trip.'}
               </p>
             )

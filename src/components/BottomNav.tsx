@@ -26,9 +26,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ active, onChange, hidden =
     { id: 'emergency', label: isRtl ? 'ایمرجنسی' : 'SOS', icon: <ShieldAlert className="w-5 h-5" /> }
   ];
 
+  // Active tab = ink pill with the label inside; the rest are quiet icons with small labels.
   return (
-    <nav aria-label="Main" className="skin-nav absolute bottom-0 inset-x-0 z-40 h-16 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
-      <div className="max-w-md mx-auto h-full px-2 flex items-center justify-around">
+    <nav aria-label="Main" className="skin-nav absolute bottom-0 inset-x-0 z-40 h-16 bg-[color:var(--surface)] border-t border-[color:var(--line)]">
+      <div className="max-w-md mx-auto h-full px-2 flex items-center justify-around gap-1">
         {items.map((item) => {
           const isActive = active === item.id;
           return (
@@ -38,11 +39,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ active, onChange, hidden =
               aria-current={isActive ? 'page' : undefined}
               onClick={() => onChange(item.id)}
               className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors ${
-                isActive ? 'text-emerald-700 dark:text-emerald-400 font-extrabold' : 'text-slate-500 dark:text-slate-400 font-medium'
+                isActive ? 'text-[color:var(--ink)] font-extrabold' : 'text-[color:var(--ink-2)] font-semibold hover:text-[color:var(--ink)]'
               }`}
             >
-              <span className={`nav-pill px-4 py-1 rounded-full ${isActive ? 'bg-emerald-100 dark:bg-emerald-950/60' : ''}`}>{item.icon}</span>
-              <span className="text-[10px] tracking-tight">{item.label}</span>
+              <span className={`nav-pill px-4 py-1 rounded-full ${isActive ? 'ui-btn-ink !shadow-none' : ''}`}>{item.icon}</span>
+              <span className="text-[11px]">{item.label}</span>
             </button>
           );
         })}

@@ -42,120 +42,74 @@ export const Header: React.FC<HeaderProps> = ({
     fetchCityAqi(currentCity).then(res => setAqiData(res));
   }, [currentCity]);
 
+  // One row: brand + city on the left, SOS and a few quiet controls on the right. Secondary
+  // toggles (monsoon, night cockpit) only show on wider screens.
+  const quiet = 'ui-btn ui-btn-soft w-9 h-9 p-0 shrink-0';
   return (
-    <header className="skin-header shrink-0 z-30 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-3">
-        {/* Brand & City */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-700 via-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0 overflow-hidden">
-            <img src="/icons/icon-192.png" alt="Buraq" className="w-full h-full object-cover" />
-          </div>
-
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="skin-display font-extrabold text-slate-900 dark:text-white tracking-tight text-sm sm:text-base truncate">
-                {isRtl ? 'براق پاکستان' : 'BURAQ'}
-              </span>
-              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 shrink-0">
-                PK
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+    <header className="skin-header ui-glass relative shrink-0 z-30 w-full !rounded-none !border-x-0 !border-t-0">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-[96px]">
+          <img src="/icons/icon-192.png" alt="" className="w-9 h-9 rounded-[12px] shadow-sm shrink-0" />
+          <div className="min-w-0 leading-tight">
+            <span className="skin-display font-display block text-base font-extrabold text-[color:var(--ink)] truncate">
+              {isRtl ? 'براق' : 'Buraq'}
+            </span>
+            <div className="flex items-center gap-1.5 text-xs text-[color:var(--ink-2)]">
               <select
                 value={currentCity}
                 onChange={(e) => onCityChange(e.target.value)}
-                className="bg-transparent font-medium hover:text-emerald-600 focus:outline-none cursor-pointer truncate max-w-[130px]"
+                aria-label={isRtl ? 'شہر' : 'City'}
+                className="bg-transparent font-semibold text-[color:var(--ink-2)] hover:text-[color:var(--ink)] focus:outline-none cursor-pointer truncate max-w-[112px]"
               >
-                {PK_CITIES.map((c) => <option key={c.id} value={c.id}>{c.en} ({c.ur})</option>)}
+                {PK_CITIES.map((c) => <option key={c.id} value={c.id}>{isRtl ? c.ur : c.en}</option>)}
               </select>
-
-              {/* AQI Badge */}
               {aqiData && (
-                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[10px] font-black ${aqiData.colorClass} shadow-xs`}>
-                  <Wind className="w-3 h-3" />
-                  <span>AQI {aqiData.aqi}</span>
-                </div>
+                <span className={`num inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${aqiData.colorClass}`}>
+                  <Wind className="w-3 h-3" />AQI {aqiData.aqi}
+                </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Action Controls - Cleanly Spaced to Prevent Overlaps and Mis-clicks */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          {/* Multilingual Selector */}
-          <div className="relative flex items-center">
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as Language)}
-              className="px-1.5 sm:px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none transition-all shadow-xs"
-              title="Select Language"
-            >
-              <option value="en">English</option>
-              <option value="ur">اردو</option>
-              <option value="pa">پنجابی</option>
-              <option value="ar">العربية</option>
-            </select>
-          </div>
-
-          {/* Emergency 1122 Quick SOS Dial */}
-          <button
-            type="button"
-            onClick={onEmergencyClick}
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 text-xs font-bold hover:bg-rose-100 transition-all shadow-xs shrink-0"
-            title="Emergency 1122 & Roadside Help"
+        <div className="flex items-center gap-1 shrink-0">
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as Language)}
+            aria-label="Language"
+            title="Select Language"
+            className="ui-btn ui-btn-soft h-9 px-2.5 text-xs appearance-none text-center"
           >
-            <ShieldAlert className="w-4 h-4 text-rose-600 animate-bounce shrink-0" />
-            <span className="hidden xs:inline">1122</span>
+            <option value="en">EN</option>
+            <option value="ur">اردو</option>
+            <option value="pa">پنجابی</option>
+            <option value="ar">عربي</option>
+          </select>
+
+          <button type="button" onClick={onEmergencyClick} className="ui-btn ui-btn-danger h-9 px-2.5 gap-1 text-xs" title={isRtl ? 'ایمرجنسی 1122' : 'Emergency 1122'}>
+            <ShieldAlert className="w-4 h-4" />
+            <span className="num">1122</span>
           </button>
 
-          {/* Secondary Toggles (Hidden on very small screens to eliminate crowding) */}
           <div className="hidden sm:flex items-center gap-1.5">
-            {/* Monsoon Flood Bypasses Toggle */}
-            <button
-              type="button"
-              onClick={onToggleMonsoon}
-              className={`p-2 rounded-xl border transition-all cursor-pointer ${
-                isMonsoonMode
-                  ? 'bg-cyan-600 text-white border-cyan-700 shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
-              }`}
-              title={isMonsoonMode ? 'Monsoon advisory: ON' : 'Monsoon advisory: OFF'}
-            >
+            <button type="button" onClick={onToggleMonsoon} aria-pressed={isMonsoonMode} className={`${quiet} ${isMonsoonMode ? '!bg-cyan-600 !text-white' : ''}`} title={isMonsoonMode ? 'Monsoon advisory: on' : 'Monsoon advisory: off'}>
               <CloudRain className="w-4 h-4" />
             </button>
-
-            {/* OLED Night Cockpit Mode Toggle */}
-            <button
-              type="button"
-              onClick={onToggleOledNight}
-              className={`p-2 rounded-xl border transition-all cursor-pointer ${
-                isOledNightMode
-                  ? 'bg-emerald-500 text-slate-950 font-black border-emerald-400 shadow-lg'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
-              }`}
-              title={isOledNightMode ? 'OLED Night Cockpit Mode: ON' : 'OLED Night Cockpit Mode: OFF'}
-            >
+            <button type="button" onClick={onToggleOledNight} aria-pressed={isOledNightMode} className={`${quiet} ${isOledNightMode ? '!bg-[color:var(--ink)] !text-[color:var(--signal)]' : ''}`} title={isOledNightMode ? 'Night cockpit: on' : 'Night cockpit: off'}>
               <Zap className="w-4 h-4" />
             </button>
           </div>
 
           {onLegalClick && (
-            <button type="button" onClick={onLegalClick} aria-label={t.legalLink} title={t.legalLink}
-              className="p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors shrink-0">
+            <button type="button" onClick={onLegalClick} aria-label={t.legalLink} title={t.legalLink} className={quiet}>
               <Info className="w-4 h-4" />
             </button>
           )}
 
           <SkinPicker label={t.skinLabel} defaultLabel={t.skinDefault} isRtl={isRtl} />
 
-          {/* Theme Mode Toggle */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors shrink-0"
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Night Mode'}
-          >
-            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+          <button type="button" onClick={toggleTheme} className={quiet} title={theme === 'dark' ? 'Light mode' : 'Night mode'} aria-label={theme === 'dark' ? 'Light mode' : 'Night mode'}>
+            {theme === 'dark' ? <Sun className="w-4 h-4 text-[color:var(--signal)]" /> : <Moon className="w-4 h-4" />}
           </button>
         </div>
       </div>

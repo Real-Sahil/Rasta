@@ -401,18 +401,18 @@ export const OsmMapView: React.FC<OsmMapViewProps> = ({
       })}
 
       {/* Attribution & Layer Selector */}
-      <div className="absolute bottom-1 right-2 z-30 flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-2 py-0.5 rounded text-[10px] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
+      <div className="absolute bottom-1 right-2 z-30 flex items-center gap-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur px-2 py-0.5 rounded text-[10px] text-[color:var(--ink-2)] border border-[color:var(--line)]">
         <span>© OpenStreetMap contributors</span>
       </div>
 
       {/* Floating Map Controls & Layer Selector */}
       <div className="absolute top-20 right-3 z-30 flex flex-col gap-1.5 shadow-md items-end">
         {/* Floating Zoom Controls */}
-        <div className="flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur rounded-xl shadow-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur rounded-xl shadow-md border border-[color:var(--line)] overflow-hidden">
           <button
             type="button"
             onClick={() => setZoom((z) => Math.min(19, z + 1))}
-            className="w-8 h-8 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-800 flex items-center justify-center font-bold cursor-pointer"
+            className="w-8 h-8 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border-b border-[color:var(--line)] flex items-center justify-center font-bold cursor-pointer"
             title="Zoom In"
           >
             <Plus className="w-4 h-4" />

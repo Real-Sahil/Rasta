@@ -28,19 +28,19 @@ export const SkinPicker: React.FC<{ label: string; defaultLabel: string; isRtl?:
         aria-expanded={open}
         aria-label={label}
         title={label}
-        className={`p-1.5 sm:p-2 rounded-xl border transition-colors cursor-pointer ${skin !== 'default' ? 'text-white border-transparent' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700'}`}
+        className={`ui-btn w-9 h-9 p-0 ${skin !== 'default' ? 'text-white' : 'ui-btn-soft'}`}
         style={skin !== 'default' ? { background: SWATCH[skin] } : undefined}
       >
         <Palette className="w-4 h-4" />
       </button>
       {open && (
-        <ul role="listbox" aria-label={label} className={`absolute top-full mt-2 ${isRtl ? 'left-0' : 'right-0'} z-[60] w-44 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl p-1`}>
+        <ul role="listbox" aria-label={label} className={`absolute top-full mt-2 ${isRtl ? 'left-0' : 'right-0'} z-[60] w-48 rounded-2xl ui-glass p-1.5 animate-in`}>
           {SKINS.map((s) => (
             <li key={s} role="option" aria-selected={skin === s}>
               <button
                 type="button"
                 onClick={() => { setSkin(s); setOpen(false); }}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold text-[color:var(--ink)] hover:bg-[color:var(--line)] cursor-pointer"
               >
                 <span className="w-3.5 h-3.5 rounded-full border border-black/10" style={{ background: SWATCH[s] }} />
                 <span className="flex-1 text-start">{s === 'default' ? defaultLabel : NAMES[s]}</span>

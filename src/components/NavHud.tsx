@@ -76,22 +76,22 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
     <div className="anim-drop absolute top-3 left-3 right-3 lg:left-4 lg:w-[440px] z-30">
       <div className={chamak
         ? `${k.card} backdrop-blur-md ${k.radius} overflow-hidden shadow-2xl border-2 transition-colors`
-        : 'bg-slate-900/95 backdrop-blur-md text-white rounded-2xl p-3.5 shadow-2xl border border-emerald-500/50 space-y-2.5'}>
+        : 'bg-[#0E1A14]/[0.97] backdrop-blur-xl text-white rounded-[26px] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_40px_-14px_rgba(0,0,0,0.65)] ring-1 ring-white/10 space-y-3'}>
         {isCk && <div aria-hidden="true" className={`border-b-2 border-[#F5B700] transition-all ${calm ? 'h-1 opacity-50' : 'h-2.5'}`} style={{ backgroundImage: CHAMAK_STRIP, backgroundSize: '20px 10px' }} />}
         <div className={chamak ? 'p-3.5 space-y-2.5' : 'space-y-2.5'}>
         {(session.status === 'off_route' || rerouting) && (
-          <div className={`flex items-center gap-2 text-[11px] font-bold ${chamak ? k.warn : 'text-amber-300'}`}>
+          <div className={`flex items-center gap-2 text-[11px] font-bold ${chamak ? k.warn : 'text-[color:var(--signal)]'}`}>
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
             <span>{isRtl ? 'راستہ دوبارہ طے ہو رہا ہے…' : 'Off route, recalculating…'}</span>
           </div>
         )}
-        <div className={`flex items-center justify-between gap-2 border-b pb-2.5 ${chamak ? k.rule : 'border-slate-800'}`}>
+        <div className={`flex items-center gap-2 border-b pb-3 ${chamak ? k.rule : 'border-white/10'}`}>
           {/* Keyed by step: a new manoeuvre slides in from the reading side; the distance ticks without moving. */}
           <div key={session.upcomingStepIndex} className={`${isRtl ? 'anim-step-rtl' : 'anim-step'} flex items-center gap-2.5 min-w-0`}>
             <div className={chamak
               ? `relative w-14 h-14 ${k.radius} ${k.badge} flex items-center justify-center shrink-0`
-              : 'w-11 h-11 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0'}>
-              <Icon className={chamak ? 'w-8 h-8 stroke-[2.5]' : 'w-6 h-6 stroke-[2.5]'} />
+              : 'ui-signal w-14 h-14 rounded-[18px] flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-2px_0_rgba(0,0,0,0.15)]'}>
+              <Icon className={chamak ? 'w-8 h-8 stroke-[2.5]' : 'w-8 h-8 stroke-[2.75]'} />
               {isCk && !calm && (
                 <svg aria-hidden="true" viewBox="-20 -20 40 40" className="absolute -top-2 -right-2 w-5 h-5 drop-shadow">
                   <g fill="#D7263D" stroke="#14161A" strokeWidth="1.6">{[0, 72, 144, 216, 288].map(a => <ellipse key={a} rx="7" ry="11" cy="-10" transform={`rotate(${a})`} />)}</g>
@@ -100,39 +100,42 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
               )}
             </div>
             <div className="min-w-0">
-              <div className={chamak ? `text-2xl leading-none ${k.dist}` : 'text-lg font-black leading-none'} style={yatra}>{fmtDistance(session.distanceToManeuverM)}</div>
-              <p className={`text-xs sm:text-sm font-bold line-clamp-2 mt-1 ${chamak ? k.text : 'text-slate-200'}`}>{isRtl ? step.instructionUrdu : step.instruction}</p>
+              <div className={chamak ? `text-2xl leading-none ${k.dist}` : 'font-display num text-[34px] font-extrabold leading-none'} style={yatra}>{fmtDistance(session.distanceToManeuverM)}</div>
+              <p className={`text-sm sm:text-[15px] font-bold line-clamp-2 mt-1.5 ${chamak ? k.text : 'text-white/85'}`}>{isRtl ? step.instructionUrdu : step.instruction}</p>
             </div>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {onShare && (
-              <button type="button" onClick={onShare} aria-label="Share trip" className={`p-1.5 rounded-lg cursor-pointer ${chamak ? k.btn : 'bg-slate-800 hover:bg-slate-700'}`}>
-                <Share2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-            <button type="button" onClick={onRepeat} aria-label="Repeat instruction" className={`p-1.5 rounded-lg cursor-pointer ${chamak ? k.btn : 'bg-slate-800 hover:bg-slate-700'}`}>
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-            <button type="button" onClick={onToggleMute} aria-label={muted ? 'Unmute voice' : 'Mute voice'} className={`p-1.5 rounded-lg cursor-pointer ${muted ? 'bg-amber-600 text-white' : chamak ? k.btn : 'bg-slate-800 hover:bg-slate-700'}`}>
-              {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-            </button>
-            <button type="button" onClick={onExit} className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-xs font-bold cursor-pointer">
-              {isRtl ? 'ختم' : 'Exit'}
-            </button>
           </div>
         </div>
         {voiceNotice && !muted && (
           <p role="status" className={`text-[11px] font-semibold ${chamak ? k.warn : 'text-amber-300'}`}>{voiceNotice}</p>
         )}
-        <div className="flex items-center justify-between text-xs">
-          <div className={`flex items-center gap-1 font-bold ${chamak ? k.speed : 'text-emerald-400'}`}>
-            <Gauge className="w-3.5 h-3.5" />
-            <span>{speedKmh == null ? '— km/h' : `${speedKmh} km/h`}</span>
+        {/* Trip line + controls. Buttons are 36 px circles so they can be hit at a glance (were 26 px). */}
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <div className="min-w-0 num whitespace-nowrap">
+            <div className={`flex items-baseline gap-2 font-semibold ${chamak ? k.text : 'text-white/70'}`}>
+              <span className={`text-base font-extrabold ${chamak ? k.eta : 'text-white'}`}>{Math.max(1, Math.round(session.remainingS / 60))} min</span>
+              <span>{fmtDistance(session.remainingM)}</span>
+              <span>ETA {etaClock}</span>
+            </div>
+            <div className={`flex items-center gap-1 font-bold mt-0.5 ${chamak ? k.speed : 'text-[color:var(--brand-hi)]'}`}>
+              <Gauge className="w-3.5 h-3.5" />
+              <span>{speedKmh == null ? '— km/h' : `${speedKmh} km/h`}</span>
+            </div>
           </div>
-          <div className={`flex items-center gap-3 font-semibold ${chamak ? k.text : 'text-slate-200'}`}>
-            <span>{fmtDistance(session.remainingM)}</span>
-            <span>{Math.max(1, Math.round(session.remainingS / 60))} min</span>
-            <span className={chamak ? k.eta : 'text-white'}>ETA {etaClock}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onShare && (
+              <button type="button" onClick={onShare} aria-label="Share trip" className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform ${chamak ? k.btn : 'bg-white/10 hover:bg-white/20'}`}>
+                <Share2 className="w-4 h-4" />
+              </button>
+            )}
+            <button type="button" onClick={onRepeat} aria-label="Repeat instruction" className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform ${chamak ? k.btn : 'bg-white/10 hover:bg-white/20'}`}>
+              <RotateCcw className="w-4 h-4" />
+            </button>
+            <button type="button" onClick={onToggleMute} aria-label={muted ? 'Unmute voice' : 'Mute voice'} className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform ${muted ? 'bg-amber-500 text-[#1A1400]' : chamak ? k.btn : 'bg-white/10 hover:bg-white/20'}`}>
+              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+            <button type="button" onClick={onExit} className="ui-btn ui-btn-danger h-9 px-3.5 text-xs">
+              {isRtl ? 'ختم' : 'Exit'}
+            </button>
           </div>
         </div>
         </div>

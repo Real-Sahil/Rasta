@@ -8,7 +8,7 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { CommunityIncident, TravelMode } from '../types';
-import { Layers, Navigation, Plus, Minus, Compass, AlertTriangle, Droplets, Construction, ShieldAlert, Flame } from 'lucide-react';
+import { Layers, Navigation, Plus, Minus, Compass, AlertTriangle, Droplets, Construction, ShieldAlert, Flame, Map as MapIcon, MapPin, Radar, Waves, X as XIcon } from 'lucide-react';
 import { OsmMapView } from './OsmMapView';
 import { escapeHtml } from '../services/escapeHtml';
 
@@ -342,7 +342,7 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
 
         const popupHtml = `
           <div style="padding: 6px; font-family: sans-serif; min-width: 170px;">
-            <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #059669; margin-bottom: 2px;">
+            <div style="font-size: 10px; font-weight: 800; text-transform: ; color: #059669; margin-bottom: 2px;">
               ${escapeHtml(markerData.type.replace('_', ' ').toUpperCase())}
             </div>
             <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 4px;">
@@ -548,13 +548,13 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
       <div ref={containerRef} className="w-full h-full min-h-[300px]" />
 
       {mapSlow && !mapLoaded && (
-        <div role="status" className="absolute inset-x-4 top-24 z-20 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold p-3 text-center">
+        <div role="status" className="pointer-events-none absolute inset-x-4 top-24 z-20 rounded-2xl ui-glass text-[color:var(--ink)] text-xs font-semibold px-3 py-2.5 text-center">
           {isRtl ? 'نقشہ لوڈ نہیں ہو سکا۔ اپنا انٹرنیٹ چیک کریں۔' : "The map couldn't load. Check your connection; routes and search may still work."}
         </div>
       )}
 
       {showFloodLayer && floodLabels && (
-        <div className={`absolute bottom-2 ${isRtl ? 'right-2' : 'left-2'} z-10 rounded bg-white/90 dark:bg-slate-900/90 px-1.5 py-0.5 text-[10px] text-slate-600 dark:text-slate-300`}>
+        <div className={`absolute bottom-2 ${isRtl ? 'right-2' : 'left-2'} z-10 rounded bg-white/90 dark:bg-slate-900/90 px-1.5 py-0.5 text-[10px] text-[color:var(--ink-2)]`}>
           {floodLabels.credit}
         </div>
       )}
@@ -563,9 +563,9 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         <button
           type="button"
           onClick={() => { if (freeLookTimer.current) clearTimeout(freeLookTimer.current); setFreeLook(false); }}
-          className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-xl cursor-pointer"
+          className="ui-btn ui-btn-ink absolute bottom-24 left-1/2 -translate-x-1/2 z-20 h-12 px-5 text-sm"
         >
-          ➤ {recenterLabel}
+          <Navigation className="w-4 h-4" />{recenterLabel}
         </button>
       )}
 
@@ -580,62 +580,61 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         <div className={`relative ${isNavigatingLive ? 'hidden' : ''}`}>
           <button
             onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
-            className="bg-white/95 dark:bg-slate-900/95 backdrop-blur text-slate-800 dark:text-slate-100 p-2.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-            title="Toggle Map Data Layers"
+            className="ui-btn ui-glass w-10 h-10 p-0 text-[color:var(--ink)]"
+            title="Map layers" aria-label="Map layers"
           >
-            <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden sm:inline">Layers</span>
+            <Layers className="w-[18px] h-[18px]" />
           </button>
 
           {isLayerMenuOpen && (
-            <div className={`absolute ${isRtl ? 'right-full mr-2' : 'left-full ml-2'} top-0 w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3 z-50 space-y-2.5`}>
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Map Data Layers</span>
-                <button onClick={() => setIsLayerMenuOpen(false)} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>
+            <div className={`absolute ${isRtl ? 'right-full mr-2' : 'left-full ml-2'} top-0 w-60 ui-glass rounded-[22px] p-3 z-50 space-y-1 animate-in`}>
+              <div className="flex items-center justify-between pb-2 border-b border-[color:var(--line)]">
+                <span className="text-sm font-extrabold text-[color:var(--ink)]">Map layers</span>
+                <button onClick={() => setIsLayerMenuOpen(false)} aria-label="Close" className="ui-btn w-7 h-7 p-0 text-[color:var(--ink-2)] hover:bg-[color:var(--line)]"><XIcon className="w-4 h-4" /></button>
               </div>
 
-              <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg">
-                <span className="flex items-center gap-2">⚠️ Incident Pins</span>
+              <label className="flex items-center justify-between text-[13px] font-semibold text-[color:var(--ink)] cursor-pointer hover:bg-[color:var(--line)] px-2 py-2 rounded-xl">
+                <span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4" />Road reports</span>
                 <input
                   type="checkbox"
                   checked={showIncidentsLayer}
                   onChange={(e) => setShowIncidentsLayer(e.target.checked)}
-                  className="rounded accent-emerald-600 w-4 h-4"
+                  className="rounded accent-[#0E7A50] w-4 h-4"
                 />
               </label>
 
-              <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg">
-                <span className="flex items-center gap-2">📍 Route Polyline</span>
+              <label className="flex items-center justify-between text-[13px] font-semibold text-[color:var(--ink)] cursor-pointer hover:bg-[color:var(--line)] px-2 py-2 rounded-xl">
+                <span className="flex items-center gap-2"><MapPin className="w-4 h-4" />Route line</span>
                 <input
                   type="checkbox"
                   checked={showRouteLayer}
                   onChange={(e) => setShowRouteLayer(e.target.checked)}
-                  className="rounded accent-emerald-600 w-4 h-4"
+                  className="rounded accent-[#0E7A50] w-4 h-4"
                 />
               </label>
 
-              <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg">
-                <span className="flex items-center gap-2">📡 Location Pulse</span>
+              <label className="flex items-center justify-between text-[13px] font-semibold text-[color:var(--ink)] cursor-pointer hover:bg-[color:var(--line)] px-2 py-2 rounded-xl">
+                <span className="flex items-center gap-2"><Radar className="w-4 h-4" />Location pulse</span>
                 <input
                   type="checkbox"
                   checked={showHeatmapLayer}
                   onChange={(e) => setShowHeatmapLayer(e.target.checked)}
-                  className="rounded accent-emerald-600 w-4 h-4"
+                  className="rounded accent-[#0E7A50] w-4 h-4"
                 />
               </label>
               {floodLabels && (
                 <div className="p-1.5 space-y-1.5">
-                  <label className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
-                    <span className="flex items-center gap-2">🌊 {floodLabels.layer}</span>
+                  <label className="flex items-center justify-between text-[13px] font-semibold text-[color:var(--ink)] cursor-pointer">
+                    <span className="flex items-center gap-2"><Waves className="w-4 h-4" />{floodLabels.layer}</span>
                     <input
                       type="checkbox"
                       checked={showFloodLayer}
                       onChange={(e) => setShowFloodLayer(e.target.checked)}
-                      className="rounded accent-emerald-600 w-4 h-4"
+                      className="rounded accent-[#0E7A50] w-4 h-4"
                     />
                   </label>
                   {showFloodLayer && (
-                    <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-400">
+                    <div className="space-y-1 text-[11px] text-[color:var(--ink-2)]">
                       {(floodEvents ?? []).map((ev, i) => (
                         <div key={ev.id} className="flex items-center gap-1.5">
                           <span className="inline-block w-3 h-3 rounded-sm shrink-0" style={{ background: FLOOD_COLOURS[i % FLOOD_COLOURS.length], opacity: 0.6 }} />
@@ -655,28 +654,25 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         <button
           onClick={toggleStyle}
           hidden={isNavigatingLive}
-          className="bg-white/95 dark:bg-slate-900/95 backdrop-blur text-slate-800 dark:text-slate-100 p-2.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-          title="Cycle map styles (Liberty / Bright / Light)"
+          className="ui-btn ui-glass w-10 h-10 p-0 text-[color:var(--ink)]"
+          title={`Map style: ${styleMode === 'liberty' ? 'Liberty' : styleMode === 'bright' ? 'Bright' : 'Light'}`} aria-label="Change map style"
         >
-          <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span className="hidden sm:inline">
-            {styleMode === 'liberty' ? 'Liberty' : styleMode === 'bright' ? 'Bright' : 'Light'}
-          </span>
+          <MapIcon className="w-[18px] h-[18px]" />
         </button>
 
         {/* Zoom Controls */}
-        <div className={`bg-white/95 dark:bg-slate-900/95 backdrop-blur rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden ${isNavigatingLive ? 'hidden' : ''}`}>
+        <div className={`ui-glass rounded-full flex flex-col overflow-hidden ${isNavigatingLive ? 'hidden' : ''}`}>
           <button
             onClick={() => mapRef.current?.zoomIn()}
-            className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 transition-colors"
-            title="Zoom In"
+            className="w-10 h-10 flex items-center justify-center hover:bg-[color:var(--line)] text-[color:var(--ink)] transition-colors"
+            title="Zoom in" aria-label="Zoom in"
           >
             <Plus className="w-4 h-4" />
           </button>
           <button
             onClick={() => mapRef.current?.zoomOut()}
-            className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors"
-            title="Zoom Out"
+            className="w-10 h-10 flex items-center justify-center hover:bg-[color:var(--line)] text-[color:var(--ink)] transition-colors"
+            title="Zoom out" aria-label="Zoom out"
           >
             <Minus className="w-4 h-4" />
           </button>
@@ -685,8 +681,8 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         {/* Reset Bearing (North) */}
         <button
           onClick={() => mapRef.current?.resetNorthPitch()}
-          className="bg-white/95 dark:bg-slate-900/95 backdrop-blur p-2.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          title="Reset Bearing (North)"
+          className="ui-btn ui-glass w-10 h-10 p-0 text-[color:var(--ink)]"
+          title="North up" aria-label="North up"
         >
           <Compass className="w-4 h-4" />
         </button>

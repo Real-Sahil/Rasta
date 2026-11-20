@@ -57,9 +57,9 @@ export const MobilityAlertsHub: React.FC<MobilityAlertsHubProps> = ({
 
         {/* Expanded Popup Drawer */}
         {isOpen && (
-          <div className="absolute top-full mt-2 right-0 w-72 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3.5 z-50 space-y-2.5 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-              <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100">
+          <div className="absolute top-full mt-2 right-0 w-72 max-w-[calc(100vw-1.5rem)] bg-[color:var(--surface)] rounded-2xl shadow-2xl border border-[color:var(--line)] p-3.5 z-50 space-y-2.5 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between pb-2 border-b border-[color:var(--line)]">
+              <span className="text-xs font-extrabold text-[color:var(--ink)]">
                 {isRtl ? 'فعال الرٹس اور ایڈوائزری' : 'Active Mobility Advisories'}
               </span>
               <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>
@@ -130,13 +130,13 @@ export const MobilityAlertsHub: React.FC<MobilityAlertsHubProps> = ({
 
               {/* Air Quality Index / Smog Advisory */}
               {aqiData && (
-                <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 flex items-center justify-between gap-2">
+                <div className="p-2.5 rounded-xl bg-[color:var(--paper)]/80 border border-slate-200 dark:border-slate-700 text-[color:var(--ink)] flex items-center justify-between gap-2">
                   <div className="space-y-0.5">
                     <div className="font-bold flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                       <Wind className="w-3.5 h-3.5 shrink-0" />
                       <span>{isRtl ? 'ایئر کوالٹی انڈیکس (AQI)' : 'Air Quality Index (AQI)'}</span>
                     </div>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                    <p className="text-[11px] text-[color:var(--ink-2)]">
                       AQI {aqiData.aqi} • {isRtl ? aqiData.statusUrdu : aqiData.status} (PM2.5: {aqiData.pm25} µg/m³)
                     </p>
                   </div>

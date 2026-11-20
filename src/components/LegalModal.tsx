@@ -31,26 +31,26 @@ export const LegalModal: React.FC<{ open: boolean; firstRun: boolean; onClose: (
   const close = () => { markSeen(); onClose(); };
 
   return (
-    <div className="anim-fade fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 p-3" role="dialog" aria-modal="true" aria-label={t.legalTitle} dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="anim-sheet w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xl">
-        <div className="flex items-center gap-2 p-4 border-b border-slate-200 dark:border-slate-800">
-          <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-          <h2 className="font-bold text-base flex-1">{t.legalTitle}</h2>
+    <div className="anim-fade fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-3" role="dialog" aria-modal="true" aria-label={t.legalTitle} dir={isRtl ? 'rtl' : 'ltr'}>
+      <div className="anim-sheet w-full max-w-lg max-h-[90vh] flex flex-col rounded-[28px] bg-[color:var(--surface)] text-[color:var(--ink)] shadow-[var(--shadow-float)]">
+        <div className="flex items-center gap-2.5 px-5 pt-5 pb-2">
+          <span className="ui-signal w-9 h-9 rounded-xl flex items-center justify-center shrink-0"><ShieldCheck className="w-5 h-5" /></span>
+          <h2 className="font-display font-extrabold text-[19px] flex-1">{t.legalTitle}</h2>
           {!firstRun && (
-            <button type="button" onClick={close} aria-label={t.legalClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><X className="w-4 h-4" /></button>
+            <button type="button" onClick={close} aria-label={t.legalClose} className="ui-btn ui-btn-soft w-9 h-9 p-0"><X className="w-4 h-4" /></button>
           )}
         </div>
-        <div className="flex gap-1 px-4 pt-3" role="tablist">
+        <div className="ui-seg mx-5 mt-2" role="tablist">
           {tabs.map(([id, label]) => (
             <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold ${tab === id ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>{label}</button>
+              className={tab === id ? 'is-on' : ''}>{label}</button>
           ))}
         </div>
-        <div className="p-4 overflow-y-auto space-y-3 text-sm leading-relaxed" role="tabpanel">
+        <div className="px-5 py-4 overflow-y-auto space-y-3 text-sm leading-relaxed text-[color:var(--ink-2)]" role="tabpanel">
           {paras[tab].map((p, i) => <p key={i}>{p}</p>)}
         </div>
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-          <button type="button" onClick={close} className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm">{firstRun ? t.legalAccept : t.legalClose}</button>
+        <div className="px-5 pb-5 pt-2">
+          <button type="button" onClick={close} className="ui-btn ui-btn-primary w-full h-12 text-[15px]">{firstRun ? t.legalAccept : t.legalClose}</button>
         </div>
       </div>
     </div>

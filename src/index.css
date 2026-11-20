@@ -16,14 +16,120 @@
   html {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     -webkit-tap-highlight-color: transparent;
-    background-color: var(--rasta-offwhite);
-    color: var(--rasta-forest);
+    background-color: var(--paper);
+    color: var(--ink);
   }
 
   [dir="rtl"] {
     font-family: 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 }
+
+/* ---------- Design system (default look) ----------
+   The map is the hero; chrome floats over it as frosted glass. Buttons are tactile: a lit top edge,
+   a soft coloured shadow, and they sink 1 px when pressed. One accent beyond the brand green:
+   road-sign yellow, used sparingly (fastest route, the turn tile while driving).
+   Themes (data-skin) restyle the same hook classes; see their blocks further down. */
+:root {
+  --ink: #0E1A14;
+  --ink-2: #55645C;
+  --paper: #F3F2EC;
+  --surface: #FFFFFF;
+  --line: rgba(14, 26, 20, 0.09);
+  --brand: #0E7A50;
+  --brand-hi: #1DAE72;
+  --brand-lo: #095C3B;
+  --signal: #FFC83D;
+  --danger: #E23A3F;
+  --danger-hi: #F5595C;
+  --glass: rgba(255, 255, 255, 0.74);
+  --glass-edge: rgba(255, 255, 255, 0.85);
+  --shadow-float: 0 1px 2px rgba(14, 26, 20, 0.08), 0 12px 32px -12px rgba(14, 26, 20, 0.32);
+}
+html.dark {
+  --ink: #ECF2EE;
+  --ink-2: #9AABA2;
+  --paper: #0A0F0D;
+  --surface: #131A17;
+  --line: rgba(255, 255, 255, 0.08);
+  --glass: rgba(19, 26, 23, 0.72);
+  --glass-edge: rgba(255, 255, 255, 0.10);
+  --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.5), 0 14px 36px -12px rgba(0, 0, 0, 0.7);
+}
+
+@layer components {
+  .font-display { font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', system-ui, sans-serif; font-optical-sizing: auto; letter-spacing: -0.02em; }
+  [dir="rtl"] .font-display { font-family: 'Noto Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .ui-glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(18px) saturate(1.7);
+    backdrop-filter: blur(18px) saturate(1.7);
+    border: 1px solid var(--glass-edge);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), var(--shadow-float);
+  }
+  html.dark .ui-glass { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--shadow-float); }
+
+  .ui-card { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 1px 2px rgba(14, 26, 20, 0.04); }
+
+  /* Buttons */
+  .ui-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    border-radius: 999px; font-weight: 800; cursor: pointer; user-select: none;
+    transition: transform 120ms var(--ease-out-soft, ease), box-shadow 160ms ease, filter 160ms ease, background-color 160ms ease;
+  }
+  .ui-btn:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
+  .ui-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--brand-hi) 55%, transparent); outline-offset: 2px; }
+  .ui-btn:disabled { cursor: not-allowed; }
+
+  .ui-btn-primary {
+    color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+    background: linear-gradient(180deg, var(--brand-hi) 0%, var(--brand) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), inset 0 -2px 0 rgba(0, 0, 0, 0.16), 0 1px 2px rgba(9, 92, 59, 0.45), 0 12px 26px -12px rgba(14, 122, 80, 0.85);
+  }
+  .ui-btn-primary:hover:not(:disabled) { filter: brightness(1.05); }
+  .ui-btn-primary:active:not(:disabled) { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 -1px 0 rgba(0, 0, 0, 0.16), 0 1px 1px rgba(9, 92, 59, 0.5), 0 4px 10px -6px rgba(14, 122, 80, 0.8); }
+  .ui-btn-primary:disabled, .ui-btn-danger:disabled, .ui-btn-ink:disabled { background: color-mix(in srgb, var(--ink) 12%, var(--surface)); color: var(--ink-2); box-shadow: none; text-shadow: none; }
+
+  .ui-btn-danger {
+    color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+    background: linear-gradient(180deg, var(--danger-hi) 0%, var(--danger) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.16), 0 1px 2px rgba(150, 20, 25, 0.45), 0 10px 22px -12px rgba(226, 58, 63, 0.9);
+  }
+  .ui-btn-ink {
+    color: #fff;
+    background: linear-gradient(180deg, #2A3A32 0%, #0E1A14 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 22px -12px rgba(14, 26, 20, 0.8);
+  }
+  html.dark .ui-btn-ink { color: #0E1A14; background: linear-gradient(180deg, #FFFFFF 0%, #DDE5E0 100%); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.1), 0 10px 22px -12px rgba(0, 0, 0, 0.9); }
+  .ui-btn-soft {
+    color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 1px 2px rgba(14, 26, 20, 0.08);
+  }
+  .ui-btn-soft:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 4%, var(--surface)); }
+  .ui-icon-btn { width: 44px; height: 44px; padding: 0; flex-shrink: 0; }
+
+  /* Chips and segmented controls: selected = ink, so colour stays meaningful for status. */
+  .ui-chip {
+    display: inline-flex; align-items: center; gap: 0.375rem; border-radius: 999px; padding: 0.45rem 0.85rem;
+    font-size: 0.8125rem; font-weight: 700; color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+    cursor: pointer; white-space: nowrap; transition: background-color 160ms ease, color 160ms ease, transform 120ms ease;
+  }
+  .ui-chip:hover { background: color-mix(in srgb, var(--ink) 5%, var(--surface)); }
+  .ui-chip:active { transform: scale(0.97); }
+  .ui-chip.is-on, .ui-chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+
+  .ui-seg { display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .ui-seg > button { flex: 1; border-radius: 999px; padding: 0.5rem 0.75rem; font-size: 0.8125rem; font-weight: 700; color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; cursor: pointer; transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease; }
+  .ui-seg > button.is-on, .ui-seg > button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(14, 26, 20, 0.12), 0 4px 10px -6px rgba(14, 26, 20, 0.35); }
+  .ui-seg-sm > button { padding: 0.3rem 0.7rem; font-size: 0.75rem; }
+
+  .ui-signal { background: var(--signal); color: #1A1400; }
+  .ui-title { font-size: 1.125rem; font-weight: 800; color: var(--ink); line-height: 1.2; }
+  .ui-sub { font-size: 0.8125rem; color: var(--ink-2); }
+}
+html[data-skin] .ui-btn-primary { box-shadow: none; text-shadow: none; }
 
 /* Custom Rasta 2.0 Color Classes */
 .bg-rasta-forest { background-color: var(--rasta-forest); }

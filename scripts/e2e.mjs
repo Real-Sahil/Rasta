@@ -99,7 +99,7 @@ await page.waitForSelector('canvas.maplibregl-canvas', { timeout: 15000 }).then(
 
 // 4b. past-flooding layer: off by default, loads its data on demand, credits UNOSAT, localised
 check('flood layer is off until chosen', !/UNOSAT via HDX/.test(await text()));
-await page.locator('button[title="Toggle Map Data Layers"]').click();
+await page.locator('button[title="Map layers"]').click();
 await page.getByLabel('Past flooding (satellite)').check();
 await page.waitForTimeout(1500);
 const ft = await text();

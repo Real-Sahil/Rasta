@@ -26,10 +26,10 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
     <LineDiagram stations={list} color={color} isRtl={isRtl} onPick={onSelectStation} boardLabel={t.diagramBoard} alightLabel={t.diagramAlight} note={t.diagramNote} />
   );
   const viewToggle = (
-    <div role="group" className="flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-bold">
+    <div role="group" className="ui-seg ui-seg-sm">
       {(['list', 'diagram'] as const).map(v => (
         <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}
-          className={`px-2.5 py-1 rounded-md cursor-pointer ${view === v ? 'bg-white dark:bg-slate-700 shadow-xs text-slate-900 dark:text-white' : 'text-slate-500'}`}>
+          >
           {v === 'list' ? t.viewList : t.viewDiagram}
         </button>
       ))}
@@ -68,12 +68,12 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
     : Math.max(4, stationCount * 2.1);
 
   return (
-    <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+    <div className="space-y-3">
       {metroCities.length > 1 && (
         <div role="group" aria-label={t.metroCityLabel} className="flex gap-1.5 overflow-x-auto pb-0.5">
           {metroCities.map((c) => (
             <button key={c} type="button" aria-pressed={metroCity === c} onClick={() => setMetroCity(c)}
-              className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold border cursor-pointer ${metroCity === c ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}>
+              className="ui-chip shrink-0">
               {isRtl ? METRO_CITY_NAMES[c]?.ur ?? c : METRO_CITY_NAMES[c]?.en ?? c}
             </button>
           ))}
@@ -83,15 +83,11 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
         <CityLines city={metroCity} isRtl={isRtl} t={t} viewToggle={viewToggle} view={view} onPick={onSelectStation} />
       ) : (<>
       {/* Tab Nav */}
-      <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+      <div className="ui-seg" role="group">
         <button
           type="button"
           onClick={() => setActiveTab('metrobus')}
-          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-            activeTab === 'metrobus'
-              ? 'bg-rose-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-          }`}
+          aria-pressed={activeTab === 'metrobus'}
         >
           <Bus className="w-4 h-4" />
           <span>{isRtl ? 'لاہور میٹرو بس' : 'Metrobus'}</span>
@@ -100,34 +96,26 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
         <button
           type="button"
           onClick={() => setActiveTab('orangeline')}
-          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-            activeTab === 'orangeline'
-              ? 'bg-amber-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-          }`}
+          aria-pressed={activeTab === 'orangeline'}
         >
           <Train className="w-4 h-4" />
-          <span>{isRtl ? 'اورنج لائن ٹرین' : 'Orange Line'}</span>
+          <span>{isRtl ? 'اورنج لائن' : 'Orange'}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('calculator')}
-          className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-            activeTab === 'calculator'
-              ? 'bg-emerald-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-          }`}
+          aria-pressed={activeTab === 'calculator'}
         >
           <Calculator className="w-4 h-4" />
-          <span>{isRtl ? 'کرایہ معلوم کریں' : 'Fare Calc'}</span>
+          <span>{isRtl ? 'کرایہ' : 'Fare'}</span>
         </button>
       </div>
 
       {/* Metrobus Line List */}
       {activeTab === 'metrobus' && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-500 pb-1 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between ui-sub pb-1">
             <span>{METROBUS_STATIONS.length ? `${METROBUS_STATIONS[0].name} ↔ ${METROBUS_STATIONS[METROBUS_STATIONS.length - 1].name} (${METROBUS_STATIONS.length} stops)` : 'No station data yet'}</span>
             <span className="font-bold text-rose-600">Flat Rs. 30</span>
           </div>
@@ -139,14 +127,14 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
               <div
                 key={station.id}
                 onClick={() => onSelectStation(station)}
-                className="p-2.5 rounded-xl border border-slate-200/70 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer flex items-center justify-between"
+                className="px-3 py-2.5 rounded-[18px] bg-[color:var(--paper)] hover:ring-1 hover:ring-[color:var(--line)] transition-all cursor-pointer flex items-center justify-between"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="w-6 h-6 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 font-bold text-[10px] flex items-center justify-center">
                     {idx + 1}
                   </div>
                   <div>
-                    <h5 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                    <h5 className="font-bold text-xs sm:text-sm text-[color:var(--ink)]">
                       {stationName(station, isRtl)}
                     </h5>
                   </div>
@@ -154,7 +142,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
 
                 <button
                   type="button"
-                  className="p-1.5 text-xs text-rose-600 hover:bg-rose-100 rounded-lg font-semibold"
+                  className="ui-btn ui-btn-soft h-8 px-3 text-xs"
                 >
                   {isRtl ? 'راستہ' : 'Map'}
                 </button>
@@ -168,7 +156,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
       {/* Orange Line Metro List */}
       {activeTab === 'orangeline' && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-500 pb-1 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between ui-sub pb-1">
             <span>{ORANGELINE_STATIONS.length ? `${ORANGELINE_STATIONS[0].name} ↔ ${ORANGELINE_STATIONS[ORANGELINE_STATIONS.length - 1].name} (${ORANGELINE_STATIONS.length} stops)` : 'No station data yet'}</span>
             <span className="font-bold text-amber-600">Distance: Rs. 20 - 40</span>
           </div>
@@ -180,14 +168,14 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
               <div
                 key={station.id}
                 onClick={() => onSelectStation(station)}
-                className="p-2.5 rounded-xl border border-slate-200/70 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all cursor-pointer flex items-center justify-between"
+                className="px-3 py-2.5 rounded-[18px] bg-[color:var(--paper)] hover:ring-1 hover:ring-[color:var(--line)] transition-all cursor-pointer flex items-center justify-between"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold text-[10px] flex items-center justify-center">
                     {idx + 1}
                   </div>
                   <div>
-                    <h5 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                    <h5 className="font-bold text-xs sm:text-sm text-[color:var(--ink)]">
                       {stationName(station, isRtl)}
                     </h5>
                   </div>
@@ -195,7 +183,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
 
                 <button
                   type="button"
-                  className="p-1.5 text-xs text-amber-600 hover:bg-amber-100 rounded-lg font-semibold"
+                  className="ui-btn ui-btn-soft h-8 px-3 text-xs"
                 >
                   {isRtl ? 'راستہ' : 'Map'}
                 </button>
@@ -209,7 +197,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
       {/* Fare Calculator Tab */}
       {activeTab === 'calculator' && (
         <div className="space-y-3 pt-1">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="ui-seg" role="group">
             <button
               type="button"
               onClick={() => {
@@ -217,11 +205,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
                 setOriginId(ORANGELINE_STATIONS[0]?.id ?? '');
                 setDestId(ORANGELINE_STATIONS[ORANGELINE_STATIONS.length - 1]?.id ?? '');
               }}
-              className={`p-2 rounded-xl border text-xs font-bold transition-all ${
-                calcLine === 'orangeline'
-                  ? 'border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-300'
-                  : 'border-slate-200 text-slate-600 dark:border-slate-800'
-              }`}
+              aria-pressed={calcLine === 'orangeline'}
             >
               Orange Line Train
             </button>
@@ -232,11 +216,7 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
                 setOriginId(METROBUS_STATIONS[0]?.id ?? '');
                 setDestId(METROBUS_STATIONS[METROBUS_STATIONS.length - 1]?.id ?? '');
               }}
-              className={`p-2 rounded-xl border text-xs font-bold transition-all ${
-                calcLine === 'metrobus'
-                  ? 'border-rose-500 bg-rose-50 text-rose-900 dark:bg-rose-950/40 dark:text-rose-300'
-                  : 'border-slate-200 text-slate-600 dark:border-slate-800'
-              }`}
+              aria-pressed={calcLine === 'metrobus'}
             >
               Lahore Metrobus
             </button>
@@ -244,13 +224,13 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
 
           <div className="space-y-2">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-semibold text-[color:var(--ink-2)] mb-1">
                 {isRtl ? 'آغاز کا اسٹیشن' : 'Origin Station'}
               </label>
               <select
                 value={originId}
                 onChange={(e) => setOriginId(e.target.value)}
-                className="w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium"
+                className="w-full p-2 rounded-xl border-0 ring-1 ring-[color:var(--line)] bg-[color:var(--paper)] text-[color:var(--ink)] text-sm font-semibold"
               >
                 {stations.map(s => (
                   <option key={s.id} value={s.id}>
@@ -261,13 +241,13 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-semibold text-[color:var(--ink-2)] mb-1">
                 {isRtl ? 'منزل کا اسٹیشن' : 'Destination Station'}
               </label>
               <select
                 value={destId}
                 onChange={(e) => setDestId(e.target.value)}
-                className="w-full p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-medium"
+                className="w-full p-2 rounded-xl border-0 ring-1 ring-[color:var(--line)] bg-[color:var(--paper)] text-[color:var(--ink)] text-sm font-semibold"
               >
                 {stations.map(s => (
                   <option key={s.id} value={s.id}>
@@ -277,13 +257,13 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
               </select>
             </div>
 
-            <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs">
+            <div className="flex items-center justify-between p-2 rounded-xl bg-[color:var(--paper)] text-xs">
               <span className="font-semibold">{t.studentConcession}</span>
               <input
                 type="checkbox"
                 checked={isStudent}
                 onChange={(e) => setIsStudent(e.target.checked)}
-                className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
+                className="w-5 h-5 accent-[color:var(--brand)] cursor-pointer"
               />
             </div>
           </div>
@@ -291,28 +271,28 @@ export const TransitPlanner: React.FC<TransitPlannerProps> = ({ onSelectStation,
           <LineDiagram stations={stations} color={calcLine === 'metrobus' ? '#E11D48' : '#F26A21'} isRtl={isRtl} fromId={originId} toId={destId} boardLabel={t.diagramBoard} alightLabel={t.diagramAlight} note={t.diagramNote} />
 
           {/* Result Card */}
-          <div className="p-3 bg-gradient-to-tr from-emerald-600 to-teal-600 text-white rounded-xl shadow-lg flex items-center justify-between">
+          <div className="p-4 bg-[color:var(--ink)] text-[color:var(--paper)] rounded-[22px] flex items-center justify-between">
             <div>
-              <span className="text-[10px] uppercase font-bold text-emerald-100 tracking-wider">
+              <span className="text-[11px] font-bold opacity-75">
                 Estimated Fare (verify at station)
               </span>
-              <div className="text-2xl font-black">
+              <div className="font-display num text-[30px] font-extrabold leading-tight">
                 Rs. {calculatedFare}
               </div>
-              <span className="text-xs text-emerald-100">
+              <span className="text-xs opacity-75 num">
                 {stationCount} Stations • ~{Math.round(travelTimeMins)} mins travel time
               </span>
             </div>
 
-            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-xs">
-              <Ticket className="w-6 h-6 text-white" />
+            <div className="ui-signal w-12 h-12 rounded-2xl flex items-center justify-center">
+              <Ticket className="w-6 h-6" />
             </div>
           </div>
         </div>
       )}
       </>)}
       <TransitReports city={city} />
-      <p className="text-[10px] text-slate-400">
+      <p className="text-[11px] text-[color:var(--ink-2)]">
         {OSM_CREDIT}{OSM_UPDATED ? `, updated ${OSM_UPDATED}` : ''}.{metroCity === 'lahore' ? ' Fares are estimates; check at the station.' : ''}
       </p>
     </div>
@@ -341,18 +321,18 @@ const CityLines: React.FC<{
   return (
     <div className="space-y-2">
       {lines.length > 1 && (
-        <div className="flex flex-wrap gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+        <div className="flex flex-wrap gap-1.5">
           {lines.map((l, i) => (
             <button key={l.id} type="button" aria-pressed={l.id === line.id} onClick={() => setLineId(l.id)}
               style={l.id === line.id ? { background: colourOf(i) } : undefined}
-              className={`flex-1 min-w-[30%] py-1.5 px-2 rounded-lg text-xs font-bold truncate ${l.id === line.id ? 'text-white shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}>
+              className={`ui-chip truncate max-w-full ${l.id === line.id ? '!text-white !border-transparent' : ''}`}>
               {label(l)}
             </button>
           ))}
         </div>
       )}
-      <div className="flex items-center justify-between gap-2 text-xs text-slate-500 pb-1 border-b border-slate-100 dark:border-slate-800">
-        <span className="min-w-0 truncate"><b className="text-slate-800 dark:text-slate-200">{label(line)}</b> · {stationName(stations[0], isRtl)} ↔ {stationName(stations[stations.length - 1], isRtl)} ({stations.length})</span>
+      <div className="flex items-center justify-between gap-2 ui-sub pb-1">
+        <span className="min-w-0 truncate"><b className="text-[color:var(--ink)]">{label(line)}</b> · {stationName(stations[0], isRtl)} ↔ {stationName(stations[stations.length - 1], isRtl)} ({stations.length})</span>
         {viewToggle}
       </div>
       {view === 'diagram' ? (
@@ -361,14 +341,14 @@ const CityLines: React.FC<{
         <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
           {stations.map((s, idx) => (
             <button key={s.id} type="button" onClick={() => onPick(s)}
-              className="w-full text-start p-2.5 rounded-xl border border-slate-200/70 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-2.5">
+              className="w-full text-start px-3 py-2.5 rounded-[18px] bg-[color:var(--paper)] hover:ring-1 hover:ring-[color:var(--line)] cursor-pointer flex items-center gap-2.5">
               <span className="w-6 h-6 shrink-0 rounded-full text-white font-bold text-[10px] flex items-center justify-center" style={{ background: colour }}>{idx + 1}</span>
-              <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 truncate">{stationName(s, isRtl)}</span>
+              <span className="font-bold text-xs sm:text-sm text-[color:var(--ink)] truncate">{stationName(s, isRtl)}</span>
             </button>
           ))}
         </div>
       )}
-      <p className="text-[11px] text-slate-500">{t.metroNoFares}</p>
+      <p className="text-[11px] text-[color:var(--ink-2)]">{t.metroNoFares}</p>
     </div>
   );
 };

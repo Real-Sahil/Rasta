@@ -83,7 +83,7 @@ export const PWAInstallButton: React.FC<{ isRtl?: boolean }> = ({ isRtl = false 
       <>
         <button
           onClick={() => setShowIOSGuide(true)}
-          className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl shadow-xs hover:bg-slate-50 transition-all cursor-pointer"
+          className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-[color:var(--surface)] border border-[color:var(--line)] px-3 py-1.5 rounded-xl shadow-xs hover:bg-slate-50 transition-all cursor-pointer"
         >
           <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
           <span>{isRtl ? 'iOS انسٹال' : 'Install iOS'}</span>
@@ -91,11 +91,11 @@ export const PWAInstallButton: React.FC<{ isRtl?: boolean }> = ({ isRtl = false 
 
         {showIOSGuide && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-3">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+            <div className="w-full max-w-sm rounded-2xl bg-[color:var(--surface)] p-5 shadow-2xl border border-[color:var(--line)] space-y-3">
+              <h3 className="font-bold text-sm text-[color:var(--ink)]">
                 {isRtl ? 'آئی فون / آئی پیڈ پر انسٹال کریں' : 'Install on iPhone / iPad'}
               </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              <p className="text-xs text-[color:var(--ink-2)] leading-relaxed">
                 1. Tap the <strong>Share</strong> button in Safari toolbar.<br />
                 2. Scroll down and tap <strong>Add to Home Screen</strong>.
               </p>
@@ -115,7 +115,7 @@ export const PWAInstallButton: React.FC<{ isRtl?: boolean }> = ({ isRtl = false 
   return (
     <button
       onClick={() => alert(isRtl ? 'براؤزر مینو سے "Add to Home Screen" منتخب کریں' : 'Use browser menu to "Install App" or "Add to Home Screen"')}
-      className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-xl shadow-xs hover:bg-slate-50 transition-all cursor-pointer"
+      className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-[color:var(--surface)] border border-[color:var(--line)] px-3 py-1.5 rounded-xl shadow-xs hover:bg-slate-50 transition-all cursor-pointer"
     >
       <Download className="w-3.5 h-3.5 text-emerald-600" />
       <span>{isRtl ? 'آف لائن PWA' : 'PWA Mode'}</span>
