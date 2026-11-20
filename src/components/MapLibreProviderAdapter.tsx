@@ -686,6 +686,13 @@ export const MapLibreProviderAdapter: React.FC<MapLibreProviderAdapterProps> = (
         >
           <Compass className="w-4 h-4" />
         </button>
+
+        {/* OSM licence (ODbL) needs a visible credit; this replaces MapLibre's "i" button, which stays hidden.
+            It rides under the map buttons because the bottom of the map is covered by the sheet. */}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer"
+          className="self-start whitespace-nowrap px-1.5 py-0.5 rounded-md text-[10px] font-medium text-[color:var(--ink-2)] bg-[color:var(--glass)] backdrop-blur-sm">
+          © OpenStreetMap
+        </a>
       </div>
 
     </div>

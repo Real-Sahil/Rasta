@@ -254,6 +254,8 @@ class _MapScreenState extends State<MapScreen> {
                 },
                 compassEnabled: false,
                 attributionButtonPosition: ml.AttributionButtonPosition.bottomLeft,
+                // The "i" button is moved off-screen; a plain "© OpenStreetMap" line below keeps the ODbL credit visible.
+                attributionButtonMargins: const math.Point(-200, -200),
               ),
             ),
             SafeArea(
@@ -262,6 +264,8 @@ class _MapScreenState extends State<MapScreen> {
                 child: SlideSwitcher(child: app.navigating ? NavHud(app: app) : SearchPanel(app: app)),
               ),
             ),
+            if (app.navigating || app.destination == null)
+              const PositionedDirectional(start: 8, bottom: 6, child: SafeArea(child: _OsmCredit())),
             // Browsing only: once a destination is chosen the bottom of the screen belongs to the route sheet (these used
             // to sit at a guessed offset and overlap a tall sheet and the GPS notice).
             if (!app.navigating && app.destination == null)
@@ -791,5 +795,21 @@ class NavHud extends StatelessWidget {
         ),
       ),
     ]);
+  }
+}
+
+/// Required OpenStreetMap credit (ODbL), shown as quiet text instead of the map engine's "i" button.
+class _OsmCredit extends StatelessWidget {
+  const _OsmCredit();
+  @override
+  Widget build(BuildContext context) {
+    final t = BuraqTokens.of(Theme.of(context).brightness);
+    return DecoratedBox(
+      decoration: BoxDecoration(color: t.surface.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(6)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        child: Text('© OpenStreetMap', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: t.ink2)),
+      ),
+    );
   }
 }

@@ -49,7 +49,6 @@ export interface CommunityIncident {
   source: 'PSCA' | 'CTPL_Punjab' | 'Citizen_Report';
   alternativeRouteAdvice?: string;
   alternativeRouteAdviceUrdu?: string;
-  photoUrl?: string;
   expiresAt: number;
 }
 
