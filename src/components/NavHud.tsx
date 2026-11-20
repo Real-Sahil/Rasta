@@ -73,7 +73,7 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
   const Icon = step.maneuver === 'turn-left' ? CornerUpLeft : step.maneuver === 'turn-right' ? CornerUpRight : step.maneuver === 'arrive' ? CheckCircle : ArrowUp;
 
   return (
-    <div className="absolute top-3 left-3 right-3 lg:left-4 lg:w-[440px] z-30">
+    <div className="anim-drop absolute top-3 left-3 right-3 lg:left-4 lg:w-[440px] z-30">
       <div className={chamak
         ? `${k.card} backdrop-blur-md ${k.radius} overflow-hidden shadow-2xl border-2 transition-colors`
         : 'bg-slate-900/95 backdrop-blur-md text-white rounded-2xl p-3.5 shadow-2xl border border-emerald-500/50 space-y-2.5'}>
@@ -86,7 +86,8 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
           </div>
         )}
         <div className={`flex items-center justify-between gap-2 border-b pb-2.5 ${chamak ? k.rule : 'border-slate-800'}`}>
-          <div className="flex items-center gap-2.5 min-w-0">
+          {/* Keyed by step: a new manoeuvre slides in from the reading side; the distance ticks without moving. */}
+          <div key={session.upcomingStepIndex} className={`${isRtl ? 'anim-step-rtl' : 'anim-step'} flex items-center gap-2.5 min-w-0`}>
             <div className={chamak
               ? `relative w-14 h-14 ${k.radius} ${k.badge} flex items-center justify-center shrink-0`
               : 'w-11 h-11 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0'}>

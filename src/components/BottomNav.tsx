@@ -41,7 +41,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ active, onChange, hidden =
                 isActive ? 'text-emerald-700 dark:text-emerald-400 font-extrabold' : 'text-slate-500 dark:text-slate-400 font-medium'
               }`}
             >
-              <span className={`px-4 py-1 rounded-full ${isActive ? 'bg-emerald-100 dark:bg-emerald-950/60' : ''}`}>{item.icon}</span>
+              <span className={`nav-pill px-4 py-1 rounded-full ${isActive ? 'bg-emerald-100 dark:bg-emerald-950/60' : ''}`}>{item.icon}</span>
               <span className="text-[10px] tracking-tight">{item.label}</span>
             </button>
           );

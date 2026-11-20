@@ -31,8 +31,8 @@ export const LegalModal: React.FC<{ open: boolean; firstRun: boolean; onClose: (
   const close = () => { markSeen(); onClose(); };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 p-3" role="dialog" aria-modal="true" aria-label={t.legalTitle} dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xl">
+    <div className="anim-fade fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 p-3" role="dialog" aria-modal="true" aria-label={t.legalTitle} dir={isRtl ? 'rtl' : 'ltr'}>
+      <div className="anim-sheet w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xl">
         <div className="flex items-center gap-2 p-4 border-b border-slate-200 dark:border-slate-800">
           <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
           <h2 className="font-bold text-base flex-1">{t.legalTitle}</h2>

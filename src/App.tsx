@@ -621,7 +621,7 @@ function MainApp() {
                   const res = handleStart();
                   if (!res.ok) flash(res.reason === 'custom_origin' ? t.previewOnly : res.reason === 'no_fix' ? (isRtl ? 'GPS لوکیشن دستیاب نہیں۔ براہ کرم مقام کی اجازت دیں اور دوبارہ کوشش کریں۔' : 'No GPS fix yet. Allow location access and try again.') : (isRtl ? 'ابھی کوئی راستہ دستیاب نہیں۔' : 'No route available yet.'));
                 }}
-                className="skin-primary w-full py-3.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 disabled:text-slate-500 text-white font-black text-base flex items-center justify-center gap-2 cursor-pointer"
+                className="skin-primary w-full py-3.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 disabled:text-slate-500 text-white font-black text-base flex items-center justify-center gap-2 cursor-pointer transition-[transform,background-color] duration-150 active:scale-[0.98] disabled:active:scale-100"
               >
                 <Navigation className="w-5 h-5" />
                 <span>{isRtl ? 'نیویگیشن شروع کریں' : 'Start navigation'}</span>
@@ -629,6 +629,8 @@ function MainApp() {
             ) : null
           }
         >
+          {/* Keyed by tab, so each tab's content rises in when it opens (CSS only, see Motion in index.css). */}
+          <div key={activeTab} className="animate-in space-y-4">
           {activeTab === 'navigate' && !destination && (
             <div className="space-y-3">
               <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{isRtl ? 'کہاں جانا ہے؟' : 'Where to?'}</p>
@@ -703,6 +705,7 @@ function MainApp() {
             />
           )}
           </Suspense>
+          </div>
         </BottomSheet>
 
         <BottomNav active={activeTab} onChange={openTab} hidden={session !== null} isRtl={isRtl} />

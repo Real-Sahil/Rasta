@@ -176,3 +176,34 @@ html[data-skin="miniature"] .skin-nav [aria-current="page"] > span:first-child,
 html[data-skin="schematic"] .skin-nav [aria-current="page"] > span:first-child,
 html[data-skin="nastaliq"] .skin-nav [aria-current="page"] > span:first-child { background: color-mix(in srgb, var(--sk-accent) 16%, transparent); }
 html[data-skin="schematic"] .skin-nav [aria-current="page"] > span:first-child { border-radius: 0; }
+
+/* ---------- Motion ----------
+   Plain CSS on purpose: a motion library cost ~27 KB gzip on first load for effects CSS does natively.
+   One curve (the iOS sheet curve), short durations, no bounce, nothing loops while driving.
+   Components replay an entrance by being re-keyed (tab body, HUD step). */
+:root { --ease-out-soft: cubic-bezier(0.32, 0.72, 0, 1); }
+@keyframes buraq-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes buraq-drop { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+@keyframes buraq-sheet { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes buraq-step { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes buraq-step-rtl { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+@keyframes buraq-fade { from { opacity: 0; } to { opacity: 1; } }
+.animate-in { animation: buraq-rise 200ms var(--ease-out-soft) both; }
+.anim-drop { animation: buraq-drop 240ms var(--ease-out-soft) both; }
+.anim-sheet { animation: buraq-sheet 260ms var(--ease-out-soft) both; }
+.anim-step { animation: buraq-step 240ms var(--ease-out-soft) both; }
+.anim-step-rtl { animation: buraq-step-rtl 240ms var(--ease-out-soft) both; }
+.anim-fade { animation: buraq-fade 160ms ease-out both; }
+.nav-pill { transition: background-color 200ms var(--ease-out-soft), transform 200ms var(--ease-out-soft); }
+[aria-current="page"] > .nav-pill { transform: scaleX(1.04); }
+
+/* Respect the OS "reduce motion" setting: no looping pulses, no slides. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

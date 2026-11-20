@@ -123,3 +123,8 @@ Transit station list is incomplete and fares are estimates; no transit routing; 
 - Web transit tab has a List/Diagram toggle (`LineDiagram.tsx`): evenly spaced, real OSM station order, labelled "not to scale"; the fare result highlights the ride.
 - Flutter: same six looks (`mobile/lib/ui/chamak.dart`: `kSkins`, `skinPalette`, `buildTheme`), plus Auto/Light/Dark for the whole app, both saved on the device. Fonts aren't bundled there (system font). Flutter also has the schematic (`line_diagram.dart`). A test checks contrast of every skin/brightness.
 - The search suggestions hide the bottom sheet while open (`BottomSheet` `tucked`) so the sheet never covers the map or the list.
+
+## Motion (web + Flutter)
+- One curve everywhere (`cubic-bezier(0.32, 0.72, 0, 1)`), 160–300 ms, no bounce, nothing loops while driving. The OS "reduce motion" / "remove animations" setting turns it off (web: `@media (prefers-reduced-motion)` in `index.css`; Flutter: `motionMs` returns zero).
+- Web is **plain CSS** (`index.css` "Motion": `animate-in`, `anim-drop`, `anim-sheet`, `anim-step[-rtl]`, `anim-fade`); entrances replay by re-keying (tab body by tab, HUD by step). A motion library cost ~27 KB gzip on first load for the same effects, so don't add one (`motion` stays unused in package.json). No Lenis/smooth-scroll: it fights MapLibre wheel zoom and the sheet's nested scroll, and phones already scroll natively.
+- Flutter uses built-in widgets only (`lib/ui/motion.dart`: `Entrance`, `SlideSwitcher`, `TabEntrance`). Never fade or slide the MapLibre native view; the map tab doesn't animate.

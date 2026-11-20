@@ -8,6 +8,7 @@ import 'emergency_screen.dart';
 import 'incidents_screen.dart';
 import 'info_screen.dart';
 import 'map_screen.dart';
+import 'motion.dart';
 import 'transit_screen.dart';
 
 /// Five tabs. The bar hides while navigating so the HUD keeps the whole screen. IndexedStack keeps the map alive.
@@ -33,10 +34,11 @@ class _HomeShellState extends State<HomeShell> {
         return Scaffold(
           body: IndexedStack(index: tab, children: [
             MapScreen(app: app),
-            IncidentsScreen(app: app, api: widget.api, active: tab == 1),
-            TransitScreen(app: app, api: widget.api, active: tab == 2, onRouteTo: () => setState(() => _tab = 0)),
-            EmergencyScreen(app: app, onRouteTo: () => setState(() => _tab = 0)),
-            InfoScreen(app: app),
+            // The map is a native view, so it never fades; the other tabs rise in when chosen.
+            TabEntrance(active: tab == 1, child: IncidentsScreen(app: app, api: widget.api, active: tab == 1)),
+            TabEntrance(active: tab == 2, child: TransitScreen(app: app, api: widget.api, active: tab == 2, onRouteTo: () => setState(() => _tab = 0))),
+            TabEntrance(active: tab == 3, child: EmergencyScreen(app: app, onRouteTo: () => setState(() => _tab = 0))),
+            TabEntrance(active: tab == 4, child: InfoScreen(app: app)),
           ]),
           bottomNavigationBar: app.navigating
               ? null

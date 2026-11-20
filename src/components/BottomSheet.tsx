@@ -82,9 +82,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ title, snap, onSnapCha
   }
 
   return (
+    // anim-sheet: slides up when it comes back (after search or a trip). Snaps use the same soft curve.
     <div
-      className="absolute inset-x-0 z-30"
-      style={{ bottom: NAV_H, height: h, transition: dragH == null ? 'height 220ms ease' : 'none' }}
+      className="anim-sheet absolute inset-x-0 z-30"
+      style={{ bottom: NAV_H, height: h, transition: dragH == null ? 'height 300ms cubic-bezier(0.32, 0.72, 0, 1)' : 'none' }}
     >
       {floating && <div className={`absolute ${side} bottom-full mb-3 flex flex-col gap-3 items-center`}>{floating}</div>}
 

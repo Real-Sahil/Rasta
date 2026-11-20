@@ -362,7 +362,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
 
       {/* Dropdown Suggestions & Explore Panel */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-96 overflow-y-auto z-50">
+        <div className="animate-in absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-96 overflow-y-auto z-50">
           {outsidePakistan(currentCoords) && (
             <div role="status" className="p-3 text-xs bg-amber-50 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border-b border-amber-200 dark:border-amber-900 flex gap-2 items-start" dir={language === 'en' ? undefined : 'rtl'}>
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />

@@ -127,14 +127,15 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
           </div>
         )}
         <div className="space-y-2">
-          {routes.map((route) => {
+          {routes.map((route, i) => {
             const isSelected = activeRoute?.id === route.id;
 
             return (
               <div
                 key={route.id}
+                style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}
                 onClick={() => onSelectRoute(route.id)}
-                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                className={`animate-in p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                   isSelected
                     ? 'border-[#20A477] bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-[#20A477]/30 shadow-md'
                     : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/50 hover:bg-slate-100'

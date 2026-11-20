@@ -19,6 +19,7 @@ import '../core/fares.dart' show inLahoreArea;
 import '../l10n.dart';
 import 'chamak.dart';
 import 'fare_compare.dart';
+import 'motion.dart';
 import '../services/gps_service.dart';
 import '../services/error_reporter.dart';
 import '../services/search_service.dart';
@@ -258,7 +259,7 @@ class _MapScreenState extends State<MapScreen> {
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: app.navigating ? NavHud(app: app) : SearchPanel(app: app),
+                child: SlideSwitcher(child: app.navigating ? NavHud(app: app) : SearchPanel(app: app)),
               ),
             ),
             // Browsing only: once a destination is chosen the bottom of the screen belongs to the route sheet (these used
@@ -343,7 +344,7 @@ class _RouteStatus extends StatelessWidget {
   Widget build(BuildContext context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: loading
+          child: Entrance(dy: 16, child: loading
               ? Material(
                   elevation: 4,
                   borderRadius: BorderRadius.circular(14),
@@ -356,7 +357,7 @@ class _RouteStatus extends StatelessWidget {
                     ]),
                   ),
                 )
-              : (noticeKey == null ? const SizedBox.shrink() : _Notice(text: tr(lang, noticeKey!))),
+              : (noticeKey == null ? const SizedBox.shrink() : _Notice(text: tr(lang, noticeKey!)))),
         ),
       );
 }
@@ -619,7 +620,8 @@ class RouteSheet extends StatelessWidget {
     final r = app.route!;
     final support = app.speech.support(app.voiceLang);
     // At most ~half the screen: in Urdu or with large text the sheet used to grow over the search box and push Start away.
-    return ConstrainedBox(
+    // Slides up once when the first route arrives; switching between routes doesn't replay it.
+    return Entrance(dy: 32, child: ConstrainedBox(
       constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.55),
       child: Material(
       elevation: 8,
@@ -674,7 +676,7 @@ class RouteSheet extends StatelessWidget {
         ),
       ),
       ),
-    );
+    ));
   }
 }
 
@@ -724,7 +726,11 @@ class NavHud extends StatelessWidget {
           if (isCk) ChamakStrip(height: calm ? 4 : 10, opacity: calm ? 0.5 : 1),
           Padding(
             padding: const EdgeInsets.all(14),
-            child: Row(children: [
+            // Keyed by manoeuvre: a new turn slides in from the reading side; the distance updates in place.
+            child: SlideSwitcher(
+              alignment: AlignmentDirectional.centerStart,
+              from: Offset(Directionality.of(context) == TextDirection.rtl ? -0.08 : 0.08, 0),
+              child: Row(key: ValueKey('step-${s.upcomingStepIndex}-$arrived-$off'), children: [
               if (app.skin == 'luce')
                 LuceDial(progress: dialProgress(s.distanceToManeuverM), lit: pal.accent, dim: pal.rule, child: Icon(arrived ? Icons.flag : _icon(step?.maneuver ?? 'straight'), color: pal.accent, size: 36))
               else if (skinned && app.skin != 'nastaliq')
@@ -754,6 +760,7 @@ class NavHud extends StatelessWidget {
                 ]),
               ),
             ]),
+            ),
           ),
         ]),
       ),
