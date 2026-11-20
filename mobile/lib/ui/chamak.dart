@@ -13,6 +13,132 @@ const Color kChamakIvory = Color(0xFFFFFBF0);
 const List<String> kSkins = ['standard', 'luce', 'miniature', 'schematic', 'chamak', 'nastaliq'];
 const Map<String, String> kSkinNames = {'standard': '', 'luce': 'Luce', 'miniature': 'Miniature', 'schematic': 'Schematic', 'chamak': 'Chamak', 'nastaliq': 'Nastaliq'};
 
+/// The standard look's tokens, the same values as the web app's `:root` / `html.dark` in `src/index.css`.
+class BuraqTokens {
+  const BuraqTokens({required this.ink, required this.ink2, required this.paper, required this.surface, required this.line, required this.brand, required this.onBrand});
+  final Color ink, ink2, paper, surface, line, brand, onBrand;
+  static const signal = Color(0xFFFFC83D); // road yellow: turn tile, "Fastest"
+  static const danger = Color(0xFFE23A3F);
+  static const hud = Color(0xFF0E1A14); // the driving card is dark in both themes
+
+  static BuraqTokens of(Brightness b) => b == Brightness.dark
+      ? const BuraqTokens(ink: Color(0xFFECF2EE), ink2: Color(0xFF9AABA2), paper: Color(0xFF0A0F0D), surface: Color(0xFF131A17), line: Color(0x14FFFFFF), brand: Color(0xFF1DAE72), onBrand: Color(0xFF04140C))
+      : const BuraqTokens(ink: Color(0xFF0E1A14), ink2: Color(0xFF55645C), paper: Color(0xFFF3F2EC), surface: Colors.white, line: Color(0x170E1A14), brand: Color(0xFF0E7A50), onBrand: Colors.white);
+}
+
+/// Standard look: ink-filled selection, pill buttons, soft surfaces, heavy numbers.
+ThemeData standardTheme(Brightness b) {
+  final t = BuraqTokens.of(b);
+  final scheme = ColorScheme.fromSeed(seedColor: t.brand, brightness: b).copyWith(
+    primary: t.brand,
+    onPrimary: t.onBrand,
+    secondary: t.ink,
+    onSecondary: t.paper,
+    tertiary: BuraqTokens.signal,
+    onTertiary: const Color(0xFF0E1A14),
+    error: BuraqTokens.danger,
+    onError: Colors.white,
+    surface: t.surface,
+    onSurface: t.ink,
+    onSurfaceVariant: t.ink2,
+    surfaceContainerLowest: t.surface,
+    surfaceContainerLow: t.paper,
+    surfaceContainer: t.paper,
+    surfaceContainerHigh: t.paper,
+    surfaceContainerHighest: t.paper,
+    outline: t.ink2,
+    outlineVariant: t.line,
+  );
+  const pill = StadiumBorder();
+  const bold = TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.2);
+  final base = ThemeData(colorScheme: scheme, useMaterial3: true, brightness: b);
+  return base.copyWith(
+    scaffoldBackgroundColor: t.paper,
+    textTheme: base.textTheme.copyWith(
+      headlineSmall: base.textTheme.headlineSmall?.merge(bold),
+      titleLarge: base.textTheme.titleLarge?.merge(bold),
+      titleMedium: base.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        shape: pill,
+        minimumSize: const Size(64, 52),
+        padding: const EdgeInsets.symmetric(horizontal: 22),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        elevation: 0,
+      ).copyWith(
+        // A slight top-to-bottom sheen so the main action reads as something to press.
+        backgroundBuilder: (context, states, child) {
+          if (states.contains(WidgetState.disabled)) return child ?? const SizedBox.shrink();
+          final pressed = states.contains(WidgetState.pressed);
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color.lerp(t.brand, Colors.white, pressed ? 0.04 : 0.14)!, Color.lerp(t.brand, Colors.black, 0.12)!],
+              ),
+              boxShadow: pressed ? null : [BoxShadow(color: t.brand.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 6), spreadRadius: -6)],
+            ),
+            child: child,
+          );
+        },
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(shape: pill, minimumSize: const Size(48, 44), foregroundColor: t.ink, side: BorderSide(color: t.line, width: 1.5), textStyle: const TextStyle(fontWeight: FontWeight.w700)),
+    ),
+    textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(shape: pill, foregroundColor: t.ink, textStyle: const TextStyle(fontWeight: FontWeight.w700))),
+    iconButtonTheme: IconButtonThemeData(style: IconButton.styleFrom(foregroundColor: t.ink)),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: SegmentedButton.styleFrom(
+        shape: pill,
+        side: BorderSide.none,
+        backgroundColor: t.paper,
+        foregroundColor: t.ink2,
+        selectedBackgroundColor: t.ink,
+        selectedForegroundColor: t.paper,
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      shape: StadiumBorder(side: BorderSide(color: t.line)),
+      backgroundColor: t.surface,
+      selectedColor: t.ink,
+      labelStyle: TextStyle(color: t.ink, fontWeight: FontWeight.w700),
+      secondaryLabelStyle: TextStyle(color: t.paper, fontWeight: FontWeight.w700),
+      checkmarkColor: t.paper,
+      showCheckmark: false,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    ),
+    cardTheme: CardThemeData(color: t.surface, elevation: 0, margin: EdgeInsets.zero, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22), side: BorderSide(color: t.line))),
+    listTileTheme: ListTileThemeData(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), iconColor: t.ink2, titleTextStyle: TextStyle(color: t.ink, fontSize: 15, fontWeight: FontWeight.w700)),
+    dividerTheme: DividerThemeData(color: t.line, space: 1, thickness: 1),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: t.surface,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: t.line)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: t.line)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: t.ink, width: 2)),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: t.surface,
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: t.ink,
+      indicatorShape: pill,
+      height: 68,
+      iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(color: s.contains(WidgetState.selected) ? t.paper : t.ink2)),
+      labelTextStyle: WidgetStateProperty.resolveWith((s) => TextStyle(fontSize: 11, fontWeight: s.contains(WidgetState.selected) ? FontWeight.w800 : FontWeight.w600, color: s.contains(WidgetState.selected) ? t.ink : t.ink2)),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(backgroundColor: t.surface, surfaceTintColor: Colors.transparent, showDragHandle: true, dragHandleColor: t.line, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28)))),
+    dialogTheme: DialogThemeData(backgroundColor: t.surface, surfaceTintColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28))),
+    snackBarTheme: SnackBarThemeData(behavior: SnackBarBehavior.floating, backgroundColor: t.ink, contentTextStyle: TextStyle(color: t.paper, fontWeight: FontWeight.w600), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(backgroundColor: t.surface, foregroundColor: t.ink, elevation: 3, shape: const CircleBorder()),
+  );
+}
+
 /// Colours for one skin in one brightness. Used by the theme, nav bar and driving HUD.
 class SkinPalette {
   const SkinPalette({required this.accent, required this.paper, required this.ink, required this.sub, required this.badge, required this.onBadge, required this.card, required this.rule});
@@ -46,9 +172,7 @@ SkinPalette skinPalette(String skin, Brightness b) {
 }
 
 ThemeData buildTheme({required String skin, required Brightness brightness}) {
-  if (skin == 'standard' || !kSkins.contains(skin)) {
-    return ThemeData(colorSchemeSeed: const Color(0xFF059669), brightness: brightness, useMaterial3: true);
-  }
+  if (skin == 'standard' || !kSkins.contains(skin)) return standardTheme(brightness);
   final p = skinPalette(skin, brightness);
   final primary = skin == 'chamak' ? kChamakRed : (brightness == Brightness.dark ? p.accent : p.accent);
   final scheme = ColorScheme.fromSeed(seedColor: primary, brightness: brightness).copyWith(

@@ -347,7 +347,7 @@ class _RouteStatus extends StatelessWidget {
           child: Entrance(dy: 16, child: loading
               ? Material(
                   elevation: 4,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(20),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Row(children: [
@@ -475,7 +475,7 @@ class _SearchPanelState extends State<SearchPanel> {
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Material(
         elevation: 4,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(22),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -536,7 +536,7 @@ class _SearchPanelState extends State<SearchPanel> {
       if (_results.isNotEmpty)
         Material(
           elevation: 4,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(22),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 300),
             child: ListView(shrinkWrap: true, padding: EdgeInsets.zero, children: [
@@ -592,7 +592,7 @@ class _SavedList extends StatelessWidget {
       padding: const EdgeInsets.only(top: 6),
       child: Material(
         elevation: 4,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(22),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 320),
           child: ListView(shrinkWrap: true, padding: const EdgeInsets.symmetric(vertical: 4), children: [
@@ -710,16 +710,16 @@ class NavHud extends StatelessWidget {
     // Quieter at speed: past 30 km/h the decoration shrinks so only the turn and distance stand out.
     final speedKmh = app.fix?.speed == null ? null : app.fix!.speed! * 3.6;
     final calm = isCk && speedKmh != null && speedKmh >= 30;
-    final cardBg = skinned ? pal.card : const Color(0xFF065F46);
-    final sub = skinned ? pal.sub : Colors.white70;
+    final cardBg = skinned ? pal.card : BuraqTokens.hud;
+    final sub = skinned ? pal.sub : Colors.white.withValues(alpha: 0.82);
     final dist = skinned ? pal.accent : Colors.white;
     final radius = app.skin == 'schematic' ? 4.0 : (app.skin == 'miniature' ? 10.0 : 16.0);
-    final icon = Icon(arrived ? Icons.flag : _icon(step?.maneuver ?? 'straight'), color: skinned ? pal.onBadge : Colors.white, size: skinned ? 40 : 44);
+    final icon = Icon(arrived ? Icons.flag : _icon(step?.maneuver ?? 'straight'), color: skinned ? pal.onBadge : BuraqTokens.hud, size: skinned ? 40 : 34);
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Material(
         color: cardBg,
         elevation: 6,
-        borderRadius: skinned ? null : BorderRadius.circular(16),
+        borderRadius: skinned ? null : BorderRadius.circular(26),
         clipBehavior: Clip.antiAlias,
         shape: skinned ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius), side: BorderSide(color: pal.accent, width: 2)) : null,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -745,6 +745,9 @@ class NavHud extends StatelessWidget {
                   ),
                   child: icon,
                 )
+              else if (!skinned)
+                // Standard: road-yellow turn tile, the one bright thing on the card.
+                Container(width: 56, height: 56, decoration: BoxDecoration(color: BuraqTokens.signal, borderRadius: BorderRadius.circular(18)), child: icon)
               else
                 icon,
               const SizedBox(width: 12),
@@ -755,7 +758,7 @@ class NavHud extends StatelessWidget {
                       textDirection: (lang == 'ur' || lang == 'pa') ? TextDirection.rtl : TextDirection.ltr,
                       child: SizedBox(width: double.infinity, child: Text(arrived ? tr(lang, 'arrived') : posterWord(step?.maneuver ?? 'straight', lang), key: const Key('poster-word'), style: TextStyle(color: pal.accent, fontSize: 44, height: 1.6, fontWeight: FontWeight.bold))),
                     ),
-                  Text(arrived ? tr(lang, 'arrived') : (off ? tr(lang, 'offRoute') : formatDistance(s.distanceToManeuverM, lang)), style: TextStyle(color: dist, fontSize: app.skin == 'luce' ? 30 : 26, fontWeight: app.skin == 'luce' ? FontWeight.w200 : FontWeight.bold)),
+                  Text(arrived ? tr(lang, 'arrived') : (off ? tr(lang, 'offRoute') : formatDistance(s.distanceToManeuverM, lang)), style: TextStyle(color: dist, fontSize: app.skin == 'luce' ? 30 : (skinned ? 26 : 32), fontWeight: app.skin == 'luce' ? FontWeight.w200 : (skinned ? FontWeight.bold : FontWeight.w800), fontFeatures: const [FontFeature.tabularFigures()], height: 1.1)),
                   if (!arrived && !off && step != null) Text(lang == 'en' ? step.instruction : step.instructionUrdu, style: TextStyle(color: sub, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
                 ]),
               ),
@@ -767,9 +770,9 @@ class NavHud extends StatelessWidget {
       const SizedBox(height: 8),
       Material(
         elevation: 4,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(skinned ? 14 : 999),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Row(children: [
             Expanded(child: Text('${formatMinutes(s.remainingS, lang)}  ·  ${formatDistance(s.remainingM, lang)}', style: Theme.of(context).textTheme.titleMedium)),
             IconButton(tooltip: tr(lang, app.muted ? 'unmute' : 'mute'), icon: Icon(app.muted ? Icons.volume_off : Icons.volume_up), onPressed: app.toggleMute),

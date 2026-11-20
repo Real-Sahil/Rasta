@@ -48,6 +48,23 @@ void main() {
     }
   });
 
+  test('standard tokens keep readable text and buttons in light and dark', () {
+    double ratio(Color a, Color b) {
+      final x = a.computeLuminance(), y = b.computeLuminance();
+      return (x > y ? x + 0.05 : y + 0.05) / (x > y ? y + 0.05 : x + 0.05);
+    }
+    for (final b in [Brightness.light, Brightness.dark]) {
+      final t = BuraqTokens.of(b);
+      expect(ratio(t.ink, t.paper), greaterThan(7), reason: '$b body text');
+      expect(ratio(t.ink2, t.surface), greaterThan(4.5), reason: '$b secondary text');
+      expect(ratio(t.onBrand, t.brand), greaterThan(4.5), reason: '$b button label');
+      expect(ratio(t.paper, t.ink), greaterThan(7), reason: '$b selected chip / nav item');
+      expect(standardTheme(b).brightness, b);
+    }
+    expect(ratio(BuraqTokens.hud, BuraqTokens.signal), greaterThan(7), reason: 'turn icon on yellow tile');
+    expect(ratio(Colors.white, BuraqTokens.hud), greaterThan(7), reason: 'HUD distance');
+  });
+
   testWidgets('diagram marks board and get-off stations', (tester) async {
     final st = [for (var i = 0; i < 5; i++) Station(id: 's$i', name: 'S$i', code: 'C$i', line: 'x', point: LatLng(31.0 + i / 100, 74.0))];
     await tester.pumpWidget(MaterialApp(
