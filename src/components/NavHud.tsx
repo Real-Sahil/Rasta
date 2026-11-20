@@ -5,6 +5,8 @@
 import React from 'react';
 import { RouteOption } from '../types';
 import { NavSession } from '../core/navigation';
+import { thenPhrase, thenText, tripProgress } from '../core/hud';
+import { VoiceLang } from '../core/phrases';
 import { useMobilityTheme } from './ThemeLayoutWrapper';
 import { useSkin, CHAMAK_STRIP } from './chamakSkin';
 import { LuceHud, NastaliqHud } from './SkinHuds';
@@ -61,7 +63,10 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
   const isCk = skin === 'chamak';
   const fontFor: Record<string, string> = { chamak: "'Yatra One', 'Plus Jakarta Sans', serif", miniature: "'Cormorant Garamond', Georgia, serif", nastaliq: "'Noto Nastaliq Urdu', 'Plus Jakarta Sans', serif" };
   const yatra = skinned && fontFor[skin] && (skin === 'nastaliq' || !isRtl) ? { fontFamily: fontFor[skin] } : undefined;
-  const { theme, language } = useMobilityTheme();
+  const { theme, language, t } = useMobilityTheme();
+  const then = thenPhrase(session, route);
+  const voiceLang: VoiceLang = language === 'ur' || language === 'pa' ? language : 'en';
+  const progress = tripProgress(session);
   const light = skinned && theme === 'light';
   // Quieter at speed: past 30 km/h the decoration shrinks so only the turn and distance stand out.
   const calm = skinned && speedKmh != null && speedKmh >= 30;
@@ -85,7 +90,7 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
             <span>{isRtl ? 'راستہ دوبارہ طے ہو رہا ہے…' : 'Off route, recalculating…'}</span>
           </div>
         )}
-        <div className={`flex items-center gap-2 border-b pb-3 ${chamak ? k.rule : 'border-white/10'}`}>
+        <div className="flex items-center gap-2">
           {/* Keyed by step: a new manoeuvre slides in from the reading side; the distance ticks without moving. */}
           <div key={session.upcomingStepIndex} className={`${isRtl ? 'anim-step-rtl' : 'anim-step'} flex items-center gap-2.5 min-w-0`}>
             <div className={chamak
@@ -102,8 +107,17 @@ export const NavHud: React.FC<NavHudProps> = ({ route, session, speedKmh, muted,
             <div className="min-w-0">
               <div className={chamak ? `text-2xl leading-none ${k.dist}` : 'font-display num text-[34px] font-extrabold leading-none'} style={yatra}>{fmtDistance(session.distanceToManeuverM)}</div>
               <p className={`text-sm sm:text-[15px] font-bold line-clamp-2 mt-1.5 ${chamak ? k.text : 'text-white/85'}`}>{isRtl ? step.instructionUrdu : step.instruction}</p>
+              {then && (
+                <p data-testid="hud-then" className={`text-xs font-bold mt-1 ${chamak ? k.text : 'text-white/60'}`}>{thenText(then, voiceLang, voiceLang === 'en' ? 'Then' : t.hudThen)}</p>
+              )}
             </div>
           </div>
+        </div>
+        {/* Trip progress: fills as the remaining distance shrinks. A width transition, nothing that loops. */}
+        <div role="progressbar" aria-label={isRtl ? 'سفر کی پیش رفت' : 'Trip progress'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}
+          className={`h-1 rounded-full overflow-hidden ${chamak ? 'bg-current/15' : 'bg-white/10'}`}>
+          <div className={`h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none ${chamak ? 'bg-current opacity-70' : 'bg-[color:var(--brand-hi)]'}`}
+            style={{ width: `${progress * 100}%` }} />
         </div>
         {voiceNotice && !muted && (
           <p role="status" className={`text-[11px] font-semibold ${chamak ? k.warn : 'text-amber-300'}`}>{voiceNotice}</p>

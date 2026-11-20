@@ -30,6 +30,7 @@ import { incidentSyncService, SyncStatusInfo } from './services/incidentSyncServ
 import { speechNavigator } from './services/speechNavigation';
 import { stepAnnouncement } from './core/announcer';
 import { fetchActiveIncidents, submitIncident, confirmIncident } from './services/incidentsApi';
+import { buzz } from './services/haptics';
 import { haversineM } from './core/geo';
 import { useAppStore, activeRouteOf } from './core/store';
 import { useGpsTracking } from './hooks/useGpsTracking';
@@ -324,7 +325,7 @@ function MainApp() {
 
   const handleConfirmIncident = (id: string) => {
     if (backend) {
-      confirmIncident(id).then(() => refreshRemote()).catch((e) => flash(e?.message ?? 'Could not confirm'));
+      confirmIncident(id).then(() => { buzz('confirm'); return refreshRemote(); }).catch((e) => flash(e?.message ?? 'Could not confirm'));
       return;
     }
     const updated = incidents.map((inc) =>

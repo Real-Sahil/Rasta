@@ -1,6 +1,8 @@
 // Stage 3 strings: emergency, conditions, fares. Urdu/Punjabi wording is a DRAFT pending native-speaker review.
 const Map<String, Map<String, String>> moreStrings = {
   'en': {
+    'hudThen': 'Then',
+    'tripProgress': 'Trip progress',
     'routeLoading': 'Finding routes…', 'myLocation': 'My location', 'currencyRs': 'Rs',
     'roadCred0': 'Credibility {n}%. No confirmations yet. Unofficial.', 'roadCred1': 'Credibility {n}% from 1 confirmation. Unofficial.',
     'roadJustNow': 'Just now', 'roadAgoH': '{h} h {m} min ago',
@@ -43,6 +45,8 @@ const Map<String, Map<String, String>> moreStrings = {
     'legalPrivacy2': 'Your GPS position stays on your phone, except when you ask for a route or place search: then the start and end points or your search words are sent to the free map services we use (OSRM / OpenStreetMap servers for routes; for place search, Geoapify through our own server, so Geoapify does not see your IP address, or Nominatim directly if our search is unavailable). Weather and air quality come from Open-Meteo, which receives the coordinates of the city you pick (or your position rounded to about 10 km when no listed city is near you), and map tiles from OpenFreeMap, which learns the area you are viewing and your IP address. For nearby hospitals and fuel stations, your position rounded to about 1 km goes through our server to Geoapify, which does not see your IP address. Each of those services has its own privacy policy. While you navigate, the app keeps using your location with the screen off and shows a notification; speech uses your phone\'s own voice engine.',
   },
   'ur': {
+    'hudThen': 'پھر',
+    'tripProgress': 'سفر کی پیش رفت',
     'routeLoading': 'راستے تلاش ہو رہے ہیں…', 'myLocation': 'میرا مقام', 'currencyRs': 'روپے',
     'roadCred0': 'اعتبار {n}٪۔ ابھی کوئی تصدیق نہیں۔ غیر سرکاری۔', 'roadCred1': 'ایک تصدیق سے اعتبار {n}٪۔ غیر سرکاری۔',
     'roadJustNow': 'ابھی ابھی', 'roadAgoH': '{h} گھنٹے {m} منٹ پہلے',
@@ -85,6 +89,8 @@ const Map<String, Map<String, String>> moreStrings = {
     'legalPrivacy2': 'آپ کی جی پی ایس لوکیشن آپ کے فون پر رہتی ہے، سوائے اس کے کہ آپ راستہ یا مقام تلاش کریں: تب آغاز اور منزل کے نقطے یا آپ کے الفاظ ہماری استعمال کردہ مفت نقشہ سروسز (راستے کے لیے OSRM / اوپن اسٹریٹ میپ سرورز؛ مقام کی تلاش کے لیے Geoapify ہمارے اپنے سرور کے ذریعے، اس لیے Geoapify آپ کا آئی پی ایڈریس نہیں دیکھتا، یا اگر ہماری تلاش دستیاب نہ ہو تو براہ راست Nominatim) کو بھیجے جاتے ہیں۔ موسم اور ہوا کا معیار Open-Meteo سے آتا ہے، جسے آپ کے منتخب شہر کے کوآرڈینیٹس ملتے ہیں (یا اگر آپ کے قریب کوئی درج شہر نہ ہو تو تقریباً ۱۰ کلومیٹر تک گول کیا گیا آپ کا مقام)، اور نقشے کی ٹائلز OpenFreeMap سے، جسے آپ کا دیکھا ہوا علاقہ اور آئی پی ایڈریس معلوم ہوتا ہے۔ قریبی ہسپتالوں اور پیٹرول پمپوں کے لیے آپ کا مقام، تقریباً ۱ کلومیٹر تک گول کر کے، ہمارے سرور کے ذریعے Geoapify کو جاتا ہے، جو آپ کا آئی پی ایڈریس نہیں دیکھتا۔ ہر سروس کی اپنی رازداری پالیسی ہے۔ نیویگیشن کے دوران ایپ اسکرین بند ہونے پر بھی آپ کا مقام استعمال کرتی ہے اور ایک نوٹیفکیشن دکھاتی ہے؛ آواز آپ کے فون کا اپنا انجن بولتا ہے۔',
   },
   'pa': {
+    'hudThen': 'فیر',
+    'tripProgress': 'سفر دی پیش رفت',
     'routeLoading': 'راہ لبھے جا رہے نیں…', 'myLocation': 'میری تھاں', 'currencyRs': 'روپے',
     'roadCred0': 'اعتبار {n}٪۔ حالے کوئی تصدیق نہیں۔ غیر سرکاری۔', 'roadCred1': 'اک تصدیق توں اعتبار {n}٪۔ غیر سرکاری۔',
     'roadJustNow': 'ہنے ہنے', 'roadAgoH': '{h} گھنٹے {m} منٹ پہلاں',

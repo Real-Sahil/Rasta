@@ -38,4 +38,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Short buzzes for the 200 m turn warning and arrival (navigator.vibrate in the WebView). Normal permission, no prompt. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

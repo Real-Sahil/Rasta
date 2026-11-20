@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart' show ThemeMode;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/announcer.dart';
+import '../core/hud.dart';
+import '../services/haptics.dart';
 import '../core/geo.dart';
 import '../core/navigation.dart';
 import '../core/phrases.dart';
@@ -271,6 +273,9 @@ class AppState extends ChangeNotifier {
       if (a != null) {
         _announced.add(a.key);
         speech.speak(a, voiceLang);
+        // The buzz comes even when muted: that's when a driver most needs a cue that doesn't need looking at.
+        final cue = hapticFor(a);
+        if (cue != null) buzz(cue);
       }
       if (s.status == NavStatus.arrived) {
         gps.stop();

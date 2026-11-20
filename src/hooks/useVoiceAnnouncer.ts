@@ -5,6 +5,8 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../core/store';
 import { speechNavigator } from '../services/speechNavigation';
+import { buzz } from '../services/haptics';
+import { hapticFor } from '../core/hud';
 import { Language } from '../types';
 
 /**
@@ -26,7 +28,11 @@ export function useVoiceAnnouncer(language: Language) {
   }, [language, muted]);
 
   useEffect(() => {
-    if (!announcement || muted) return;
+    if (!announcement) return;
+    // The buzz comes even when muted: that's when a driver most needs a cue that doesn't need looking at.
+    const cue = hapticFor(announcement);
+    if (cue) buzz(cue);
+    if (muted) return;
     speechNavigator.speakAnnouncement(announcement, true);
   }, [announcement?.seq]);
 

@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../core/hud.dart' show HapticCue;
+import '../services/haptics.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/geo.dart';
@@ -97,6 +99,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
       await (confirm ? widget.api.confirm(i.id) : widget.api.flag(i.id));
       if (!mounted) return;
       if (confirm) {
+        buzz(HapticCue.confirm);
         setState(() => _items = [for (final x in _items!) x.id == i.id ? x.copyWith(confirmations: x.confirmations + 1, confirmed: true) : x]);
       } else {
         setState(() => _items = _items!.where((x) => x.id != i.id).toList());

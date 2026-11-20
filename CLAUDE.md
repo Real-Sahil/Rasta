@@ -136,3 +136,8 @@ Transit station list is incomplete and fares are estimates; no transit routing; 
 - Flutter `standardTheme()`: pill FilledButton with a slight sheen (`backgroundBuilder`), ink nav indicator and chips, 22 px cards, 18 px inputs; HUD card `BuraqTokens.hud` with the yellow turn tile. `test/skin_test.dart` checks the token contrast.
 - No photo uploads on reports: deliberately left out to keep server and storage use down.
 - Never show UI that does nothing or claims what isn't true (removed: a "verified" badge nothing set, a photo box with no upload, SOS copy promising mechanics).
+
+## Driving extras: haptics, "Then…" line, trip progress
+- `src/core/hud.ts` / `mobile/lib/core/hud.dart` (pure, tested, keep in step): `thenPhrase` shows "Then turn right" only when the following manoeuvre is ≤ 300 m after the upcoming one (not for "straight"); `tripProgress` = along / total, 1 on arrival; `hapticFor` maps the 200 m prompt → turn buzz, arrival → double buzz.
+- Web: `services/haptics.ts` (`navigator.vibrate`, silently ignored where unsupported, e.g. iPhone browsers); Capacitor manifest has `VIBRATE`. Flutter: `services/haptics.dart` (`HapticFeedback`). Buzzes fire even when voice is muted; a confirmed report gives a light tap.
+- The then-line and progress bar live in the standard HUD (and the skinned card); the Luce dial and Nastaliq poster HUDs are unchanged. "Then" in Urdu/Punjabi is a draft like the rest of the phrases.

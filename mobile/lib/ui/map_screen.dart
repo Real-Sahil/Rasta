@@ -10,6 +10,7 @@ import '../core/coverage.dart';
 import '../core/flood.dart';
 import '../core/saved_places.dart';
 import '../core/geo.dart';
+import '../core/hud.dart';
 import '../core/navigation.dart';
 import '../core/routing.dart' show RouteSource;
 import '../core/share_trip.dart';
@@ -718,6 +719,8 @@ class NavHud extends StatelessWidget {
     final sub = skinned ? pal.sub : Colors.white.withValues(alpha: 0.82);
     final dist = skinned ? pal.accent : Colors.white;
     final radius = app.skin == 'schematic' ? 4.0 : (app.skin == 'miniature' ? 10.0 : 16.0);
+    final then = thenPhrase(s, r);
+    final progress = tripProgress(s);
     final icon = Icon(arrived ? Icons.flag : _icon(step?.maneuver ?? 'straight'), color: skinned ? pal.onBadge : BuraqTokens.hud, size: skinned ? 40 : 34);
     return Column(mainAxisSize: MainAxisSize.min, children: [
       Material(
@@ -764,9 +767,25 @@ class NavHud extends StatelessWidget {
                     ),
                   Text(arrived ? tr(lang, 'arrived') : (off ? tr(lang, 'offRoute') : formatDistance(s.distanceToManeuverM, lang)), style: TextStyle(color: dist, fontSize: app.skin == 'luce' ? 30 : (skinned ? 26 : 32), fontWeight: app.skin == 'luce' ? FontWeight.w200 : (skinned ? FontWeight.bold : FontWeight.w800), fontFeatures: const [FontFeature.tabularFigures()], height: 1.1)),
                   if (!arrived && !off && step != null) Text(lang == 'en' ? step.instruction : step.instructionUrdu, style: TextStyle(color: sub, fontSize: 15), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  if (then != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(thenText(then, app.voiceLang, tr(lang, 'hudThen')), key: const Key('hud-then'), style: TextStyle(color: sub.withValues(alpha: 0.75), fontSize: 13, fontWeight: FontWeight.w700)),
+                    ),
                 ]),
               ),
             ]),
+            ),
+          ),
+          // Trip progress: fills as the remaining distance shrinks; animates only the width, nothing loops.
+          Semantics(
+            label: tr(lang, 'tripProgress'),
+            value: '${(progress * 100).round()}%',
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(end: progress),
+              duration: motionMs(context, 700),
+              curve: kEaseOut,
+              builder: (_, v, _) => LinearProgressIndicator(value: v, minHeight: 4, backgroundColor: Colors.white.withValues(alpha: skinned ? 0.0 : 0.1), color: skinned ? pal.accent : const Color(0xFF1DAE72)),
             ),
           ),
         ]),
