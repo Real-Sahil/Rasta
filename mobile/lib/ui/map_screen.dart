@@ -203,6 +203,17 @@ class _MapScreenState extends State<MapScreen> {
     ));
   }
 
+  Future<void> _locate() async {
+    final v = app.vehicle;
+    if (v == null || _map == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(app.lang, 'noFix'))));
+      return;
+    }
+    try {
+      await _map!.animateCamera(ml.CameraUpdate.newLatLngZoom(_ll(v), 16));
+    } catch (_) {}
+  }
+
   void _enterFreeLook() {
     if (!app.navigating) return;
     setState(() => _freeLook = true);
@@ -250,11 +261,19 @@ class _MapScreenState extends State<MapScreen> {
                 child: app.navigating ? NavHud(app: app) : SearchPanel(app: app),
               ),
             ),
-            if (!app.navigating)
+            // Browsing only: once a destination is chosen the bottom of the screen belongs to the route sheet (these used
+            // to sit at a guessed offset and overlap a tall sheet and the GPS notice).
+            if (!app.navigating && app.destination == null)
               Positioned(
                 right: 12,
-                bottom: app.route != null ? 200 : 24,
-                child: _FloodPanel(lang: lang, on: _flood, failed: _floodFailed, events: _floodEvents, onChanged: _toggleFlood),
+                bottom: 24,
+                child: SafeArea(
+                  child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    FloatingActionButton.small(heroTag: 'locate', tooltip: tr(lang, 'myLocation'), onPressed: _locate, child: const Icon(Icons.my_location)),
+                    const SizedBox(height: 8),
+                    _FloodPanel(lang: lang, on: _flood, failed: _floodFailed, events: _floodEvents, onChanged: _toggleFlood),
+                  ]),
+                ),
               ),
             if (_freeLook && app.navigating)
               Positioned(
@@ -264,8 +283,9 @@ class _MapScreenState extends State<MapScreen> {
                 child: Center(child: FilledButton.icon(onPressed: _recenter, icon: const Icon(Icons.navigation), label: Text(tr(lang, 'recenter')))),
               ),
             if (!app.navigating && app.route != null) Align(alignment: Alignment.bottomCenter, child: RouteSheet(app: app)),
-            if (app.gpsProblem != GpsProblem.none && !app.navigating)
-              Positioned(left: 12, right: 12, bottom: app.route != null ? 190 : 24, child: _Notice(text: tr(lang, 'permission'))),
+            // A destination without a route yet: say what is happening (loading, or waiting for GPS) instead of nothing.
+            if (!app.navigating && app.destination != null && app.route == null)
+              Align(alignment: Alignment.bottomCenter, child: _RouteStatus(lang: lang, loading: app.loadingRoutes, noticeKey: app.noticeKey)),
           ]),
         );
       },
@@ -314,6 +334,33 @@ class _FloodPanel extends StatelessWidget {
   }
 }
 
+class _RouteStatus extends StatelessWidget {
+  const _RouteStatus({required this.lang, required this.loading, required this.noticeKey});
+  final String lang;
+  final bool loading;
+  final String? noticeKey;
+  @override
+  Widget build(BuildContext context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: loading
+              ? Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(children: [
+                      const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5)),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(tr(lang, 'routeLoading'))),
+                    ]),
+                  ),
+                )
+              : (noticeKey == null ? const SizedBox.shrink() : _Notice(text: tr(lang, noticeKey!))),
+        ),
+      );
+}
+
 class _Notice extends StatelessWidget {
   const _Notice({required this.text});
   final String text;
@@ -348,7 +395,6 @@ class _SearchPanelState extends State<SearchPanel> {
   bool _hadRoute = false;
   Timer? _debounce;
   String? _error;
-  String _errorDetail = '';
 
   AppState get app => widget.app;
 
@@ -388,15 +434,14 @@ class _SearchPanelState extends State<SearchPanel> {
         setState(() {
           _results = r;
           _error = r.isEmpty && q.trim().length >= 2 ? 'noResults' : null;
-          _errorDetail = '';
         });
       } on SearchException catch (e) {
         // the query itself is never reported, only the kind of failure
         errorReporter.report('caught', '${e.busy ? 'busy' : 'offline'}: ${e.detail}', null, 'search');
-        if (mounted) setState(() { _results = const []; _error = e.busy ? 'searchBusy' : 'offline'; _errorDetail = e.detail; });
+        if (mounted) setState(() { _results = const []; _error = e.busy ? 'searchBusy' : 'offline'; });
       } catch (e, st) {
         errorReporter.report('caught', e, st, 'search');
-        if (mounted) setState(() { _results = const []; _error = 'searchBusy'; _errorDetail = '${e.runtimeType}'; });
+        if (mounted) setState(() { _results = const []; _error = 'searchBusy'; });
       }
     });
   }
@@ -504,7 +549,9 @@ class _SearchPanelState extends State<SearchPanel> {
           _pick(p);
         }),
       if (outsidePakistan(app.fix?.point)) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, 'outsidePk'))),
-      if (_error != null && _results.isEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: _errorDetail.isEmpty ? tr(lang, _error!) : '${tr(lang, _error!)}\n($_errorDetail)')),
+      // Plain words only: the technical detail goes to the error report, not to the person searching.
+      if (_error != null && _results.isEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, _error!))),
+      if (app.gpsProblem != GpsProblem.none) Padding(padding: const EdgeInsets.only(top: 8), child: _Notice(text: tr(lang, 'permission'))),
     ]);
   }
 }
@@ -571,7 +618,10 @@ class RouteSheet extends StatelessWidget {
     final lang = app.lang;
     final r = app.route!;
     final support = app.speech.support(app.voiceLang);
-    return Material(
+    // At most ~half the screen: in Urdu or with large text the sheet used to grow over the search box and push Start away.
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.55),
+      child: Material(
       elevation: 8,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       child: SafeArea(
@@ -579,9 +629,12 @@ class RouteSheet extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (app.routes.length > 1)
               Wrap(spacing: 8, children: [
-                for (var i = 0; i < app.routes.length; i++) ChoiceChip(label: Text('${app.routes[i].durationMinutes} ${tr(lang, 'min')}'), selected: app.selected == i, onSelected: (_) => app.selectRoute(i)),
+                for (var i = 0; i < app.routes.length; i++) ChoiceChip(label: Text('${app.routes[i].durationMinutes} ${tr(lang, 'min')} · ${app.routes[i].distanceKm} ${tr(lang, 'km')}'), selected: app.selected == i, onSelected: (_) => app.selectRoute(i)),
               ]),
             const SizedBox(height: 6),
             Text('${r.durationMinutes} ${tr(lang, 'min')}  ·  ${r.distanceKm} ${tr(lang, 'km')}', style: Theme.of(context).textTheme.headlineSmall),
@@ -605,6 +658,9 @@ class RouteSheet extends StatelessWidget {
             if (lang != 'en') Padding(padding: const EdgeInsets.only(top: 8), child: Text(tr(lang, 'draft'), style: Theme.of(context).textTheme.bodySmall)),
             if (app.routeSource == RouteSource.network && (app.origin?.point ?? app.fix?.point) != null)
               FareCompare(lang: lang, route: r, lahore: inLahoreArea(app.origin?.point ?? app.fix!.point)),
+                ]),
+              ),
+            ),
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
@@ -616,6 +672,7 @@ class RouteSheet extends StatelessWidget {
             ),
           ]),
         ),
+      ),
       ),
     );
   }

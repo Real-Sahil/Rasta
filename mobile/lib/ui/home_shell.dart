@@ -10,7 +10,7 @@ import 'info_screen.dart';
 import 'map_screen.dart';
 import 'transit_screen.dart';
 
-/// Four tabs. The bar hides while navigating so the HUD keeps the whole screen. IndexedStack keeps the map alive.
+/// Five tabs. The bar hides while navigating so the HUD keeps the whole screen. IndexedStack keeps the map alive.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, required this.app, required this.api});
   final AppState app;
@@ -35,7 +35,7 @@ class _HomeShellState extends State<HomeShell> {
             MapScreen(app: app),
             IncidentsScreen(app: app, api: widget.api, active: tab == 1),
             TransitScreen(app: app, api: widget.api, active: tab == 2, onRouteTo: () => setState(() => _tab = 0)),
-            EmergencyScreen(app: app),
+            EmergencyScreen(app: app, onRouteTo: () => setState(() => _tab = 0)),
             InfoScreen(app: app),
           ]),
           bottomNavigationBar: app.navigating

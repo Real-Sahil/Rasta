@@ -9,6 +9,7 @@ import '../core/coverage.dart';
 import '../core/geo.dart';
 import '../l10n.dart';
 import '../services/nearby_service.dart';
+import '../services/search_service.dart' show Place;
 import '../state/app_state.dart';
 import 'map_screen.dart' show formatDistance;
 
@@ -28,8 +29,9 @@ class _Shown {
 }
 
 class EmergencyScreen extends StatefulWidget {
-  const EmergencyScreen({super.key, required this.app, this.nearby});
+  const EmergencyScreen({super.key, required this.app, this.nearby, this.onRouteTo});
   final AppState app;
+  final VoidCallback? onRouteTo; // switch to the map once a destination is set
   final NearbyService? nearby;
   @override
   State<EmergencyScreen> createState() => _EmergencyScreenState();
@@ -61,6 +63,12 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       _shown = _resolve(kind, here);
     }
     return _shown!;
+  }
+
+  /// Directions to a hospital or fuel station: the list used to be read-only, which left people copying names into search.
+  Future<void> _routeTo(Poi p) async {
+    widget.onRouteTo?.call();
+    await widget.app.setDestination(Place(id: 'poi-${p.id}', name: p.label(widget.app.lang), detail: p.address ?? '', point: p.point));
   }
 
   void _note(String key) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(widget.app.lang, key))));
@@ -140,7 +148,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                     if (n.poi.emergency == true) tr(lang, 'sosEmergency'),
                     if (n.poi.open24h == true) tr(lang, 'sos24'),
                   ].join(' · ')),
-                  trailing: n.poi.phone == null ? null : TextButton.icon(onPressed: () => _call(n.poi.phone!), icon: const Icon(Icons.call, size: 16), label: Text(tr(lang, 'sosCall'))),
+                  trailing: n.poi.phone == null ? const Icon(Icons.directions) : TextButton.icon(onPressed: () => _call(n.poi.phone!), icon: const Icon(Icons.call, size: 16), label: Text(tr(lang, 'sosCall'))),
+                  onTap: () => _routeTo(n.poi),
                 ),
               const SizedBox(height: 8),
               Text(

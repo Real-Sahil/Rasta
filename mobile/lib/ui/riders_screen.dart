@@ -121,7 +121,7 @@ class _RidersScreenState extends State<RidersScreen> {
         TextField(
           controller: _value,
           keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: _kind == 'fare' ? 'Rs' : tr(lang, 'min')),
+          decoration: InputDecoration(labelText: _kind == 'fare' ? tr(lang, 'currencyRs') : tr(lang, 'min')),
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 12),

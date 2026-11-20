@@ -66,8 +66,6 @@ class InfoScreen extends StatelessWidget {
         const Divider(),
         const SizedBox(height: 8),
         Text(tr(lang, 'infoCredit'), style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 8),
-        Text(tr(lang, 'infoVersion'), style: Theme.of(context).textTheme.bodySmall),
       ]),
     );
   }

@@ -24,6 +24,17 @@ String reportErrorKey(Object e, {String fallback = 'roadFail'}) {
   return code == 'duplicate_report' ? 'roadDup' : code == 'rate_limited' ? 'roadLimit' : fallback;
 }
 
+/// "Just now", "12 min ago", "3 h 20 min ago" (reports live up to 6 h, so "200 min ago" read badly).
+String ageLabel(String lang, int mins) => mins < 1
+    ? tr(lang, 'roadJustNow')
+    : mins < 60
+        ? tr(lang, 'roadAgo').replaceAll('{m}', '$mins')
+        : tr(lang, 'roadAgoH').replaceAll('{h}', '${mins ~/ 60}').replaceAll('{m}', '${mins % 60}');
+
+/// "No confirmations yet" / "1 confirmation" / "{c} confirmations".
+String credLabel(String lang, int credibility, int confirmations) =>
+    tr(lang, confirmations == 0 ? 'roadCred0' : (confirmations == 1 ? 'roadCred1' : 'roadCred')).replaceAll('{n}', '$credibility').replaceAll('{c}', '$confirmations');
+
 /// Community road reports. Polls every 20 s while this tab is shown, like the web app.
 class IncidentsScreen extends StatefulWidget {
   const IncidentsScreen({super.key, required this.app, required this.api, required this.active});
@@ -152,7 +163,7 @@ class _IncidentTile extends StatelessWidget {
       tr(lang, _catKey[i.category]!),
       if (i.locationName != null) i.locationName!,
       if (from != null) tr(lang, 'roadAway').replaceAll('{d}', formatDistance(haversineM(from!, i.point), lang)),
-      tr(lang, 'roadAgo').replaceAll('{m}', '$mins'),
+      ageLabel(lang, mins),
     ];
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -169,7 +180,7 @@ class _IncidentTile extends StatelessWidget {
           if (i.description.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(i.description)),
           if (i.advice != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(i.advice!, style: const TextStyle(fontStyle: FontStyle.italic))),
           const SizedBox(height: 6),
-          Text(tr(lang, 'roadCred').replaceAll('{n}', '${i.credibility}').replaceAll('{c}', '${i.confirmations}'), style: Theme.of(context).textTheme.labelSmall),
+          Text(credLabel(lang, i.credibility, i.confirmations), style: Theme.of(context).textTheme.labelSmall),
           const SizedBox(height: 4),
           Wrap(spacing: 8, children: [
             if (i.mine)

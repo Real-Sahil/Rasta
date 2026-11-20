@@ -105,9 +105,13 @@ class _SafetyGateState extends State<SafetyGate> {
     final lang = widget.app.lang;
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
+        // Scrolls: with large system text on a small phone the button was pushed off-screen and the app couldn't be entered.
+        child: LayoutBuilder(
+          builder: (context, box) => SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: box.maxHeight - 48),
+              child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -124,6 +128,8 @@ class _SafetyGateState extends State<SafetyGate> {
               const SizedBox(height: 24),
               FilledButton(onPressed: _accept, child: Text(tr(lang, 'ok'))),
             ],
+              ),
+            ),
           ),
         ),
       ),

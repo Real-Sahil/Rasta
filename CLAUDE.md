@@ -108,6 +108,12 @@ Transit station list is incomplete and fares are estimates; no transit routing; 
 - `mobile/lib/l10n_web.dart` is **generated** from `src/data/locales.ts` (`node mobile/tool/gen_web_strings.mjs`); mobile-only strings live in `l10n_app.dart` (incl. mobile-specific privacy paragraphs 2 and 4: first-party error reports, device-only saved places, background location notice). Reporting needs a real GPS fix. API base defaults to the production site (`--dart-define=API_BASE=...` to override).
 - Bundled OSM data: `mobile/assets/osm/*.json` are copies of `src/data/osm/*.json`; a test fails if they differ (also for the flood file). Refresh with `node mobile/tool/sync_osm.mjs` after `npm run data:osm` / `npm run data:flood`. Stage 3 strings live in `l10n_more.dart` and override older tables in `tr()`. Privacy copy now names Open-Meteo: keep it in step with any new host. iOS deployment target is 15.5 (required by `maplibre_gl`).
 
+## Flutter UI rules (from the Nov 2026 audit)
+- Every full-screen column scrolls: the first-run notice once overflowed at 130% text on a 360x640 phone and the button couldn't be reached (`test/ui_audit_test.dart` guards it). The route sheet is capped at ~55% of the screen with Start pinned.
+- Map overlays don't use guessed offsets: the my-location button and flood panel show only while browsing; GPS/search notices sit in the search column; a destination with no route yet shows "Finding routes…" or the reason (e.g. waiting for GPS) instead of nothing.
+- No technical detail (exception names) in user-facing text; it goes to the error report. Report ages read "3 h 20 min ago"; credibility text agrees with the count (0 / 1 / n).
+- Nearby hospitals/fuel in the Emergency tab route on tap, like transit stations.
+
 ## Themes / skins (optional; Luce, Miniature, Schematic, Chamak, Nastaliq)
 - Off by default ("Standard"). Header palette button (web) opens a list of all six; Info tab chips (Flutter). `?skin=<name>|default` also works on web. Web state: `src/components/chamakSkin.ts` (`SKINS`, `useSkin`/`setSkin`, localStorage `buraq.skin`, mirrored to `<html data-skin>`); picker: `SkinPicker.tsx`.
 - Chrome only: header, bottom sheet, bottom nav, Start button and the driving HUD (`NavHud` palette table `HUD`, follows light/dark). The map, search box and data views stay plain so the road is the focus. Add new chrome by adding a `skin-*` class and CSS under the skin blocks in `index.css`, never by branching components.

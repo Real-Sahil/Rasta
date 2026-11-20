@@ -37,7 +37,6 @@ const Map<String, Map<String, String>> appStrings = {
     'infoLegal': 'Safety, privacy & terms',
     'infoLang': 'Language',
     'infoCredit': 'Map data © OpenStreetMap contributors (ODbL). Tiles: OpenFreeMap.',
-    'infoVersion': 'Buraq Pakistan mobile, early version: map, navigation, road reports and rider reports. More screens are coming.',
     'legalPrivacy4': 'This app does not send crash reports or analytics. Settings are kept on your phone only; clear the app\'s storage or uninstall it to remove them.',
   },
   'ur': {
@@ -77,7 +76,6 @@ const Map<String, Map<String, String>> appStrings = {
     'infoLegal': 'حفاظت، رازداری اور شرائط',
     'infoLang': 'زبان',
     'infoCredit': 'نقشے کا ڈیٹا © اوپن اسٹریٹ میپ کے معاونین (ODbL)۔ ٹائلز: OpenFreeMap۔',
-    'infoVersion': 'براق پاکستان موبائل، ابتدائی ورژن: نقشہ، نیویگیشن، سڑک کی اطلاعات اور مسافروں کی رپورٹس۔ مزید اسکرینیں آ رہی ہیں۔',
     'legalPrivacy4': 'یہ ایپ کریش رپورٹس یا اینالیٹکس نہیں بھیجتی۔ سیٹنگز صرف آپ کے فون پر رہتی ہیں؛ انہیں ہٹانے کے لیے ایپ کا اسٹوریج صاف کریں یا اسے ان انسٹال کریں۔',
   },
   'pa': {
@@ -117,7 +115,6 @@ const Map<String, Map<String, String>> appStrings = {
     'infoLegal': 'حفاظت، پرائیویسی تے شرطاں',
     'infoLang': 'بولی',
     'infoCredit': 'نقشے دا ڈیٹا © اوپن اسٹریٹ میپ دے حصہ پاؤن والے (ODbL)۔ ٹائلاں: OpenFreeMap۔',
-    'infoVersion': 'براق پاکستان موبائل، شروعاتی ورژن: نقشہ، نیویگیشن، سڑک دیاں خبراں تے سواریاں دیاں رپورٹاں۔ ہور سکرینیں آ رہیاں نیں۔',
     'legalPrivacy4': 'ایہ ایپ کریش رپورٹاں یا اینالیٹکس نہیں گھلدی۔ سیٹنگاں صرف تہاڈے فون تے رہندیاں نیں؛ ہٹاؤن لئی ایپ دا اسٹوریج صاف کرو یا اینوں ان انسٹال کرو۔',
   },
 };
