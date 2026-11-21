@@ -141,3 +141,8 @@ Transit station list is incomplete and fares are estimates; no transit routing; 
 - `src/core/hud.ts` / `mobile/lib/core/hud.dart` (pure, tested, keep in step): `thenPhrase` shows "Then turn right" only when the following manoeuvre is ≤ 300 m after the upcoming one (not for "straight"); `tripProgress` = along / total, 1 on arrival; `hapticFor` maps the 200 m prompt → turn buzz, arrival → double buzz.
 - Web: `services/haptics.ts` (`navigator.vibrate`, silently ignored where unsupported, e.g. iPhone browsers); Capacitor manifest has `VIBRATE`. Flutter: `services/haptics.dart` (`HapticFeedback`). Buzzes fire even when voice is muted; a confirmed report gives a light tap.
 - The then-line and progress bar live in the standard HUD (and the skinned card); the Luce dial and Nastaliq poster HUDs are unchanged. "Then" in Urdu/Punjabi is a draft like the rest of the phrases.
+
+## Flutter performance and theme switching
+- Test APKs must be **release** builds (`flutter build apk --release`, artifact `buraq-flutter-apk`): the old debug APK was several times slower and runs assertions. Judge speed only on a release build.
+- `MaterialApp.themeAnimationDuration` is zero: the light/dark blend threw a TextStyle-lerp assertion in debug (red error screen) and rebuilt every screen for 200 ms. `test/theme_switch_test.dart` switches theme and skins and fails on any exception.
+- `AppState.onFix` notifies every fix only while navigating (the HUD needs it); when browsing it notifies on the first fix and then at most every 2 s, because every tab rebuilds on each notification.

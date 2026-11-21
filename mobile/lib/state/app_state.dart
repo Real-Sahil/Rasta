@@ -262,7 +262,10 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  DateTime _lastIdleNotify = DateTime.fromMillisecondsSinceEpoch(0);
+
   void onFix(Fix f) {
+    final first = fix == null;
     fix = f;
     final r = route;
     var s = session;
@@ -282,6 +285,11 @@ class AppState extends ChangeNotifier {
       } else if (s.status == NavStatus.offRoute) {
         _reroute(f);
       }
+    } else if (!first) {
+      // Browsing: no screen needs a repaint every second (a fix arrives about once a second and every tab rebuilt for it).
+      final now = DateTime.now();
+      if (now.difference(_lastIdleNotify).inMilliseconds < 2000) return;
+      _lastIdleNotify = now;
     }
     notifyListeners();
   }

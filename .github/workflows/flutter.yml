@@ -30,11 +30,13 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
-      - run: flutter build apk --debug
+      # Release, not debug: a debug build runs interpreted with assertions on and is several times slower on a phone.
+      # Without the upload key it is signed with the debug key, so it installs for testing but is not a store build.
+      - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
-          name: buraq-flutter-debug-apk
-          path: mobile/build/app/outputs/flutter-apk/app-debug.apk
+          name: buraq-flutter-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
 
   ios:

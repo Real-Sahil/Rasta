@@ -62,6 +62,9 @@ class _BuraqAppState extends State<BuraqApp> {
         theme: buildTheme(skin: app.skin, brightness: Brightness.light),
         darkTheme: buildTheme(skin: app.skin, brightness: Brightness.dark),
         themeMode: app.themeMode,
+        // No blend between the old and new theme: the blend rebuilt every screen for 200 ms and, in debug builds,
+        // threw a TextStyle assertion when the look changed (the red error screen).
+        themeAnimationDuration: Duration.zero,
         builder: (context, child) => Directionality(textDirection: isRtl(app.lang) ? TextDirection.rtl : TextDirection.ltr, child: child!),
         home: SafetyGate(app: app, child: HomeShell(app: app, api: api)),
       ),
