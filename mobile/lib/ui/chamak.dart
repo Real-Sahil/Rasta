@@ -190,7 +190,21 @@ ThemeData buildTheme({required String skin, required Brightness brightness}) {
       backgroundColor: p.paper,
       indicatorColor: skin == 'chamak' ? kChamakRed : p.accent.withValues(alpha: 0.2),
       iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(color: s.contains(WidgetState.selected) ? (skin == 'chamak' ? Colors.white : p.accent) : p.sub)),
+      labelTextStyle: WidgetStateProperty.resolveWith((s) => TextStyle(fontSize: 11, fontWeight: s.contains(WidgetState.selected) ? FontWeight.w800 : FontWeight.w600, color: p.ink)),
     ),
+    // The same kinds of text style as standardTheme (plain TextStyle, inherit: true), only recoloured. Chips, buttons
+    // and list tiles animate their text style when the look changes; a plain style on one side and a full theme style
+    // on the other can't be blended, which threw the red error screen when switching Standard <-> a skin.
+    chipTheme: ChipThemeData(
+      labelStyle: TextStyle(color: p.ink, fontWeight: FontWeight.w700),
+      secondaryLabelStyle: TextStyle(color: p.ink, fontWeight: FontWeight.w700),
+    ),
+    filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(textStyle: const TextStyle(fontWeight: FontWeight.w700))),
+    textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(textStyle: const TextStyle(fontWeight: FontWeight.w700))),
+    segmentedButtonTheme: SegmentedButtonThemeData(style: SegmentedButton.styleFrom(textStyle: const TextStyle(fontWeight: FontWeight.w700))),
+    listTileTheme: ListTileThemeData(titleTextStyle: TextStyle(color: p.ink, fontSize: 15, fontWeight: FontWeight.w700)),
+    snackBarTheme: SnackBarThemeData(contentTextStyle: TextStyle(color: scheme.onInverseSurface, fontWeight: FontWeight.w600)),
   );
 }
 
