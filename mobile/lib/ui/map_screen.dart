@@ -231,34 +231,38 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // The map is built once here and handed to the builder unchanged, so a GPS fix (once a second while driving)
+    // rebuilds the overlays and HUD but never the native map widget.
+    final map = Listener(
+      onPointerDown: (e) => _pointerStart = e.position,
+      onPointerMove: (e) {
+        final s = _pointerStart;
+        if (s != null && (e.position - s).distance > 12) _enterFreeLook();
+      },
+      child: ml.MapLibreMap(
+        styleString: _style,
+        initialCameraPosition: const ml.CameraPosition(target: ml.LatLng(30.3753, 69.3451), zoom: 4.5), // whole of Pakistan, not a city
+        onMapCreated: (c) => _map = c,
+        onStyleLoadedCallback: () {
+          _styleReady = true;
+          _floodIds.clear(); // a (re)loaded style has none of our layers
+          _applyFlood();
+          _sync();
+        },
+        compassEnabled: false,
+        attributionButtonPosition: ml.AttributionButtonPosition.bottomLeft,
+        // The "i" button is moved off-screen; a plain "© OpenStreetMap" line below keeps the ODbL credit visible.
+        attributionButtonMargins: const math.Point(-200, -200),
+      ),
+    );
     return ListenableBuilder(
       listenable: app,
-      builder: (context, _) {
+      child: map,
+      builder: (context, map) {
         final lang = app.lang;
         return Scaffold(
           body: Stack(children: [
-            Listener(
-              onPointerDown: (e) => _pointerStart = e.position,
-              onPointerMove: (e) {
-                final s = _pointerStart;
-                if (s != null && (e.position - s).distance > 12) _enterFreeLook();
-              },
-              child: ml.MapLibreMap(
-                styleString: _style,
-                initialCameraPosition: const ml.CameraPosition(target: ml.LatLng(30.3753, 69.3451), zoom: 4.5), // whole of Pakistan, not a city
-                onMapCreated: (c) => _map = c,
-                onStyleLoadedCallback: () {
-                  _styleReady = true;
-                  _floodIds.clear(); // a (re)loaded style has none of our layers
-                  _applyFlood();
-                  _sync();
-                },
-                compassEnabled: false,
-                attributionButtonPosition: ml.AttributionButtonPosition.bottomLeft,
-                // The "i" button is moved off-screen; a plain "© OpenStreetMap" line below keeps the ODbL credit visible.
-                attributionButtonMargins: const math.Point(-200, -200),
-              ),
-            ),
+            map!,
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(12),

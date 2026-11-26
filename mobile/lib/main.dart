@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'l10n.dart';
 import 'state/app_state.dart';
+import 'state/app_watch.dart';
 import 'services/api_client.dart';
 import 'services/error_reporter.dart';
 import 'services/reports_api.dart';
@@ -54,8 +55,10 @@ class _BuraqAppState extends State<BuraqApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: app,
+    // Only a change of language or look rebuilds the app root (and its themes); GPS fixes don't.
+    return AppWatch(
+      app: app,
+      select: (a) => (a.lang, a.skin, a.themeMode),
       builder: (context, _) => MaterialApp(
         title: tr(app.lang, 'appName'),
         debugShowCheckedModeBanner: false,
